@@ -1,0 +1,35 @@
+<%@ jet 
+	imports="
+		org.talend.core.model.process.INode  
+		org.talend.core.model.process.ElementParameterParser
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+	"
+%>
+
+<%
+	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+	INode node = (INode)codeGenArgument.getArgument();
+	String cid = node.getUniqueName();
+	boolean singleInstance = "true".equals(ElementParameterParser.getValue(node, "__SINGLE_INSTANCE__"));
+	boolean useExistingConnections = "true".equals(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
+	boolean closeConnections = "true".equals(ElementParameterParser.getValue(node, "__CLOSE_CONNECTIONS__"));
+    if (singleInstance == false && useExistingConnections == false) {%>
+	// disconnect
+	<%=cid%>.disconnect();
+<%  } else if (useExistingConnections && closeConnections) { %>
+	try {
+		if (<%=cid%>.getSourceConnection() != null) {
+			<%=cid%>.getSourceConnection().close();
+		}
+	} catch (Exception e) {
+		System.err.println("Closing source connection failed:" + e.getMessage());
+	}
+	try {
+		if (<%=cid%>.getTargetConnection() != null) {
+			<%=cid%>.getTargetConnection().close();
+		}
+	} catch (Exception e) {
+		System.err.println("Closing target connection failed:" + e.getMessage());
+	}
+<%  } %>
+	

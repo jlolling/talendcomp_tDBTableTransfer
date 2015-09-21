@@ -1,0 +1,131 @@
+<%@ jet 
+	imports="
+		org.talend.core.model.process.INode  
+		org.talend.core.model.process.ElementParameterParser
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+	"
+%>
+
+<%
+	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+	INode node = (INode)codeGenArgument.getArgument();
+	String cid = node.getUniqueName();
+	String sourceFetchSize = ElementParameterParser.getValue(node, "__SOURCE_FETCHSIZE__");
+	String targetBatchSize = ElementParameterParser.getValue(node, "__TARGET_BATCHSIZE__");
+	String sourceUseQuery = ElementParameterParser.getValue(node, "__USE_QUERY__");
+	boolean useQuery = Boolean.parseBoolean(sourceUseQuery);
+	String targetTable = ElementParameterParser.getValue(node, "__TARGET_TABLE__");
+	String sourceQuery = ElementParameterParser.getValue(node, "__SOURCE_QUERY__");
+	if (sourceQuery != null) {
+		sourceQuery = sourceQuery.replaceAll("\r\n","\\\\n").replaceAll("\n","\\\\n");
+	}
+	String sourceTable = ElementParameterParser.getValue(node, "__SOURCE_TABLE__");
+	String sourceTableWhere = ElementParameterParser.getValue(node, "__SOURCE_WHERE__");
+	String dieOnError = ElementParameterParser.getValue(node, "__DIE_ON_ERROR__");
+	String logIntervalStr = ElementParameterParser.getValue(node, "__LOG_INTERVAL__");
+	if (logIntervalStr == null || logIntervalStr.isEmpty()) {
+		logIntervalStr = "10";
+	}
+	String logoutQuery = ElementParameterParser.getValue(node, "__LOG_QUERY_SQL__");
+	String logoutInsert = ElementParameterParser.getValue(node, "__LOG_INSERT_SQL__");
+	String singleInstance = ElementParameterParser.getValue(node, "__SINGLE_INSTANCE__");
+	String useExistingConnections = ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__");
+	String sourceHost = ElementParameterParser.getValue(node, "__SOURCE_HOST__");
+	String sourcePort = ElementParameterParser.getValue(node, "__SOURCE_PORT__");
+	String sourceDatabase = ElementParameterParser.getValue(node, "__SOURCE_DBNAME__");
+	String sourceSchema = ElementParameterParser.getValue(node, "__SOURCE_SCHEMA_DB__");
+	String sourceUser = ElementParameterParser.getValue(node, "__SOURCE_USER__");
+	String sourceUserPassword = ElementParameterParser.getValue(node, "__SOURCE_PASSWORD__");
+	String sourceProperties = ElementParameterParser.getValue(node, "__SOURCE_PROPERTIES__");
+	String targetHost = ElementParameterParser.getValue(node, "__TARGET_HOST__");
+	String targetPort = ElementParameterParser.getValue(node, "__TARGET_PORT__");
+	String targetDatabase = ElementParameterParser.getValue(node, "__TARGET_DBNAME__");
+	String targetSchema = ElementParameterParser.getValue(node, "__TARGET_SCHEMA_DB__");
+	String targetUser = ElementParameterParser.getValue(node, "__TARGET_USER__");
+	String targetUserPassword = ElementParameterParser.getValue(node, "__TARGET_PASSWORD__");
+	String targetProperties = ElementParameterParser.getValue(node, "__TARGET_PROPERTIES__");
+ 	String sourceConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_SOURCE__");
+    String targetConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_TARGET__");
+    String truncateTarget = ElementParameterParser.getValue(node, "__TARGET_TRUNCATE__");
+%>
+
+
+<%   if ("false".equals(singleInstance)) {%>
+		globalMap.remove("<%=cid%>");
+<%   }%>
+		de.cimt.talendcomp.tabletransfer.TableTransfer <%=cid%> = (de.cimt.talendcomp.tabletransfer.TableTransfer) globalMap.get("<%=cid%>");
+		if (<%=cid%> == null) {
+			<%=cid%> = new de.cimt.talendcomp.tabletransfer.TableTransfer();
+			globalMap.put("<%=cid%>", <%=cid%>);
+			// configure connections
+<%   if (Boolean.parseBoolean(useExistingConnections)) {%>
+			<%=cid%>.setSourceConnection((java.sql.Connection) globalMap.get("conn_" + "<%=sourceConnCompName%>"));
+			<%=cid%>.setTargetConnection((java.sql.Connection) globalMap.get("conn_" + "<%=targetConnCompName%>"));
+			<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
+			<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
+<%   } else {%>
+			<%=cid%>.setSourceURL("jdbc:postgresql://"+<%=sourceHost%>+":"+<%=sourcePort%>+"/"+<%=sourceDatabase%>);
+			<%=cid%>.setSourceUser(<%=sourceUser%>);
+			<%=cid%>.setSourcePassword(<%=sourceUserPassword%>);
+			<%=cid%>.setSourceDriverClass("org.postgresql.Driver");
+			<%=cid%>.setSourceProperties("<%=sourceProperties%>");
+			<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
+			<%=cid%>.setTargetURL("jdbc:postgresql://"+<%=targetHost%>+":"+<%=targetPort%>+"/"+<%=targetDatabase%>);
+			<%=cid%>.setTargetUser(<%=targetUser%>);
+			<%=cid%>.setTargetPassword(<%=targetUserPassword%>);
+			<%=cid%>.setTargetDriverClass("org.postgresql.Driver");
+			<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
+			<%=cid%>.setTargetProperties("<%=targetProperties%>");
+			// connect to databases
+			<%=cid%>.connect();
+<%   }%>
+			<%=cid%>.setupDataModels();
+			<%=cid%>.setDieOnError("<%=dieOnError%>");
+		}
+<%  if (useQuery) {%>
+        // use our own query as source
+        String <%=cid%>_query = <%=sourceQuery%>;
+		<%=cid%>.setSourceQuery(<%=cid%>_query);
+<%  } else {
+		if (Boolean.parseBoolean(useExistingConnections)) {%>
+        // use this table as source (query will be generated)
+		<%=cid%>.setSourceTable(((String) globalMap.get("schema_" + "<%=sourceConnCompName%>")) + "." + <%=sourceTable%>);
+<%      } else {%>
+        // use this table as source (query will be generated)
+		<%=cid%>.setSourceTable(<%=sourceSchema%> + "." + <%=sourceTable%>);
+<%      }%>
+<%      if (sourceTableWhere != null && sourceTableWhere.isEmpty() == false) {%>
+		<%=cid%>.setSourceWhereClause(<%=sourceTableWhere%>);
+<%      }%>
+<%  }%>
+		// configure target table
+<%		if (Boolean.parseBoolean(useExistingConnections)) {%>
+        // use this table as source (query will be generated)
+		<%=cid%>.setTargetTable(((String) globalMap.get("schema_" + "<%=targetConnCompName%>")) + "." + <%=targetTable%>);
+<%      } else {%>
+        // use this table as source (query will be generated)
+		<%=cid%>.setTargetTable(<%=targetSchema%> + "." + <%=targetTable%>);
+<%      }%>
+		// initialize statements
+		<%=cid%>.setupExecute();
+	    // memorize query
+    	globalMap.put("<%=cid%>_QUERY", <%=cid%>.getSourceQuery());
+<%      if (sourceTable != null && sourceTable.isEmpty() == false) {%>
+    	globalMap.put("<%=cid%>_SOURCE_TABLE", <%=sourceTable%>);
+<%      }%>
+    	globalMap.put("<%=cid%>_TARGET_TABLE", <%=targetSchema%> + "." + <%=targetTable%>);
+<%    	if ("true".equalsIgnoreCase(logoutQuery)) {%>
+        // log source query
+		System.out.println("Source query statement:" + <%=cid%>.getSourceQuery());
+<%    	}%>
+<%		if ("true".equalsIgnoreCase(logoutInsert)) {%>
+        // log target statement
+		System.out.println("Target insert statement:" + <%=cid%>.getTargetInsertStatement());
+<%		}%>
+<%      if ("true".equalsIgnoreCase(truncateTarget)) {%>
+        System.out.println("truncate target table...");
+		<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
+<%		}%>
+        // log intervall
+	    long logInterval_<%=cid%> = Integer.parseInt("<%=logIntervalStr%>") * 1000;
+		

@@ -1,0 +1,52 @@
+<%@ jet 
+	imports="
+		org.talend.core.model.process.INode  
+		org.talend.core.model.process.ElementParameterParser
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+	"
+%>
+
+<%
+	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+	INode node = (INode)codeGenArgument.getArgument();
+	String cid = node.getUniqueName();
+    String synchron = ElementParameterParser.getValue(node, "__RUN_SYNCHRON__");
+%>
+<%  if ("true".equals(synchron)) {%>
+	// start transfer as separate threads
+	<%=cid%>.executeSynchron();
+<%  } else {%>
+	// start transfer as separate threads
+	<%=cid%>.execute();
+<%  }%>
+	// wait until executing finished
+	while (<%=cid%>.isRunning()) {
+		// memorize key figures
+		if (Thread.currentThread().isInterrupted()) {
+		    <%=cid%>.stop();
+		}
+		long duration_<%=cid%> = (long) (System.currentTimeMillis() - <%=cid%>.getStartTime()) / 1000l;
+		double insertsPerSecond_<%=cid%> = 0;
+		if (<%=cid%>.getStartTime() > 0 && duration_<%=cid%> > 0) {
+			insertsPerSecond_<%=cid%> = <%=cid%>.getCurrentCountInserts() / duration_<%=cid%>;
+			insertsPerSecond_<%=cid%> = de.cimt.talendcomp.tabletransfer.TableTransfer.roundScale2(insertsPerSecond_<%=cid%>);
+			globalMap.put("<%=cid%>_NB_LINE", <%=cid%>.getCurrentCountReads());
+			globalMap.put("<%=cid%>_NB_INSERTS", <%=cid%>.getCurrentCountInserts());
+			System.out.println("<%=cid%> read:" + <%=cid%>.getCurrentCountReads() + " inserted:" + <%=cid%>.getCurrentCountInserts() + " rate inserts:" + insertsPerSecond_<%=cid%> + " rows/s");
+		} else {
+			System.out.println("Starting....");		
+		}
+		try {
+			Thread.sleep(logInterval_<%=cid%>);
+		} catch (InterruptedException e) {
+		    // the stop of this job will be detected here
+		    <%=cid%>.stop();
+		}
+	}
+	globalMap.put("<%=cid%>_NB_LINE", <%=cid%>.getCurrentCountReads());
+	globalMap.put("<%=cid%>_NB_INSERTS", <%=cid%>.getCurrentCountInserts());
+	System.out.println("<%=cid%> read:" + <%=cid%>.getCurrentCountReads() + " inserted:" + <%=cid%>.getCurrentCountInserts());
+	if (<%=cid%>.getErrorException() != null) {
+		throw <%=cid%>.getErrorException();
+	}
+	

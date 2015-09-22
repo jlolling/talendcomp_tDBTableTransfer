@@ -54,9 +54,9 @@
 <%   if ("false".equals(singleInstance)) {%>
 		globalMap.remove("<%=cid%>");
 <%   }%>
-		de.cimt.talendcomp.tabletransfer.TableTransfer <%=cid%> = (de.cimt.talendcomp.tabletransfer.TableTransfer) globalMap.get("<%=cid%>");
+		de.jlo.talendcomp.tabletransfer.TableTransfer <%=cid%> = (de.jlo.talendcomp.tabletransfer.TableTransfer) globalMap.get("<%=cid%>");
 		if (<%=cid%> == null) {
-			<%=cid%> = new de.cimt.talendcomp.tabletransfer.TableTransfer();
+			<%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
 			globalMap.put("<%=cid%>", <%=cid%>);
 			// configure connections
 <%   if (Boolean.parseBoolean(useExistingConnections)) {%>

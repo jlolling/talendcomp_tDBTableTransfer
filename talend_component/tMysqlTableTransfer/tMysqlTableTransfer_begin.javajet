@@ -12,6 +12,9 @@
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
 	String cid = node.getUniqueName();
+	boolean useDataSource = "true".equals(ElementParameterParser.getValue(node, "__USE_DATA_SOURCE__"));
+	String sourceDataSourceAlias = ElementParameterParser.getValue(node, "__SOURCE_DATA_SOURCE_ALIAS__");
+	String targetDataSourceAlias = ElementParameterParser.getValue(node, "__TARGET_DATA_SOURCE_ALIAS__");
 	String sourceFetchSize = ElementParameterParser.getValue(node, "__SOURCE_FETCHSIZE__");
 	String targetBatchSize = ElementParameterParser.getValue(node, "__TARGET_BATCHSIZE__");
 	String sourceUseQuery = ElementParameterParser.getValue(node, "__USE_QUERY__");
@@ -31,7 +34,7 @@
 	String logoutQuery = ElementParameterParser.getValue(node, "__LOG_QUERY_SQL__");
 	String logoutInsert = ElementParameterParser.getValue(node, "__LOG_INSERT_SQL__");
 	String singleInstance = ElementParameterParser.getValue(node, "__SINGLE_INSTANCE__");
-	String useExistingConnections = ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__");
+	boolean useExistingConnections = "true".equals(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
 	String sourceHost = ElementParameterParser.getValue(node, "__SOURCE_HOST__");
 	String sourcePort = ElementParameterParser.getValue(node, "__SOURCE_PORT__");
 	String sourceDatabase = ElementParameterParser.getValue(node, "__SOURCE_DBNAME__");
@@ -49,18 +52,40 @@
     String truncateTarget = ElementParameterParser.getValue(node, "__TARGET_TRUNCATE__");
     String disableKeys = ElementParameterParser.getValue(node, "__TARGET_DISABLE_KEYS__");
     List<Map<String, String>> excludeFieldList = (List<Map<String, String>>) ElementParameterParser.getObjectValue(node, "__EXCLUDE_COLUMNS__");
+    boolean backupData = "true".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA__"));
+    String backupFile = ElementParameterParser.getValue(node, "__BACKUP_FILE__");
 %>
-
 
 <%   if ("false".equals(singleInstance)) {%>
 		globalMap.remove("<%=cid%>");
 <%   }%>
-		de.cimt.talendcomp.tabletransfer.TableTransfer <%=cid%> = (de.cimt.talendcomp.tabletransfer.TableTransfer) globalMap.get("<%=cid%>");
+		de.jlo.talendcomp.tabletransfer.TableTransfer <%=cid%> = (de.jlo.talendcomp.tabletransfer.TableTransfer) globalMap.get("<%=cid%>");
 		if (<%=cid%> == null) {
-			<%=cid%> = new de.cimt.talendcomp.tabletransfer.TableTransfer();
+			<%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
 			globalMap.put("<%=cid%>", <%=cid%>);
+<%			if (backupData) { %>
+			// setup backup
+			<%=cid%>.setBackupFilePath(<%=backupFile%>);
+<%          } %> 
 			// configure connections
-<%   if (Boolean.parseBoolean(useExistingConnections)) {%>
+<%   if (useDataSource) {%>
+			{
+				java.util.Map<String, routines.system.TalendDataSource> dataSources = (java.util.Map<String, routines.system.TalendDataSource>) globalMap.get(KEY_DB_DATASOURCES);
+				if (dataSources == null) {
+					throw new Exception("No data sources available in this job!");
+				}
+				if (dataSources.get(<%=sourceDataSourceAlias%>) == null) {
+					throw new Exception("No source data source available. Alias: " + <%=sourceDataSourceAlias%>);
+				}
+				if (dataSources.get(<%=targetDataSourceAlias%>) == null) {
+					throw new Exception("No target data source available. Alias: " + <%=targetDataSourceAlias%>);
+				}
+				<%=cid%>.setSourceConnection(dataSources.get(<%=sourceDataSourceAlias%>).getConnection());
+				<%=cid%>.setTargetConnection(dataSources.get(<%=targetDataSourceAlias%>).getConnection());
+			}
+			<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
+			<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
+<%   } else if (useExistingConnections) {%>
 			<%=cid%>.setSourceConnection((java.sql.Connection) globalMap.get("conn_" + "<%=sourceConnCompName%>"));
 			<%=cid%>.setTargetConnection((java.sql.Connection) globalMap.get("conn_" + "<%=targetConnCompName%>"));
 			<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
@@ -91,7 +116,10 @@
         String <%=cid%>_query = <%=sourceQuery%>;
 		<%=cid%>.setSourceQuery(<%=cid%>_query);
 <%  } else {
-		if (Boolean.parseBoolean(useExistingConnections)) {%>
+		if (useDataSource) {%>
+        // use this table as source (query will be generated)
+		<%=cid%>.setSourceTable(<%=sourceDatabase%> + "." + <%=sourceTable%>);
+<%		} else if (useExistingConnections) {%>
         // use this table as source (query will be generated)
 		<%=cid%>.setSourceTable(((String) globalMap.get("db_" + "<%=sourceConnCompName%>")) + "." + <%=sourceTable%>);
 <%      } else {%>
@@ -103,7 +131,10 @@
 <%      }%>
 <%  }%>
 		// configure target table
-<%		if (Boolean.parseBoolean(useExistingConnections)) {%>
+<%		if (useDataSource) {%>
+        // use this table as target
+		<%=cid%>.setTargetTable(<%=targetDatabase%> + "." + <%=targetTable%>);
+<%		} else if (useExistingConnections) {%>
         // use this table as source (query will be generated)
 		<%=cid%>.setTargetTable(((String) globalMap.get("db_" + "<%=targetConnCompName%>")) + "." + <%=targetTable%>);
 <%      } else {%>

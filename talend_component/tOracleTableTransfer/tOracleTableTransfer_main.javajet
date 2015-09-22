@@ -29,7 +29,7 @@
 		double insertsPerSecond_<%=cid%> = 0;
 		if (<%=cid%>.getStartTime() > 0 && duration_<%=cid%> > 0) {
 			insertsPerSecond_<%=cid%> = <%=cid%>.getCurrentCountInserts() / duration_<%=cid%>;
-			insertsPerSecond_<%=cid%> = de.cimt.talendcomp.tabletransfer.TableTransfer.roundScale2(insertsPerSecond_<%=cid%>);
+			insertsPerSecond_<%=cid%> = de.jlo.talendcomp.tabletransfer.TableTransfer.roundScale2(insertsPerSecond_<%=cid%>);
 			globalMap.put("<%=cid%>_NB_LINE", <%=cid%>.getCurrentCountReads());
 			globalMap.put("<%=cid%>_NB_INSERTS", <%=cid%>.getCurrentCountInserts());
 			System.out.println("<%=cid%> read:" + <%=cid%>.getCurrentCountReads() + " inserted:" + <%=cid%>.getCurrentCountInserts() + " rate inserts:" + insertsPerSecond_<%=cid%> + " rows/s");

@@ -11,15 +11,9 @@
 	INode node = (INode)codeGenArgument.getArgument();
 	String cid = node.getUniqueName();
     String disableKeys = ElementParameterParser.getValue(node, "__TARGET_DISABLE_KEYS__");
-    String synchron = ElementParameterParser.getValue(node, "__RUN_SYNCHRON__");
 %>
-<%  if ("true".equals(synchron)) {%>
-	// start transfer as separate threads
-	<%=cid%>.executeSynchron();
-<%  } else {%>
-	// start transfer as separate threads
+	// start transfers
 	<%=cid%>.execute();
-<%  }%>
 	// wait until executing finished
 	while (<%=cid%>.isRunning()) {
 	    if (logInterval_<%=cid%> > 0) {
@@ -31,7 +25,7 @@
 			double insertsPerSecond_<%=cid%> = 0;
 			if (<%=cid%>.getStartTime() > 0 && duration_<%=cid%> > 0) {
 				insertsPerSecond_<%=cid%> = <%=cid%>.getCurrentCountInserts() / duration_<%=cid%>;
-				insertsPerSecond_<%=cid%> = de.cimt.talendcomp.tabletransfer.TableTransfer.roundScale2(insertsPerSecond_<%=cid%>);
+				insertsPerSecond_<%=cid%> = de.jlo.talendcomp.tabletransfer.TableTransfer.roundScale2(insertsPerSecond_<%=cid%>);
 				globalMap.put("<%=cid%>_NB_LINE", <%=cid%>.getCurrentCountReads());
 				globalMap.put("<%=cid%>_NB_INSERTS", <%=cid%>.getCurrentCountInserts());
 				System.out.println("<%=cid%> [" + <%=cid%>.getTargetTable() + "] read:" + <%=cid%>.getCurrentCountReads() + " inserted:" + <%=cid%>.getCurrentCountInserts() + " rate inserts:" + insertsPerSecond_<%=cid%> + " rows/s");
@@ -58,6 +52,6 @@
 	}
 <%  if ("true".equalsIgnoreCase(disableKeys)) {%>
     System.out.println("enable keys on target table...");
-   	<%=cid%>.executeSQLOnTarget("alter table " + <%=cid%>.getTargetTable() + " enable keys");
+    <%=cid%>.executeSQLOnTarget("alter table " + <%=cid%>.getTargetTable() + " enable keys");
 <%	}%>
 	

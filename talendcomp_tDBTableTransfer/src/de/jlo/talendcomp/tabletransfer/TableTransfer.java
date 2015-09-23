@@ -557,6 +557,17 @@ public final class TableTransfer {
 		return targetTable;
 	}
 	
+	private boolean isMysql() {
+		boolean mysqlDriverPresent = false;
+		try {
+			Class.forName("com.mysql.jdbc.Statement");
+			mysqlDriverPresent = true;
+		} catch (ClassNotFoundException e) {
+			logger.debug("No MySQL class loaded.");
+		}
+		return mysqlDriverPresent;
+	}
+	
 	private PreparedStatement createSourceSelectStatement() throws Exception {
 		sourceQuery = properties.getProperty(SOURCE_QUERY);
 		if (sourceQuery == null) {
@@ -570,6 +581,10 @@ public final class TableTransfer {
 		int fetchSize = getFetchSize();
 		if (fetchSize > 0) {
 			sourcePSSelect.setFetchSize(fetchSize);
+		}
+		if (isMysql()) {
+			DBVendorUtil util = (DBVendorUtil) Class.forName("de.jlo.talendcomp.tabletransfer.MySQLHelper").newInstance();
+			util.setupStatement(sourcePSSelect);
 		}
 		return sourcePSSelect;
 	}
@@ -919,7 +934,9 @@ public final class TableTransfer {
 	 */
 	public void setSourceConnection(Connection sourceConnection) {
 		if (sourceConnection == null) {
-			throw new IllegalArgumentException("sourceConnection cannot be null!");
+			throw new IllegalArgumentException("Source connection cannot be null!");
+		} else if (sourceConnection == targetConnection) {
+			throw new IllegalArgumentException("Source connection cannot be the same as used for the target! Establish for source and target different connection instances!");
 		}
 		this.sourceConnection = sourceConnection;
 	}
@@ -935,7 +952,9 @@ public final class TableTransfer {
 	 */
 	public void setTargetConnection(Connection targetConnection) throws Exception {
 		if (targetConnection == null) {
-			throw new IllegalArgumentException("targetConnection cannot be null!");
+			throw new IllegalArgumentException("Target connection cannot be null!");
+		} else if (sourceConnection == targetConnection) {
+			throw new IllegalArgumentException("Target connection cannot be the same as used for the source! Establish for source and target different connection instances!");
 		}
 		if (targetConnection.isReadOnly()) {
 			throw new Exception("Target connection cannot be in read only mode!");
@@ -959,7 +978,7 @@ public final class TableTransfer {
 		}
 	}
 
-	public void setBackupFilePath(String backupFilePath) throws Exception {
+	public String setBackupFilePath(String backupFilePath) throws Exception {
 		if (backupFilePath != null && backupFilePath.trim().isEmpty() == false) {
 			File test = new File(backupFilePath);
 			if (test.isDirectory()) {
@@ -972,6 +991,7 @@ public final class TableTransfer {
 				test = new File(test, getTargetTable() + ".csv");
 				this.backupFile = test;
 				backupData = true;
+				return backupFile.getAbsolutePath();
 			} else {
 				File dir = test.getParentFile();
 				if (dir == null) {
@@ -984,16 +1004,20 @@ public final class TableTransfer {
 				}
 				this.backupFile = test;
 				backupData = true;
+				return backupFile.getAbsolutePath();
 			}
 		}
+		return null;
 	}
 	
 	private String convertToString(Object value) {
 		if (value instanceof String) {
-			if (((String) value).isEmpty()) {
+			String sValue = (String) value;
+			if (sValue.isEmpty()) {
 				return nullReplacement;
 			} else {
-				return (String) value;
+				sValue = sValue.replace('"', '“'); // take care to avoid destroying the field structure
+				return sValue;
 			}
 		} else if (value instanceof Date) {
 			return sdfOut.format((Date) value);

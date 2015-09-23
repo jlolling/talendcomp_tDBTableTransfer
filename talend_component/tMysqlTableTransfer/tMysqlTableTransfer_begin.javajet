@@ -65,7 +65,10 @@
 			globalMap.put("<%=cid%>", <%=cid%>);
 <%			if (backupData) { %>
 			// setup backup
-			<%=cid%>.setBackupFilePath(<%=backupFile%>);
+			{
+				String backupFilePath = <%=backupFile%>;
+				globalMap.put("<%=cid%>_BACKUP_FILE", <%=cid%>.setBackupFilePath(backupFilePath));
+			}
 <%          } %> 
 			// configure connections
 <%   if (useDataSource) {%>
@@ -148,7 +151,7 @@
 <%      }%>
 		// initialize statements
 		<%=cid%>.setupExecute();
-		((com.mysql.jdbc.Statement) <%=cid%>.getSourceStatement()).enableStreamingResults();
+		// ((com.mysql.jdbc.Statement) <%=cid%>.getSourceStatement()).enableStreamingResults();
 	    // memorize query
     	globalMap.put("<%=cid%>_QUERY", <%=cid%>.getSourceQuery());
 <%      if (sourceTable != null && sourceTable.isEmpty() == false) {%>

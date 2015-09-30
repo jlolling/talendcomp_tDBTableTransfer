@@ -11,6 +11,7 @@
 	INode node = (INode)codeGenArgument.getArgument();
 	String cid = node.getUniqueName();
     String disableKeys = ElementParameterParser.getValue(node, "__TARGET_DISABLE_KEYS__");
+    boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
 %>
 	// start transfers
 	<%=cid%>.execute();
@@ -28,7 +29,11 @@
 				insertsPerSecond_<%=cid%> = de.jlo.talendcomp.tabletransfer.TableTransfer.roundScale2(insertsPerSecond_<%=cid%>);
 				globalMap.put("<%=cid%>_NB_LINE", <%=cid%>.getCurrentCountReads());
 				globalMap.put("<%=cid%>_NB_INSERTS", <%=cid%>.getCurrentCountInserts());
+<%  if (outputToTable) { %>
 				System.out.println("<%=cid%> [" + <%=cid%>.getTargetTable() + "] read:" + <%=cid%>.getCurrentCountReads() + " inserted:" + <%=cid%>.getCurrentCountInserts() + " rate inserts:" + insertsPerSecond_<%=cid%> + " rows/s");
+<%  } else { %>
+				System.out.println("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts() + " rate writes:" + insertsPerSecond_<%=cid%> + " rows/s");
+<%  } %>
 			} else {
 				System.out.println("Starting....");		
 			}
@@ -46,11 +51,15 @@
 	}
 	globalMap.put("<%=cid%>_NB_LINE", <%=cid%>.getCurrentCountReads());
 	globalMap.put("<%=cid%>_NB_INSERTS", <%=cid%>.getCurrentCountInserts());
+<%  if (outputToTable) { %>
 	System.out.println("<%=cid%> [" + <%=cid%>.getTargetTable() + "] read:" + <%=cid%>.getCurrentCountReads() + " inserted:" + <%=cid%>.getCurrentCountInserts());
+<%  } else { %>
+	System.out.println("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts());
+<%  } %>
 	if (<%=cid%>.getErrorException() != null) {
 		throw <%=cid%>.getErrorException();
 	}
-<%  if ("true".equalsIgnoreCase(disableKeys)) {%>
+<%  if (outputToTable && "true".equalsIgnoreCase(disableKeys)) {%>
     System.out.println("enable keys on target table...");
     <%=cid%>.executeSQLOnTarget("alter table " + <%=cid%>.getTargetTable() + " enable keys");
 <%	}%>

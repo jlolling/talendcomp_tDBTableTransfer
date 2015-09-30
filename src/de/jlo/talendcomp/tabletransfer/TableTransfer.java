@@ -73,16 +73,18 @@ public final class TableTransfer {
 	private int returnCode = RETURN_CODE_OK;
 	private String errorMessage;
 	private Exception errorException;
-	private BlockingQueue<Object> queue;
-	private BlockingQueue<Object> backupQueue;
+	private BlockingQueue<Object> tableQueue;
+	private BlockingQueue<Object> fileQueue;
 	private final Object closeFlag = new String("The End");
 	private List<String> listResultSetFieldNames;
 	private Thread readerThread;
 	private Thread writerThread;
 	private Thread writerBackupThread;
 	private volatile int countInserts = 0;
+	private volatile int countFileRows = 0;
 	private volatile int countRead = 0;
-	private volatile boolean running = false;
+	private volatile boolean runningDb = false;
+	private volatile boolean runningFile = false;
 	private long startTime;
 	public static final String SOURCE_URL = "source.url";
 	public static final String SOURCE_USER = "source.user";
@@ -104,8 +106,10 @@ public final class TableTransfer {
 	private boolean dieOnError = true;
 	private boolean initialized = false;
 	private List<String> excludeFieldList = new ArrayList<String>();
-	private boolean backupData = false;
+	private boolean outputToTable = true;
+	private boolean outputToFile = false;
 	private File backupFile = null;
+	private File backupFileTmp = null;
 	private String fieldSeparator = ";";
 	private String fieldEclosure = "\"";
 	private String nullReplacement = "\\N";
@@ -119,7 +123,7 @@ public final class TableTransfer {
 	}
 	
 	public final int getCurrentCountInserts() {
-		return countInserts;
+		return Math.max(countInserts, countFileRows);
 	}
 	
 	public final int getCurrentCountReads() {
@@ -131,7 +135,7 @@ public final class TableTransfer {
 	}
 	
 	public final boolean isRunning() {
-		return running;
+		return runningDb || runningFile;
 	}
 	
 	public static final Connection createConnection(ConnectionDescription cd) throws Exception {
@@ -175,7 +179,6 @@ public final class TableTransfer {
 		if (initialized == false) {
 			throw new Exception("Not initialized!");
 		}
-		running = true;
 		countRead = 0;
 		countInserts = 0;
 		startWriting();
@@ -194,22 +197,27 @@ public final class TableTransfer {
 	}
 	
 	private final void startWriting() throws Exception {
-		writerThread = new Thread() {
-			@Override
-			public void run() {
-				writeDB();
-			}
-		};
-		writerThread.setDaemon(false);
-		writerThread.start();
-		if (backupData) {
-			System.out.println("Create backup file: " + backupFile.getAbsolutePath());
-			backupOutputWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupFile), "UTF-8"));
-			System.out.println("Backup file established.");
+		if (outputToTable) {
+			runningDb = true;
+			writerThread = new Thread() {
+				@Override
+				public void run() {
+					writeTable();
+				}
+			};
+			writerThread.setDaemon(false);
+			writerThread.start();
+		}
+		if (outputToFile) {
+			runningFile = true;
+			logger.info("Create backup file: " + backupFile.getAbsolutePath());
+			backupFileTmp = new File(backupFile.getAbsolutePath() + ".tmp");
+			backupOutputWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupFileTmp), "UTF-8"));
+			logger.info("Backup file established.");
 			writerBackupThread = new Thread() {
 				@Override
 				public void run() {
-					writeBackup();
+					writeFile();
 				}
 			};
 			writerBackupThread.setDaemon(false);
@@ -227,26 +235,41 @@ public final class TableTransfer {
 		if (writerThread != null) {
 			writerThread.interrupt();
 		}
+		if (writerBackupThread != null) {
+			writerBackupThread.interrupt();
+		}
 	}
 	
 	/**
 	 * disconnects from the database 
 	 */
 	public final void disconnect() {
-		DatabaseSessionPool.close(sourceConnDesc.getUniqueId());
-		DatabaseSessionPool.close(targetConnDesc.getUniqueId());
+		logger.info("Close source connection...");
+		if (sourceConnDesc != null) {
+			DatabaseSessionPool.close(sourceConnDesc.getUniqueId());
+		}
 		if (sourceConnection != null) {
 			try {
-				sourceConnection.close();
+				if (sourceConnection.isClosed() == false) {
+					sourceConnection.close();
+				}
 			} catch (SQLException e) {
 				logger.error("disconnect from source failed: " + e.getMessage(), e);
 			}
 		}
-		if (targetConnection != null) {
-			try {
-				targetConnection.close();
-			} catch (SQLException e) {
-				logger.error("disconnect from target failed: " + e.getMessage(), e);
+		if (outputToTable) {
+			logger.info("Close target connection...");
+			if (targetConnDesc != null) {
+				DatabaseSessionPool.close(targetConnDesc.getUniqueId());
+			}
+			if (targetConnection != null) {
+				try {
+					if (targetConnection.isClosed() == false) {
+						targetConnection.close();
+					}
+				} catch (SQLException e) {
+					logger.error("disconnect from target failed: " + e.getMessage(), e);
+				}
 			}
 		}
 	}
@@ -271,22 +294,32 @@ public final class TableTransfer {
 			while (rs.next()) {
 				final Object[] row = new Object[countColumns];
 				fillRow(row, rs);
-				queue.put(row);
-				countRead++;
-				if (backupData) {
-					if (writerBackupThread.isAlive() == false) {
-						warn("Backup process died. Switch off backup");
-						backupData = false;
+				if (outputToTable) {
+					tableQueue.put(row);
+				}
+				if (outputToFile) {
+					if (writerBackupThread == null || writerBackupThread.isAlive() == false) {
+						if (outputToTable) {
+							warn("Backup process died. Switch off backup");
+							outputToFile = false;
+						} else {
+							throw new Exception("No output will work. The component is in backup only mode and the backup thread is not started or dead. Stop processing.");
+						}
 					} else {
-						backupQueue.put(row);
+						fileQueue.put(row);
 					}
 				}
+				countRead++;
 				if (Thread.currentThread().isInterrupted()) {
 					break;
 				}
 			}
 			rs.close();
-			logger.info("Finished fetch data from source table " + sourceTable.getAbsoluteName() + " count read:" + countRead);
+			if (sourceTable != null) {
+				logger.info("Finished fetch data from source table " + sourceTable.getAbsoluteName() + " count read:" + countRead);
+			} else {
+				logger.info("Finished fetch data from source query, count read:" + countRead);
+			}
 		} catch (SQLException e) {
 			String message = e.getMessage();
 			SQLException en = e.getNextException();
@@ -298,16 +331,18 @@ public final class TableTransfer {
 		} catch (InterruptedException ie) {
 			error("read interrupted (send data sets)", ie);
 			returnCode = RETURN_CODE_ERROR;
+		} catch (Exception ie) {
+			error("Read failed: " + ie.getMessage(), ie);
+			returnCode = RETURN_CODE_ERROR;
 		} finally {
 			try {
-				queue.put(closeFlag);
-				if (backupData) {
-					if (writerBackupThread.isAlive() == false) {
-						warn("Backup process died. Switch off backup");
-						backupData = false;
-					} else {
-						backupQueue.put(closeFlag);
-					}
+				if (outputToTable) {
+					logger.info("Stopping write table thread...");
+					tableQueue.put(closeFlag);
+				}
+				if (outputToFile) {
+					logger.info("Stopping write file thread...");
+					fileQueue.put(closeFlag);
 				}
 			} catch (InterruptedException e) {
 				error("read interrupted (send close flag)", e);
@@ -320,6 +355,7 @@ public final class TableTransfer {
 				sourcePSSelect.close();
 			} catch (SQLException e) {}
 		}
+		logger.info("End read.");
 	}
 	
 	private final void fillRow(Object[] row, ResultSet rs) throws SQLException {
@@ -328,7 +364,7 @@ public final class TableTransfer {
 		}
 	}
 	
-	private final void writeDB() {
+	private final void writeTable() {
 		logger.info("Start writing data into target table " + targetTable.getAbsoluteName());
 		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
 		int currentBatchCount = 0;
@@ -344,10 +380,10 @@ public final class TableTransfer {
 			while (endFlagReceived == false) {
 				try {
 					final List<Object> queueObjects = new ArrayList<Object>(batchSize);
-					queue.drainTo(queueObjects, batchSize);
+					tableQueue.drainTo(queueObjects, batchSize);
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {
-							logger.info("write finished");
+							logger.info("Write table thread: Stop flag received.");
 							endFlagReceived = true;
 							break;
 						} else {
@@ -431,9 +467,10 @@ public final class TableTransfer {
 			try {
 				targetPSInsert.close();
 			} catch (SQLException e) {}
-			running = false;
-			logger.info("Finished write data into target table " + targetTable.getAbsoluteName() + " count inserts:" + countInserts);
+			runningDb = false;
+			logger.info("Finished write data into target table " + targetTable.getAbsoluteName() + ", count inserts:" + countInserts);
 		}
+		logger.info("Write table finished.");
 	}
 	
 	private final Object getRowValue(final String columnName, final Object[] row) {
@@ -462,7 +499,9 @@ public final class TableTransfer {
 	 */
 	public final void connect() throws Exception {
 		connectSource();
-		connectTarget();
+		if (outputToTable) {
+			connectTarget();
+		}
 	}
 	
 	public final void executeSQLOnTarget(final String sqlStatement) throws Exception {
@@ -491,15 +530,19 @@ public final class TableTransfer {
 	 * setup statements and internal structures
 	 * @throws Exception
 	 */
-	public final void setupExecute() throws Exception {
+	public final void setup() throws Exception {
 		createSourceSelectStatement();
-		createTargetInsertStatement();
+		if (outputToTable) {
+			createTargetInsertStatement();
+		}
 		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "100"));
 		final int fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "100"));
 		final int queueSize = Math.max(batchSize, fetchSize) + 100;
-		queue = new LinkedBlockingQueue<Object>(queueSize);
-		if (backupData) {
-			backupQueue = new LinkedBlockingQueue<Object>(queueSize);
+		if (outputToTable) {
+			tableQueue = new LinkedBlockingQueue<Object>(queueSize);
+		}
+		if (outputToFile) {
+			fileQueue = new LinkedBlockingQueue<Object>(queueSize);
 		}
 		dieOnError = Boolean.parseBoolean(properties.getProperty(DIE_ON_ERROR, "true"));
 		initialized = true;
@@ -583,7 +626,7 @@ public final class TableTransfer {
 			sourcePSSelect.setFetchSize(fetchSize);
 		}
 		if (isMysql()) {
-			DBVendorUtil util = (DBVendorUtil) Class.forName("de.jlo.talendcomp.tabletransfer.MySQLHelper").newInstance();
+			DBHelper util = (DBHelper) Class.forName("de.jlo.talendcomp.tabletransfer.MySQLHelper").newInstance();
 			util.setupStatement(sourcePSSelect);
 		}
 		return sourcePSSelect;
@@ -720,13 +763,15 @@ public final class TableTransfer {
 		}
 		sourceModel.loadSchemas();
 		sourceConnection.commit();
-		if (targetConnDesc != null) {
-			targetModel = new SQLDataModel(targetConnDesc);
-		} else {
-			targetModel = new SQLDataModel(targetConnection);
+		if (outputToTable) {
+			if (targetConnDesc != null) {
+				targetModel = new SQLDataModel(targetConnDesc);
+			} else {
+				targetModel = new SQLDataModel(targetConnection);
+			}
+			targetModel.loadSchemas();
+			targetConnection.commit();
 		}
-		targetModel.loadSchemas();
-		targetConnection.commit();
 	}
 	
     public void loadProperties(String filePath) {
@@ -990,7 +1035,7 @@ public final class TableTransfer {
 				}
 				test = new File(test, getTargetTable() + ".csv");
 				this.backupFile = test;
-				backupData = true;
+				outputToFile = true;
 				return backupFile.getAbsolutePath();
 			} else {
 				File dir = test.getParentFile();
@@ -1003,7 +1048,7 @@ public final class TableTransfer {
 					}
 				}
 				this.backupFile = test;
-				backupData = true;
+				outputToFile = true;
 				return backupFile.getAbsolutePath();
 			}
 		}
@@ -1016,7 +1061,8 @@ public final class TableTransfer {
 			if (sValue.isEmpty()) {
 				return nullReplacement;
 			} else {
-				sValue = sValue.replace('"', '“'); // take care to avoid destroying the field structure
+				// escape the "
+				sValue = sValue.replace("\"", "\\\""); // take care to avoid destroying the field structure
 				return sValue;
 			}
 		} else if (value instanceof Date) {
@@ -1056,43 +1102,70 @@ public final class TableTransfer {
 				backupOutputWriter.write(fieldEclosure);
 			}
 			backupOutputWriter.write("\n");
+			countFileRows++;
 		}
 	}
 	
-	private void writeBackup() {
-		logger.info("Start writing backup data to file: " + backupFile.getAbsolutePath());
-		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
-		boolean endFlagReceived = false;
-		while (endFlagReceived == false) {
-			try {
-				final List<Object> queueObjects = new ArrayList<Object>(batchSize);
-				backupQueue.drainTo(queueObjects, batchSize);
-				for (Object item : queueObjects) {
-					if (item == closeFlag) {
-						break;
-					} else {
-						writeRowToBackup((Object[]) item);
+	private void writeFile() {
+		try {
+			countFileRows = 0;
+			logger.info("Start writing data in file: " + backupFile.getAbsolutePath());
+			final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
+			boolean endFlagReceived = false;
+			while (endFlagReceived == false) {
+				try {
+					final List<Object> queueObjects = new ArrayList<Object>(batchSize);
+					fileQueue.drainTo(queueObjects, batchSize);
+					for (Object item : queueObjects) {
+						if (item == closeFlag) {
+							logger.info("Write file thread: Stop flag received.");
+							endFlagReceived = true;
+							break;
+						} else {
+							writeRowToBackup((Object[]) item);
+						}
+						if (Thread.currentThread().isInterrupted()) {
+							break;
+						}
 					}
-					if (Thread.currentThread().isInterrupted()) {
+					backupOutputWriter.flush();
+				} catch (Exception e) {
+					error("write file failed in line number " + countFileRows + " message:" + e.getMessage(), e);
+					if (dieOnError) {
+						returnCode = RETURN_CODE_ERROR;
 						break;
 					}
-				}
-				backupOutputWriter.flush();
-			} catch (Exception e) {
-				error("write backup failed in line number " + countInserts + " message:" + e.getMessage(), e);
-				if (dieOnError) {
-					returnCode = RETURN_CODE_ERROR;
-					break;
 				}
 			}
-		}
-		logger.info("write backup finished");
-		try {
-			backupOutputWriter.flush();
-			backupOutputWriter.close();
+			try {
+				backupOutputWriter.flush();
+				backupOutputWriter.close();
+			} catch (Exception e) {
+				error("Close file failed: " + e.getMessage(), e);
+			}
+			runningFile = false;
+			logger.info("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
+			logger.info("Rename tmp file: " + backupFileTmp.getAbsolutePath() + " to target file: " + backupFile.getAbsolutePath());
+			backupFileTmp.renameTo(backupFile);
 		} catch (Exception e) {
-			error("Close backup file failed: " + e.getMessage(), e);
+			try {
+				backupOutputWriter.flush();
+				backupOutputWriter.close();
+			} catch (Exception e1) {
+				error("Close file failed: " + e.getMessage(), e);
+			}
+			runningFile = false;
+			logger.error("Write data into file " + backupFile.getAbsolutePath() + " count rows:" + countFileRows + " failed: " + e.getMessage(), e);
 		}
+		logger.info("Write file finished");
+	}
+
+	public boolean isOutputToTable() {
+		return outputToTable;
+	}
+
+	public void setOutputToTable(boolean outputToTable) {
+		this.outputToTable = outputToTable;
 	}
 
 }

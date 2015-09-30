@@ -59,7 +59,7 @@ public class Main {
 					System.exit(1);
 				}
 				try {
-					transfer.setupExecute();
+					transfer.setup();
 				} catch (Exception e1) {
 					logger.error("connect failed:" + e1.getMessage(), e1);
 					System.exit(1);

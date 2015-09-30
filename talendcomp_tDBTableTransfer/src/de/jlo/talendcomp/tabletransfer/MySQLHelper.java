@@ -3,7 +3,7 @@ package de.jlo.talendcomp.tabletransfer;
 import java.lang.reflect.Method;
 import java.sql.Statement;
 
-public class MySQLHelper implements DBVendorUtil {
+public class MySQLHelper implements DBHelper {
 	
 	private void enableStreaming(java.sql.Statement stmt) throws Exception {
 		if (stmt != null) {

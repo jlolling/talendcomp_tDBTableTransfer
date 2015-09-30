@@ -33,7 +33,6 @@
 	}
 	String logoutQuery = ElementParameterParser.getValue(node, "__LOG_QUERY_SQL__");
 	String logoutInsert = ElementParameterParser.getValue(node, "__LOG_INSERT_SQL__");
-	String singleInstance = ElementParameterParser.getValue(node, "__SINGLE_INSTANCE__");
 	boolean useExistingConnections = "true".equals(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
 	String sourceHost = ElementParameterParser.getValue(node, "__SOURCE_HOST__");
 	String sourcePort = ElementParameterParser.getValue(node, "__SOURCE_PORT__");
@@ -51,129 +50,136 @@
     String targetConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_TARGET__");
     String truncateTarget = ElementParameterParser.getValue(node, "__TARGET_TRUNCATE__");
     String disableKeys = ElementParameterParser.getValue(node, "__TARGET_DISABLE_KEYS__");
+    @SuppressWarnings("unchecked")
     List<Map<String, String>> excludeFieldList = (List<Map<String, String>>) ElementParameterParser.getObjectValue(node, "__EXCLUDE_COLUMNS__");
     boolean backupData = "true".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA__"));
     String backupFile = ElementParameterParser.getValue(node, "__BACKUP_FILE__");
+    boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
 %>
 
-<%   if ("false".equals(singleInstance)) {%>
-		globalMap.remove("<%=cid%>");
-<%   }%>
-		de.jlo.talendcomp.tabletransfer.TableTransfer <%=cid%> = (de.jlo.talendcomp.tabletransfer.TableTransfer) globalMap.get("<%=cid%>");
-		if (<%=cid%> == null) {
-			<%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
-			globalMap.put("<%=cid%>", <%=cid%>);
-<%			if (backupData) { %>
-			// setup backup
-			{
-				String backupFilePath = <%=backupFile%>;
-				globalMap.put("<%=cid%>_BACKUP_FILE", <%=cid%>.setBackupFilePath(backupFilePath));
-			}
-<%          } %> 
-			// configure connections
-<%   if (useDataSource) {%>
-			{
-				java.util.Map<String, routines.system.TalendDataSource> dataSources = (java.util.Map<String, routines.system.TalendDataSource>) globalMap.get(KEY_DB_DATASOURCES);
-				if (dataSources == null) {
-					throw new Exception("No data sources available in this job!");
-				}
-				if (dataSources.get(<%=sourceDataSourceAlias%>) == null) {
-					throw new Exception("No source data source available. Alias: " + <%=sourceDataSourceAlias%>);
-				}
-				if (dataSources.get(<%=targetDataSourceAlias%>) == null) {
-					throw new Exception("No target data source available. Alias: " + <%=targetDataSourceAlias%>);
-				}
-				<%=cid%>.setSourceConnection(dataSources.get(<%=sourceDataSourceAlias%>).getConnection());
-				<%=cid%>.setTargetConnection(dataSources.get(<%=targetDataSourceAlias%>).getConnection());
-			}
-			<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
-			<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
-<%   } else if (useExistingConnections) {%>
-			<%=cid%>.setSourceConnection((java.sql.Connection) globalMap.get("conn_" + "<%=sourceConnCompName%>"));
-			<%=cid%>.setTargetConnection((java.sql.Connection) globalMap.get("conn_" + "<%=targetConnCompName%>"));
-			<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
-			<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
-<%   } else {%>
-			<%=cid%>.setSourceURL("jdbc:mysql://"+<%=sourceHost%>+":"+<%=sourcePort%>+"/"+<%=sourceDatabase%> + "?"
-						+ "rewriteBatchedStatements=true");
-			<%=cid%>.setSourceUser(<%=sourceUser%>);
-			<%=cid%>.setSourcePassword(<%=sourceUserPassword%>);
-			<%=cid%>.setSourceDriverClass("org.gjt.mm.mysql.Driver");
-			<%=cid%>.setSourceProperties("<%=sourceProperties%>");
-			<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
-			<%=cid%>.setTargetURL("jdbc:mysql://"+<%=targetHost%>+":"+<%=targetPort%>+"/"+<%=targetDatabase%> + "?"
-						+ "rewriteBatchedStatements=true");
-			<%=cid%>.setTargetUser(<%=targetUser%>);
-			<%=cid%>.setTargetPassword(<%=targetUserPassword%>);
-			<%=cid%>.setTargetDriverClass("org.gjt.mm.mysql.Driver");
-			<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
-			<%=cid%>.setTargetProperties("<%=targetProperties%>");
-			// connect to databases
-			<%=cid%>.connect();
-<%   }%>
-			<%=cid%>.setupDataModels();
-			<%=cid%>.setDieOnError("<%=dieOnError%>");
+	de.jlo.talendcomp.tabletransfer.TableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
+	<%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
+	<%=cid%>.setOutputToTable(<%=outputToTable%>);
+	// configure connections
+<%  if (useDataSource) {%>
+	{
+      @SuppressWarnings("unchecked")
+		java.util.Map<String, routines.system.TalendDataSource> dataSources = (java.util.Map<String, routines.system.TalendDataSource>) globalMap.get(KEY_DB_DATASOURCES);
+		if (dataSources == null) {
+		 	throw new Exception("No data sources available in this job!");
 		}
-<%  if (useQuery) {%>
-        // use our own query as source
-        String <%=cid%>_query = <%=sourceQuery%>;
-		<%=cid%>.setSourceQuery(<%=cid%>_query);
+		if (dataSources.get(<%=sourceDataSourceAlias%>) == null) {
+			throw new Exception("No source data source available. Alias: " + <%=sourceDataSourceAlias%>);
+		}
+		<%=cid%>.setSourceConnection(dataSources.get(<%=sourceDataSourceAlias%>).getConnection());
+<%    if (outputToTable) { %>
+		if (dataSources.get(<%=targetDataSourceAlias%>) == null) {
+			throw new Exception("No target data source available. Alias: " + <%=targetDataSourceAlias%>);
+		}
+		<%=cid%>.setTargetConnection(dataSources.get(<%=targetDataSourceAlias%>).getConnection());
+<%    } %>
+	}
+	<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
+<%    if (outputToTable) { %>
+	<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
+<%    } %>
+<%  } else if (useExistingConnections) { %>
+	<%=cid%>.setSourceConnection((java.sql.Connection) globalMap.get("conn_" + "<%=sourceConnCompName%>"));
+	<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
+<%    if (outputToTable) { %>
+	<%=cid%>.setTargetConnection((java.sql.Connection) globalMap.get("conn_" + "<%=targetConnCompName%>"));
+	<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
+<%    } %>
+<%  } else { %>
+	<%=cid%>.setSourceURL("jdbc:mysql://"+<%=sourceHost%>+":"+<%=sourcePort%>+"/"+<%=sourceDatabase%> + "?" + "rewriteBatchedStatements=true");
+	<%=cid%>.setSourceUser(<%=sourceUser%>);
+	<%=cid%>.setSourcePassword(<%=sourceUserPassword%>);
+	<%=cid%>.setSourceDriverClass("org.gjt.mm.mysql.Driver");
+	<%=cid%>.setSourceProperties("<%=sourceProperties%>");
+	<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
+<%    if (outputToTable) { %>
+	<%=cid%>.setTargetURL("jdbc:mysql://"+<%=targetHost%>+":"+<%=targetPort%>+"/"+<%=targetDatabase%> + "?" + "rewriteBatchedStatements=true");
+	<%=cid%>.setTargetUser(<%=targetUser%>);
+	<%=cid%>.setTargetPassword(<%=targetUserPassword%>);
+	<%=cid%>.setTargetDriverClass("org.gjt.mm.mysql.Driver");
+	<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
+	<%=cid%>.setTargetProperties("<%=targetProperties%>");
+<%    } %>
+	// connect to databases only if we estalish our own connections
+	<%=cid%>.connect();
+<%  } %>
+	<%=cid%>.setupDataModels();
+	<%=cid%>.setDieOnError("<%=dieOnError%>");
+<%  if (useQuery) { %>
+    // use our own query as source
+    String <%=cid%>_query = <%=sourceQuery%>;
+	<%=cid%>.setSourceQuery(<%=cid%>_query);
 <%  } else {
-		if (useDataSource) {%>
-        // use this table as source (query will be generated)
-		<%=cid%>.setSourceTable(<%=sourceDatabase%> + "." + <%=sourceTable%>);
-<%		} else if (useExistingConnections) {%>
-        // use this table as source (query will be generated)
-		<%=cid%>.setSourceTable(((String) globalMap.get("db_" + "<%=sourceConnCompName%>")) + "." + <%=sourceTable%>);
-<%      } else {%>
-        // use this table as source (query will be generated)
-		<%=cid%>.setSourceTable(<%=sourceDatabase%> + "." + <%=sourceTable%>);
-<%      }%>
-<%      if (sourceTableWhere != null && sourceTableWhere.isEmpty() == false) {%>
-		<%=cid%>.setSourceWhereClause(<%=sourceTableWhere%>);
-<%      }%>
-<%  }%>
-		// configure target table
-<%		if (useDataSource) {%>
-        // use this table as target
-		<%=cid%>.setTargetTable(<%=targetDatabase%> + "." + <%=targetTable%>);
-<%		} else if (useExistingConnections) {%>
-        // use this table as source (query will be generated)
-		<%=cid%>.setTargetTable(((String) globalMap.get("db_" + "<%=targetConnCompName%>")) + "." + <%=targetTable%>);
-<%      } else {%>
-        // use this table as source (query will be generated)
-		<%=cid%>.setTargetTable(<%=targetDatabase%> + "." + <%=targetTable%>);
-<%      }%>
-<%      if (excludeFieldList != null) {
-			for (Map<String, String> entry : excludeFieldList) { %>
-		<%=cid%>.addExcludeField(<%=entry.get("COLUMN")%>);		
-<%      	}%>
-<%      }%>
-		// initialize statements
-		<%=cid%>.setupExecute();
-		// ((com.mysql.jdbc.Statement) <%=cid%>.getSourceStatement()).enableStreamingResults();
-	    // memorize query
-    	globalMap.put("<%=cid%>_QUERY", <%=cid%>.getSourceQuery());
-<%      if (sourceTable != null && sourceTable.isEmpty() == false) {%>
-    	globalMap.put("<%=cid%>_SOURCE_TABLE", <%=sourceTable%>);
-<%      }%>
-    	globalMap.put("<%=cid%>_TARGET_TABLE", <%=targetDatabase%> + "." + <%=targetTable%>);
-<%    	if ("true".equalsIgnoreCase(logoutQuery)) {%>
-        // log source query
-		System.out.println("Source query statement:" + <%=cid%>.getSourceQuery());
-<%    	}%>
-<%		if ("true".equalsIgnoreCase(logoutInsert)) {%>
-        // log target statement
-		System.out.println("Target insert statement:" + <%=cid%>.getTargetInsertStatement());
-<%		}%>
-<%      if ("true".equalsIgnoreCase(truncateTarget)) {%>
-        System.out.println("truncate target table...");
-		<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
-<%		}%>
-<%      if ("true".equalsIgnoreCase(disableKeys)) {%>
-        System.out.println("disable keys on target table...");
-		<%=cid%>.executeSQLOnTarget("alter table " + <%=cid%>.getTargetTable() + " disable keys");
-<%		}%>
-        // log intervall
-	    long logInterval_<%=cid%> = Integer.parseInt("<%=logIntervalStr%>") * 1000;
+		if (useDataSource) { %>
+    // use this table as source (query will be generated)
+	<%=cid%>.setSourceTable(<%=sourceDatabase%> + "." + <%=sourceTable%>);
+<%		} else if (useExistingConnections) { %>
+	// use this table as source (query will be generated)
+	<%=cid%>.setSourceTable(((String) globalMap.get("db_" + "<%=sourceConnCompName%>")) + "." + <%=sourceTable%>);
+<%    } else { %>
+   // use this table as source (query will be generated)
+	<%=cid%>.setSourceTable(<%=sourceDatabase%> + "." + <%=sourceTable%>);
+<%    } %>
+<%    if (sourceTableWhere != null && sourceTableWhere.isEmpty() == false) {%>
+	<%=cid%>.setSourceWhereClause(<%=sourceTableWhere%>);
+<%    } %>
+<%  } %>
+<%  if (outputToTable) { %>
+	// configure target table
+<%		if (useDataSource) { %>
+   // use this table as target
+	<%=cid%>.setTargetTable(<%=targetDatabase%> + "." + <%=targetTable%>);
+<%		} else if (useExistingConnections) { %>
+   // use this table as source (query will be generated)
+	<%=cid%>.setTargetTable(((String) globalMap.get("db_" + "<%=targetConnCompName%>")) + "." + <%=targetTable%>);
+<%    } else { %>
+   // use this table as source (query will be generated)
+	<%=cid%>.setTargetTable(<%=targetDatabase%> + "." + <%=targetTable%>);
+<%    } %>
+<%  } %>
+<%  if (excludeFieldList != null) {
+      for (Map<String, String> entry : excludeFieldList) { %>
+	<%=cid%>.addExcludeField(<%=entry.get("COLUMN")%>);
+<%    } %>
+<%  } %>
+<%	 if (backupData && backupFile.trim().isEmpty() == false) { %>
+	// setup backup
+	{
+		String backupFilePath = <%=backupFile%>;
+		globalMap.put("<%=cid%>_BACKUP_FILE", <%=cid%>.setBackupFilePath(backupFilePath));
+	}
+<%  } %>
+	// initialize statements
+	<%=cid%>.setup();
+	// memorize query
+  	globalMap.put("<%=cid%>_QUERY", <%=cid%>.getSourceQuery());
+<%  if (sourceTable != null && sourceTable.isEmpty() == false) { %>
+   globalMap.put("<%=cid%>_SOURCE_TABLE", <%=sourceTable%>);
+<%  } %>
+<%  if (outputToTable) { %>
+   globalMap.put("<%=cid%>_TARGET_TABLE", <%=targetDatabase%> + "." + <%=targetTable%>);
+<%  } %>
+<%  if ("true".equalsIgnoreCase(logoutQuery)) { %>
+   // log source query
+	System.out.println("Source query statement:" + <%=cid%>.getSourceQuery());
+<%  } %>
+<%	 if (outputToTable && "true".equalsIgnoreCase(logoutInsert)) { %>
+   // log target statement
+	System.out.println("Target insert statement:" + <%=cid%>.getTargetInsertStatement());
+<%	 } %>
+<%  if (outputToTable && "true".equalsIgnoreCase(truncateTarget)) { %>
+   System.out.println("truncate target table...");
+	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
+<%	 } %>
+<%  if (outputToTable && "true".equalsIgnoreCase(disableKeys)) { %>
+   System.out.println("disable keys on target table...");
+	<%=cid%>.executeSQLOnTarget("alter table " + <%=cid%>.getTargetTable() + " disable keys");
+<%	 } %>
+   // log intervall
+	long logInterval_<%=cid%> = Integer.parseInt("<%=logIntervalStr%>") * 1000;
 		

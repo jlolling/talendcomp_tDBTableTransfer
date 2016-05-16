@@ -22,22 +22,28 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
-import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
 import sqlrunner.datamodel.SQLDataModel;
@@ -46,29 +52,27 @@ import sqlrunner.datamodel.SQLSchema;
 import sqlrunner.datamodel.SQLTable;
 import sqlrunner.generator.SQLCodeGenerator;
 import sqlrunner.text.StringReplacer;
-import dbtools.ConnectionDescription;
-import dbtools.DatabaseSessionPool;
 import dbtools.SQLPSParam;
 import dbtools.SQLStatement;
 
 public final class TableTransfer {
 
-	private Logger logger = Logger.getLogger(TableTransfer.class);
+	private Logger logger = null; //Logger.getLogger(TableTransfer.class);
 	private Properties properties = new Properties();
-	private ConnectionDescription sourceConnDesc;
-	private ConnectionDescription targetConnDesc;
 	private Connection sourceConnection;
 	private Connection targetConnection;
 	private SQLStatement targetInsertStatement;
-	private PreparedStatement sourcePSSelect;
+	private Statement sourceSelectStatement;
 	private PreparedStatement targetPSInsert;
 	private SQLDataModel sourceModel;
+	private static final Map<String, SQLDataModel> sqlModelCache = new HashMap<String, SQLDataModel>();
 	private SQLDataModel targetModel;
 	private SQLTable sourceTable;
 	private String sourceQuery;
 	private SQLTable targetTable;
 	private static final int RETURN_CODE_OK = 0;
-	private static final int RETURN_CODE_ERROR = 1;
+	private static final int RETURN_CODE_ERROR_INPUT = 1;
+	private static final int RETURN_CODE_ERROR_OUPUT = 1;
 	private static final int RETURN_CODE_WARN = 5;
 	private int returnCode = RETURN_CODE_OK;
 	private String errorMessage;
@@ -77,6 +81,7 @@ public final class TableTransfer {
 	private BlockingQueue<Object> fileQueue;
 	private final Object closeFlag = new String("The End");
 	private List<String> listResultSetFieldNames;
+	private List<String> listResultSetFieldTypeNames;
 	private Thread readerThread;
 	private Thread writerThread;
 	private Thread writerBackupThread;
@@ -106,6 +111,7 @@ public final class TableTransfer {
 	private boolean dieOnError = true;
 	private boolean initialized = false;
 	private List<String> excludeFieldList = new ArrayList<String>();
+	private List<ColumnValue> fixedColumnValueList = new ArrayList<ColumnValue>();
 	private boolean outputToTable = true;
 	private boolean outputToFile = false;
 	private File backupFile = null;
@@ -115,10 +121,46 @@ public final class TableTransfer {
 	private String nullReplacement = "\\N";
 	private BufferedWriter backupOutputWriter = null;
 	private SimpleDateFormat sdfOut = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	private boolean ignoreReadFieldErrors = true;
+	private Pattern patternForBackslash = null;
+	private Pattern patternForQuota = null;
+	private String replacementForBackslash = null;
+	private String replacementForQuota = null;
+	private SQLCodeGenerator codeGenerator = new SQLCodeGenerator();
+	private boolean exportBooleanAsNumber = true;
+	private Map<String, String> dbJavaTypeMap = new HashMap<String, String>();
+	private boolean debug = false;
+	private boolean keepDataModels = false;
+	private String modelKey = null;
+	private Map<Integer, String> outputClassMap = new HashMap<Integer, String>();
+	
+	public void enableLog4J(boolean enable) {
+		if (enable) {
+			logger = Logger.getLogger(TableTransfer.class);
+		} else {
+			logger = null;
+		}
+	}
+	
+	public void addDbJavaTypeMapping(String dbType, String javaType) {
+		if (dbType != null && dbType.trim().isEmpty() == false) {
+			if (javaType != null && javaType.trim().isEmpty() == false) {
+				dbJavaTypeMap.put(dbType, javaType);
+			}
+		}
+	}
 	
 	public void addExcludeField(String name) {
 		if (name != null && name.trim().isEmpty() == false) {
 			excludeFieldList.add(name.trim());
+		}
+	}
+	
+	public void setColumnValue(String name, Object value) {
+		if (name != null && name.trim().isEmpty() == false) {
+			ColumnValue cv = new ColumnValue(name.trim());
+			cv.setValue(value);
+			fixedColumnValueList.add(cv);
 		}
 	}
 	
@@ -136,39 +178,6 @@ public final class TableTransfer {
 	
 	public final boolean isRunning() {
 		return runningDb || runningFile;
-	}
-	
-	public static final Connection createConnection(ConnectionDescription cd) throws Exception {
-		// register driver
-		Class.forName(cd.getDriverClassName());
-		// create connection
-		Connection conn = DriverManager.getConnection(cd.getUrl(), getConnectionProperties(cd));
-		return conn;
-	}
-	
-	private static final Properties getConnectionProperties(ConnectionDescription cd) {
-        Properties properties = new Properties();
-        if (cd.getPropertiesString() != null) {
-            StringTokenizer st = new StringTokenizer(cd.getPropertiesString(), ";");
-            String token = null;
-            String key = null;
-            String value = null;
-            int pos = 0;
-            while (st.hasMoreTokens()) {
-                token = st.nextToken();
-                pos = token.indexOf('=');
-                if (pos != -1) {
-                    key = token.substring(0, pos).trim();
-                    value = token.substring(pos + 1).trim();
-                    if (key.length() > 0 && value.length() > 0) {
-                        properties.put(key, value);
-                    }
-                }
-            }
-        }
-        properties.put("user", cd.getUser());
-        properties.put("password", cd.getPasswd());
-        return properties;
 	}
 	
 	/**
@@ -210,10 +219,10 @@ public final class TableTransfer {
 		}
 		if (outputToFile) {
 			runningFile = true;
-			logger.info("Create backup file: " + backupFile.getAbsolutePath());
+			info("Create backup file: " + backupFile.getAbsolutePath());
 			backupFileTmp = new File(backupFile.getAbsolutePath() + ".tmp");
 			backupOutputWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupFileTmp), "UTF-8"));
-			logger.info("Backup file established.");
+			info("Backup file established.");
 			writerBackupThread = new Thread() {
 				@Override
 				public void run() {
@@ -244,31 +253,25 @@ public final class TableTransfer {
 	 * disconnects from the database 
 	 */
 	public final void disconnect() {
-		logger.info("Close source connection...");
-		if (sourceConnDesc != null) {
-			DatabaseSessionPool.close(sourceConnDesc.getUniqueId());
-		}
+		info("Close source connection...");
 		if (sourceConnection != null) {
 			try {
 				if (sourceConnection.isClosed() == false) {
 					sourceConnection.close();
 				}
 			} catch (SQLException e) {
-				logger.error("disconnect from source failed: " + e.getMessage(), e);
+				error("disconnect from source failed: " + e.getMessage(), e);
 			}
 		}
 		if (outputToTable) {
-			logger.info("Close target connection...");
-			if (targetConnDesc != null) {
-				DatabaseSessionPool.close(targetConnDesc.getUniqueId());
-			}
+			info("Close target connection...");
 			if (targetConnection != null) {
 				try {
 					if (targetConnection.isClosed() == false) {
 						targetConnection.close();
 					}
 				} catch (SQLException e) {
-					logger.error("disconnect from target failed: " + e.getMessage(), e);
+					error("disconnect from target failed: " + e.getMessage(), e);
 				}
 			}
 		}
@@ -276,31 +279,40 @@ public final class TableTransfer {
 	
 	private final void read() {
 		if (sourceTable != null) {
-			logger.info("Start fetch data from source table " + sourceTable.getAbsoluteName());
+			info("Start fetch data from source table " + sourceTable.getAbsoluteName());
 		} else {
-			logger.info("Start fetch data from source query " + sourceQuery);
+			info("Start fetch data from source query " + sourceQuery);
 		}
 		try {
-			final ResultSet rs = sourcePSSelect.executeQuery();
-			logger.info("Analyse result set...");
+			final ResultSet rs = sourceSelectStatement.executeQuery(sourceQuery);
+			info("Analyse result set...");
 			final ResultSetMetaData rsMeta = rs.getMetaData();
 			final int countColumns = rsMeta.getColumnCount();
 			listResultSetFieldNames = new ArrayList<String>(countColumns);
+			listResultSetFieldTypeNames = new ArrayList<String>(countColumns);
 			for (int i = 1; i <= countColumns; i++) {
-				listResultSetFieldNames.add(rsMeta.getColumnName(i).toLowerCase());
+				String name = rsMeta.getColumnName(i).toLowerCase();
+				String type = rsMeta.getColumnTypeName(i).toUpperCase();
+				listResultSetFieldNames.add(name);
+				listResultSetFieldTypeNames.add(type);
+				debug("Name: " + name + ",  Type: " + type);
 			}
-			logger.info("Start fetching data...");
+			// add fixed column value names
+			for (ColumnValue cv : fixedColumnValueList) {
+				listResultSetFieldNames.add(cv.getColumnName());
+				debug("Name: " + cv.getColumnName());
+			}
+			info("Start fetching data...");
 			startTime = System.currentTimeMillis();
 			while (rs.next()) {
-				final Object[] row = new Object[countColumns];
-				fillRow(row, rs);
+				final Object[] row = fillRow(rs, countColumns);
 				if (outputToTable) {
 					tableQueue.put(row);
 				}
 				if (outputToFile) {
 					if (writerBackupThread == null || writerBackupThread.isAlive() == false) {
 						if (outputToTable) {
-							warn("Backup process died. Switch off backup");
+							warn("Backup process died. Switch off backup", null);
 							outputToFile = false;
 						} else {
 							throw new Exception("No output will work. The component is in backup only mode and the backup thread is not started or dead. Stop processing.");
@@ -316,9 +328,9 @@ public final class TableTransfer {
 			}
 			rs.close();
 			if (sourceTable != null) {
-				logger.info("Finished fetch data from source table " + sourceTable.getAbsoluteName() + " count read:" + countRead);
+				info("Finished fetch data from source table " + sourceTable.getAbsoluteName() + " count read:" + countRead);
 			} else {
-				logger.info("Finished fetch data from source query, count read:" + countRead);
+				info("Finished fetch data from source query, count read:" + countRead);
 			}
 		} catch (SQLException e) {
 			String message = e.getMessage();
@@ -326,46 +338,98 @@ public final class TableTransfer {
 			if (en != null) {
 				message = "\nNext Exception:" + en.getMessage();
 			}
-			error("read failed in line number " + countRead + " message:" + message, e);
-			returnCode = RETURN_CODE_ERROR;
+			error("Read failed in line number " + countRead + " message:" + message, e);
+			returnCode = RETURN_CODE_ERROR_INPUT;
 		} catch (InterruptedException ie) {
-			error("read interrupted (send data sets)", ie);
-			returnCode = RETURN_CODE_ERROR;
+			error("Read interrupted (send data sets)", ie);
+			returnCode = RETURN_CODE_ERROR_INPUT;
 		} catch (Exception ie) {
 			error("Read failed: " + ie.getMessage(), ie);
-			returnCode = RETURN_CODE_ERROR;
+			returnCode = RETURN_CODE_ERROR_INPUT;
 		} finally {
 			try {
 				if (outputToTable) {
-					logger.info("Stopping write table thread...");
+					info("Stopping write table thread...");
 					tableQueue.put(closeFlag);
 				}
 				if (outputToFile) {
-					logger.info("Stopping write file thread...");
+					info("Stopping write file thread...");
 					fileQueue.put(closeFlag);
 				}
 			} catch (InterruptedException e) {
 				error("read interrupted (send close flag)", e);
-				returnCode = RETURN_CODE_ERROR;
+				returnCode = RETURN_CODE_ERROR_INPUT;
 			}
 			try {
 				if (sourceConnection.getAutoCommit() == false) {
 					sourceConnection.commit();
 				}
-				sourcePSSelect.close();
+				sourceSelectStatement.close();
 			} catch (SQLException e) {}
 		}
-		logger.info("End read.");
+		info("End read.");
 	}
 	
-	private final void fillRow(Object[] row, ResultSet rs) throws SQLException {
-		for (int i = 0; i < row.length; i++) {
-			row[i] = rs.getObject(i + 1);
+	private final Object[] fillRow(ResultSet rs, int countDBColumns) throws SQLException {
+		String dbType = null;
+		String javaType = null;
+		Object[] row = new Object[countDBColumns + fixedColumnValueList.size()];
+		int columnIndex = 0;
+		while (columnIndex < countDBColumns) {
+			dbType = listResultSetFieldTypeNames.get(columnIndex);
+			if (dbType != null) {
+				javaType = dbJavaTypeMap.get(dbType);
+			} else {
+				javaType = null;
+			}
+			try {
+				if (javaType == null) {
+					row[columnIndex] = rs.getObject(columnIndex + 1);
+				} else if ("date".equals(javaType)) {
+					row[columnIndex] = rs.getDate(columnIndex + 1);
+				} else if ("time".equals(javaType)) {
+					row[columnIndex] = rs.getTime(columnIndex + 1);
+				} else if ("timestamp".equals(javaType)) {
+					row[columnIndex] = rs.getTimestamp(columnIndex + 1);
+				} else if ("string".equals(javaType)) {
+					row[columnIndex] = rs.getString(columnIndex + 1);
+				} else if ("boolean".equals(javaType)) {
+					row[columnIndex] = rs.getBoolean(columnIndex + 1);
+				} else if ("short".equals(javaType)) {
+					row[columnIndex] = rs.getShort(columnIndex + 1);
+				} else if ("byte".equals(javaType)) {
+					row[columnIndex] = rs.getByte(columnIndex + 1);
+				} else if ("integer".equals(javaType)) {
+					row[columnIndex] = rs.getInt(columnIndex + 1);
+				} else if ("long".equals(javaType)) {
+					row[columnIndex] = rs.getLong(columnIndex + 1);
+				} else if ("bigdecimal".equals(javaType)) {
+					row[columnIndex] = rs.getBigDecimal(columnIndex + 1);
+				} else if ("double".equals(javaType)) {
+					row[columnIndex] = rs.getDouble(columnIndex + 1);
+				} else if ("float".equals(javaType)) {
+					row[columnIndex] = rs.getFloat(columnIndex + 1);
+				} else {
+					row[columnIndex] = rs.getObject(columnIndex + 1);
+				}
+			} catch (SQLException e) {
+				if (ignoreReadFieldErrors == false) {
+					throw e;
+				} else {
+					warn("Ignore database error while reading field with index: " + columnIndex + " in row: " + countRead + " message: " + e.getMessage(), e);
+					row[columnIndex] = null;
+				}
+			}
+			columnIndex++;
 		}
+		for (ColumnValue cv : fixedColumnValueList) {
+			row[columnIndex++] = cv.getValue();
+		}
+		return row;
 	}
 	
 	private final void writeTable() {
-		logger.info("Start writing data into target table " + targetTable.getAbsoluteName());
+		info("Start writing data into target table " + targetTable.getAbsoluteName());
 		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
 		int currentBatchCount = 0;
 		try {
@@ -373,7 +437,7 @@ public final class TableTransfer {
 			try {
 				autocommitTemp = targetConnection.getAutoCommit();
 			} catch (SQLException e2) {
-				logger.warn("Failed to detect autocommit state: " + e2.getMessage(), e2);
+				warn("Failed to detect autocommit state: " + e2.getMessage(), e2);
 			}
 			final boolean autocommit = autocommitTemp;
 			boolean endFlagReceived = false;
@@ -383,7 +447,7 @@ public final class TableTransfer {
 					tableQueue.drainTo(queueObjects, batchSize);
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {
-							logger.info("Write table thread: Stop flag received.");
+							info("Write table thread: Stop flag received.");
 							endFlagReceived = true;
 							break;
 						} else {
@@ -392,9 +456,7 @@ public final class TableTransfer {
 							countInserts++;
 							currentBatchCount++;
 							if (currentBatchCount == batchSize) {
-								if (logger.isDebugEnabled()) {
-									logger.debug("write execute insert batch");
-								}
+								debug("Write execute insert batch");
 								targetPSInsert.executeBatch();
 								if (autocommit == false) {
 									targetConnection.commit();
@@ -407,22 +469,22 @@ public final class TableTransfer {
 						}
 					}
 				} catch (InterruptedException e) {
-					error("write interrupted in line " + countInserts, e);
-					returnCode = RETURN_CODE_ERROR;
+					error("Write interrupted in line " + countInserts, e);
+					returnCode = RETURN_CODE_ERROR_OUPUT;
 					break;
 				} catch (SQLException sqle) {
-					error("write failed in line number " + countInserts + " message:" + sqle.getMessage(), sqle);
+					error("Write failed in line number " + countInserts + " message:" + sqle.getMessage(), sqle);
 					if (sqle.getNextException() != null) {
-						error("Embedded error:" + sqle.getNextException().getMessage(), sqle.getNextException());
+						error("Next exception:" + sqle.getNextException().getMessage(), sqle.getNextException());
 					}
 					if (dieOnError) {
-						returnCode = RETURN_CODE_ERROR;
+						returnCode = RETURN_CODE_ERROR_OUPUT;
 						try {
 							if (autocommit == false) {
 								targetConnection.rollback();
 							}
 						} catch (SQLException e) {
-							logger.error("write rollback failed: " + e.getMessage(), e);
+							error("write rollback failed: " + e.getMessage(), e);
 						}
 						break;
 					} else {
@@ -431,27 +493,25 @@ public final class TableTransfer {
 								targetConnection.commit();
 							}
 						} catch (SQLException e) {
-							logger.error("write commit failed: " + e.getMessage(), e);
+							error("write commit failed: " + e.getMessage(), e);
 						}
 					}
 				} catch (Exception e1) {
-					returnCode = RETURN_CODE_ERROR;
+					returnCode = RETURN_CODE_ERROR_OUPUT;
 					error("write failed:" + e1.getMessage(), e1);
 					break;
 				}
 			}
-			if (currentBatchCount > 0 && returnCode == 0) {
+			if (currentBatchCount > 0 && returnCode == RETURN_CODE_OK) {
 				try {
-					if (logger.isDebugEnabled()) {
-						logger.debug("write execute final insert batch");
-					}
+					debug("write execute final insert batch");
 					targetPSInsert.executeBatch();
 					if (autocommit == false) {
 						targetConnection.commit();
 					}
 					currentBatchCount = 0;
 				} catch (SQLException sqle) {
-					returnCode = RETURN_CODE_ERROR;
+					returnCode = RETURN_CODE_ERROR_OUPUT;
 					error("write failed executing last batch message:" + sqle.getMessage(), sqle);
 					if (sqle.getNextException() != null) {
 						error("write failed embedded error:" + sqle.getNextException().getMessage(), sqle.getNextException());
@@ -459,18 +519,21 @@ public final class TableTransfer {
 					try {
 						targetConnection.rollback();
 					} catch (SQLException e) {
-						logger.error("write rollback failed:" + e.getMessage(), e);
+						error("write rollback failed:" + e.getMessage(), e);
 					}
 				}
+			}
+			if (returnCode == RETURN_CODE_ERROR_INPUT) {
+				error("Read has been failed. Stop write in table.", null);
 			}
 		} finally {
 			try {
 				targetPSInsert.close();
 			} catch (SQLException e) {}
 			runningDb = false;
-			logger.info("Finished write data into target table " + targetTable.getAbsoluteName() + ", count inserts:" + countInserts);
+			info("Finished write data into target table " + targetTable.getAbsoluteName() + ", count inserts:" + countInserts);
 		}
-		logger.info("Write table finished.");
+		info("Write table finished.");
 	}
 	
 	private final Object getRowValue(final String columnName, final Object[] row) {
@@ -481,26 +544,49 @@ public final class TableTransfer {
 			return null;
 		}
 	}
-
+	
 	private final void prepareInsertStatement(final Object[] row) throws Exception {
 		for (SQLPSParam p : targetInsertStatement.getParams()) {
 			final Object value = getRowValue(p.getName(), row);
 			if (value != null) {
-				targetPSInsert.setObject(p.getIndex(), value);
+				String className = outputClassMap.get(p.getIndex());
+				if (className == null) {
+					className = value.getClass().getSimpleName();
+					outputClassMap.put(p.getIndex(), className);
+					debug("Output class mapping: #" + p.getIndex() + " (" + p.getName() + ") use: " + className);
+				}
+				if ("BigDecimal".equals(className)) {
+					targetPSInsert.setBigDecimal(p.getIndex(), (BigDecimal) value);
+				} else if ("BigInteger".equals(className)) {
+					targetPSInsert.setLong(p.getIndex(), ((BigInteger) value).longValue());
+				} else if ("Double".equals(className)) {
+					targetPSInsert.setDouble(p.getIndex(), (Double) value);
+				} else if ("Float".equals(className)) {
+					targetPSInsert.setFloat(p.getIndex(), (Float) value);
+				} else if ("Long".equals(className)) {
+					targetPSInsert.setLong(p.getIndex(), (Long) value);
+				} else if ("Integer".equals(className)) {
+					targetPSInsert.setInt(p.getIndex(), (Integer) value);
+				} else if ("Short".equals(className)) {
+					targetPSInsert.setShort(p.getIndex(), (Short) value);
+				} else if ("String".equals(className)) {
+					targetPSInsert.setString(p.getIndex(), (String) value);
+				} else if ("Date".equals(className)) {
+					targetPSInsert.setDate(p.getIndex(), (java.sql.Date) value);
+				} else if ("Timestamp".equals(className)) {
+					targetPSInsert.setTimestamp(p.getIndex(), (Timestamp) value);
+				} else if ("Time".equals(className)) {
+					targetPSInsert.setTime(p.getIndex(), (Time) value);
+				} else if ("Boolean".equals(className)) {
+					targetPSInsert.setBoolean(p.getIndex(), (Boolean) value);
+				} else if ("String".equals(className)) {
+					targetPSInsert.setString(p.getIndex(), (String) value);
+				} else {
+					targetPSInsert.setObject(p.getIndex(), value);
+				}
 			} else {
 				targetPSInsert.setNull(p.getIndex(), targetTable.getField(p.getName()).getType());
 			}
-		}
-	}
-	
-	/**
-	 * connects to the database
-	 * @throws Exception
-	 */
-	public final void connect() throws Exception {
-		connectSource();
-		if (outputToTable) {
-			connectTarget();
 		}
 	}
 	
@@ -513,7 +599,7 @@ public final class TableTransfer {
 			stat.execute(sqlStatement);
 			stat.close();
 		} catch (SQLException sqle) {
-			logger.error("executeSQLOnTarget sql=" + sqlStatement + " failed: " + sqle.getMessage(), sqle);
+			error("executeSQLOnTarget sql=" + sqlStatement + " failed: " + sqle.getMessage(), sqle);
 			throw sqle;
 		}
 	}
@@ -545,6 +631,10 @@ public final class TableTransfer {
 			fileQueue = new LinkedBlockingQueue<Object>(queueSize);
 		}
 		dieOnError = Boolean.parseBoolean(properties.getProperty(DIE_ON_ERROR, "true"));
+		patternForBackslash = Pattern.compile("\\", Pattern.LITERAL);
+		patternForQuota = Pattern.compile("\"", Pattern.LITERAL);
+		replacementForBackslash = Matcher.quoteReplacement("\\\\");
+		replacementForQuota = Matcher.quoteReplacement("\\\"");
 		initialized = true;
 	}
 	
@@ -553,7 +643,7 @@ public final class TableTransfer {
 		if (sourceTable == null || sourceTable.getAbsoluteName().equalsIgnoreCase(tableAndSchemaName) == false) {
 			String schemaName = getSchemaName(tableAndSchemaName);
 			if (schemaName == null) {
-				schemaName = sourceModel.getLoginSchemaName();
+				schemaName = getSourceDatabase();
 			}
 			SQLSchema schema = sourceModel.getSchema(schemaName);
 			if (schema == null) {
@@ -562,7 +652,7 @@ public final class TableTransfer {
 			String tableName = getTableName(tableAndSchemaName);
 			sourceTable = schema.getTable(tableName);
 			if (sourceTable == null) {
-				throw new Exception("getSourceTable failed: table " + tableAndSchemaName + " not available");
+				throw new Exception("getSourceTable failed: table " + schemaName + "." + tableName + " not available");
 			}
 			for (String exclFieldName : excludeFieldList) {
 				SQLField field = sourceTable.getField(exclFieldName);
@@ -574,26 +664,52 @@ public final class TableTransfer {
 		return sourceTable;
 	}
 	
+	private String getSourceDatabase() throws SQLException {
+		String cat = sourceConnection.getCatalog();
+		if (cat == null || cat.trim().isEmpty()) {
+			cat = sourceModel.getLoginSchemaName();
+		}
+		return cat;
+	}
+	
+	private String getTargetDatabase() throws SQLException {
+		String cat = targetConnection.getCatalog();
+		if (cat == null || cat.trim().isEmpty()) {
+			cat = targetModel.getLoginSchemaName();
+		}
+		return cat;
+	}
+
 	private final SQLTable getTargetSQLTable() throws Exception {
 		final String tableAndSchemaName = properties.getProperty(TARGET_TABLE);
 		if (targetTable == null || targetTable.getAbsoluteName().equalsIgnoreCase(tableAndSchemaName) == false) {
 			String schemaName = getSchemaName(tableAndSchemaName);
 			if (schemaName == null) {
-				schemaName = targetModel.getLoginSchemaName();
+				schemaName = getTargetDatabase();
 			}
 			SQLSchema schema = targetModel.getSchema(schemaName);
 			if (schema == null) {
-				throw new Exception("getTargetTable failed: schema " + schemaName + " not available");
+				throw new Exception("getTargetSQLTable failed: schema " + schemaName + " not available");
 			}
 			String tableName = getTableName(tableAndSchemaName);
 			targetTable = schema.getTable(tableName);
 			if (targetTable == null) {
-				throw new Exception("getTargetTable failed: table " + tableAndSchemaName + " not available");
+				throw new Exception("getTargetSQLTable failed: table " + schemaName + "." + tableName + " not available");
 			}
 			for (String exclFieldName : excludeFieldList) {
-				SQLField field = targetTable.getField(exclFieldName);
-				if (field != null) {
-					targetTable.removeSQLField(field);
+				boolean exclude = true;
+				// take care we exclude a column only if we do not have a fixed value
+				for (ColumnValue cv : fixedColumnValueList) {
+					if (cv.getColumnName().equalsIgnoreCase(exclFieldName)) {
+						exclude = false;
+						break;
+					}
+				}
+				if (exclude) {
+					SQLField field = targetTable.getField(exclFieldName);
+					if (field != null) {
+						targetTable.removeSQLField(field);
+					}
 				}
 			}
 		}
@@ -606,30 +722,28 @@ public final class TableTransfer {
 			Class.forName("com.mysql.jdbc.Statement");
 			mysqlDriverPresent = true;
 		} catch (ClassNotFoundException e) {
-			logger.debug("No MySQL class loaded.");
+			debug("No MySQL class loaded.");
 		}
 		return mysqlDriverPresent;
 	}
 	
-	private PreparedStatement createSourceSelectStatement() throws Exception {
+	private Statement createSourceSelectStatement() throws Exception {
 		sourceQuery = properties.getProperty(SOURCE_QUERY);
 		if (sourceQuery == null) {
-			sourceQuery = SQLCodeGenerator.buildSelectStatement(getSourceSQLTable(), true) + buildSourceWhereSQL();
+			sourceQuery = codeGenerator.buildSelectStatement(getSourceSQLTable(), true) + buildSourceWhereSQL();
 			properties.put(SOURCE_QUERY, sourceQuery);
 		}
-		if (logger.isDebugEnabled()) {
-			logger.debug("createSourceSelectStatement SQL:" + sourceQuery);
-		}
-		sourcePSSelect = sourceConnection.prepareStatement(sourceQuery, java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
+		debug("createSourceSelectStatement SQL:" + sourceQuery);
+		sourceSelectStatement = sourceConnection.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
 		int fetchSize = getFetchSize();
 		if (fetchSize > 0) {
-			sourcePSSelect.setFetchSize(fetchSize);
+			sourceSelectStatement.setFetchSize(fetchSize);
 		}
 		if (isMysql()) {
 			DBHelper util = (DBHelper) Class.forName("de.jlo.talendcomp.tabletransfer.MySQLHelper").newInstance();
-			util.setupStatement(sourcePSSelect);
+			util.setupStatement(sourceSelectStatement);
 		}
-		return sourcePSSelect;
+		return sourceSelectStatement;
 	}
 	
 	private int getFetchSize() {
@@ -637,16 +751,14 @@ public final class TableTransfer {
 		try {
 			fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "0"));
 		} catch (Exception e) {
-			logger.warn("getFetchSize failed: " + e.getMessage(), e);
+			warn("getFetchSize failed: " + e.getMessage(), e);
 		}
 		return fetchSize;
 	}
 	
 	private PreparedStatement createTargetInsertStatement() throws Exception {
-		targetInsertStatement = SQLCodeGenerator.buildPSInsertSQLStatement(getTargetSQLTable(), true);
-		if (logger.isDebugEnabled()) {
-			logger.debug("createTargetInsertStatement SQL:" + targetInsertStatement.getSQL());
-		}
+		targetInsertStatement = codeGenerator.buildPSInsertSQLStatement(getTargetSQLTable(), true);
+		debug("createTargetInsertStatement SQL:" + targetInsertStatement.getSQL());
 		targetPSInsert = targetConnection.prepareStatement(targetInsertStatement.getSQL());
 		return targetPSInsert;
 	}
@@ -684,7 +796,7 @@ public final class TableTransfer {
 		for (String key : listPlaceHolders) {
 			String value = properties.getProperty(key);
 			if (value == null) {
-				logger.warn("replacePlaceholders for string " + stringWithPlaceholders + " failed in key:" + key + " reason: missing value");
+				warn("replacePlaceholders for string " + stringWithPlaceholders + " failed in key:" + key + " reason: missing value", null);
 				returnCode = RETURN_CODE_WARN;
 				value = "";
 			}
@@ -707,70 +819,44 @@ public final class TableTransfer {
 		if (pos > 0) {
 			return schemaAndTable.substring(pos + 1, schemaAndTable.length());
 		} else {
-			return null;
+			return schemaAndTable;
 		}
-	}
-	
-	private final void connectSource() throws Exception {
-		String user = properties.getProperty(SOURCE_USER);
-		String url = properties.getProperty(SOURCE_URL);
-		String password = properties.getProperty(SOURCE_PASSWORD);
-		String driverClass = properties.getProperty(SOURCE_DRIVER);
-		if (user == null || url == null || password == null || driverClass == null) {
-			throw new Exception("Properties for source connection missing!");
-		}
-		sourceConnDesc = new ConnectionDescription();
-		sourceConnDesc.setAutoCommit(true);
-		sourceConnDesc.setUser(user);
-		sourceConnDesc.setUrl(url);
-		sourceConnDesc.setPasswd(password);
-		sourceConnDesc.setDriverClassName(driverClass);
-		sourceConnDesc.setDefaultFetchSize(getFetchSize());
-		sourceConnDesc.setPropertiesString(properties.getProperty(SOURCE_PROPERTIES));
-		if (DatabaseSessionPool.getConnectionDescription(sourceConnDesc.getUniqueId()) == null) {
-			DatabaseSessionPool.addConnectionDescription(sourceConnDesc.getUniqueId(), sourceConnDesc);
-		}
-		sourceConnection = createConnection(sourceConnDesc);
-		sourceConnection.setReadOnly(true);
-	}
-	
-	private final void connectTarget() throws Exception {
-		String user = properties.getProperty(TARGET_USER);
-		String url = properties.getProperty(TARGET_URL);
-		String password = properties.getProperty(TARGET_PASSWORD);
-		String driverClass = properties.getProperty(TARGET_DRIVER);
-		if (user == null || url == null || password == null || driverClass == null) {
-			throw new Exception("Properties for target connection missing!");
-		}
-		targetConnDesc = new ConnectionDescription();
-		targetConnDesc.setAutoCommit(false);
-		targetConnDesc.setUser(user);
-		targetConnDesc.setUrl(url);
-		targetConnDesc.setPasswd(password);
-		targetConnDesc.setDriverClassName(driverClass);
-		targetConnDesc.setPropertiesString(properties.getProperty(TARGET_PROPERTIES));
-		if (DatabaseSessionPool.getConnectionDescription(targetConnDesc.getUniqueId()) == null) {
-			DatabaseSessionPool.addConnectionDescription(targetConnDesc.getUniqueId(), targetConnDesc);
-		}
-		targetConnection = createConnection(targetConnDesc);
 	}
 	
 	public final void setupDataModels() throws SQLException {
-		if (sourceConnDesc != null) {
-			sourceModel = new SQLDataModel(sourceConnDesc);
+		if (keepDataModels) {
+			sourceModel = sqlModelCache.get("source_" + modelKey);
+			if (sourceModel == null) {
+				sourceModel = new SQLDataModel(sourceConnection);
+				sourceModel.loadSchemas();
+				sqlModelCache.put("source_" + modelKey, sourceModel);
+			} else {
+				sourceModel.setConnection(sourceConnection);
+			}
 		} else {
 			sourceModel = new SQLDataModel(sourceConnection);
+			sourceModel.loadSchemas();
 		}
-		sourceModel.loadSchemas();
-		sourceConnection.commit();
+		if (sourceConnection != null && sourceConnection.getAutoCommit() == false) {
+			sourceConnection.commit();
+		}
 		if (outputToTable) {
-			if (targetConnDesc != null) {
-				targetModel = new SQLDataModel(targetConnDesc);
+			if (keepDataModels) {
+				targetModel = sqlModelCache.get("target_" + modelKey);
+				if (targetModel == null) {
+					targetModel = new SQLDataModel(targetConnection);
+					targetModel.loadSchemas();
+					sqlModelCache.put("target_" + modelKey, targetModel);
+				} else {
+					targetModel.setConnection(targetConnection);
+				}
 			} else {
 				targetModel = new SQLDataModel(targetConnection);
+				targetModel.loadSchemas();
 			}
-			targetModel.loadSchemas();
-			targetConnection.commit();
+			if (targetConnection.getAutoCommit() == false) {
+				targetConnection.commit();
+			}
 		}
 	}
 	
@@ -781,7 +867,7 @@ public final class TableTransfer {
             fis.close();
         } catch (IOException e) {
         	error("LoadProperties from " + filePath + " failed: " + e.getMessage(), e);
-			returnCode = RETURN_CODE_ERROR;
+			returnCode = RETURN_CODE_ERROR_INPUT;
         }
     }
     
@@ -838,7 +924,7 @@ public final class TableTransfer {
 	}
 
     public String getSourceTable() {
-    	return properties.getProperty(SOURCE_TABLE);
+    	return codeGenerator.getEncapsulatedName(properties.getProperty(SOURCE_TABLE));
     }
     
     public void setSourceTable(String tableAndSchema) {
@@ -903,7 +989,7 @@ public final class TableTransfer {
     }
     
     public String getTargetTable() {
-    	return properties.getProperty(TARGET_TABLE);
+    	return codeGenerator.getEncapsulatedName(properties.getProperty(TARGET_TABLE));
     }
     
     public void setTargetTable(String tableAndSchema) {
@@ -930,26 +1016,66 @@ public final class TableTransfer {
     	return properties.getProperty(key);
     }
     
-	public boolean isDieOnError() {
-		return Boolean.parseBoolean(properties.getProperty(DIE_ON_ERROR, "true"));
-	}
-
-	public void setDieOnError(String dieOnError) {
-		properties.setProperty(DIE_ON_ERROR, dieOnError);
-	}
-
-	public void setDieOnError(boolean dieOnError) {
-		properties.setProperty(DIE_ON_ERROR, String.valueOf(dieOnError));
+    public boolean isSuccessful() {
+    	return returnCode == RETURN_CODE_OK;
+    }
+    
+	private final void warn(String message, Exception t) {
+		if (logger != null) {
+			if (t != null) {
+				logger.warn(message, t);
+			} else {
+				logger.warn(message);
+			}
+		} else {
+			System.err.println("WARN: " + message);
+			if (t != null) {
+				t.printStackTrace();
+			}
+		}
+		if (message != null) {
+			errorMessage = message;
+		}
+		if (t != null) {
+			errorException = t;
+		}
 	}
 	
-	private final void warn(String message) {
-		logger.warn(message);
+	private final void info(String message) {
+		if (logger != null) {
+			logger.info(message);
+		} else {
+			System.out.println(message);
+		}
+	}
+
+	private final void debug(String message) {
+		if (logger != null && logger.isDebugEnabled()) {
+			logger.debug(message);
+		} else if (debug) {
+			System.out.println("DEBUG: " + message);
+		}
 	}
 
 	private final void error(String message, Exception t) {
-		logger.error(message, t);
-		errorMessage = message;
-		errorException = t;
+		if (logger != null) {
+			if (t != null) {
+				logger.error(message, t);
+			} else {
+				logger.error(message);
+			}
+		} else {
+			System.err.println("ERROR: " + message);
+			if (t != null) {
+				t.printStackTrace();
+			}
+		}
+		if (message != null) {
+			errorMessage = message;
+		}
+		if (t != null) {
+			errorException = t;
+		}
 	}
 
 	public String getErrorMessage() {
@@ -960,18 +1086,23 @@ public final class TableTransfer {
 		return errorException;
 	}
 	
-	public int getCountDatabaseSessions() {
-		return DatabaseSessionPool.getPoolSize();
-	}
-
 	public Connection getSourceConnection() {
 		return sourceConnection;
 	}
 	
-	public PreparedStatement getSourceStatement() {
-		return sourcePSSelect;
+	public Statement getSourceStatement() {
+		return sourceSelectStatement;
 	}
 
+	private boolean isClosed(Connection connection) {
+		try {
+			return connection.isClosed();
+		} catch (SQLException e) {
+			logger.error("Check if connection is closed failed:" + e.getMessage(), e);
+			return true;
+		}
+	}
+	
 	/**
 	 * set an connected connection
 	 * In this case it is not useful to call connect() or disconnect()
@@ -982,6 +1113,8 @@ public final class TableTransfer {
 			throw new IllegalArgumentException("Source connection cannot be null!");
 		} else if (sourceConnection == targetConnection) {
 			throw new IllegalArgumentException("Source connection cannot be the same as used for the target! Establish for source and target different connection instances!");
+		} else if (isClosed(sourceConnection)) {
+			throw new IllegalArgumentException("Source connection is already closed!");
 		}
 		this.sourceConnection = sourceConnection;
 	}
@@ -1003,6 +1136,8 @@ public final class TableTransfer {
 		}
 		if (targetConnection.isReadOnly()) {
 			throw new Exception("Target connection cannot be in read only mode!");
+		} else if (isClosed(targetConnection)) {
+			throw new IllegalArgumentException("Target connection is already closed!");
 		}
 		this.targetConnection = targetConnection;
 	}
@@ -1059,16 +1194,23 @@ public final class TableTransfer {
 		if (value instanceof String) {
 			String sValue = (String) value;
 			if (sValue.isEmpty()) {
-				return nullReplacement;
+				return "";
 			} else {
-				// escape the "
-				sValue = sValue.replace("\"", "\\\""); // take care to avoid destroying the field structure
+				// escape the " and the \
+				Matcher m1 = patternForBackslash.matcher(sValue);
+				sValue = m1.replaceAll(replacementForBackslash);
+				Matcher m2 = patternForQuota.matcher(sValue);
+				sValue = m2.replaceAll(replacementForQuota);
 				return sValue;
 			}
 		} else if (value instanceof Date) {
 			return sdfOut.format((Date) value);
 		} else if (value instanceof Boolean) {
-			return Boolean.toString((Boolean) value);
+			if (exportBooleanAsNumber) {
+				return ((Boolean) value) ? "1" : "0";
+			} else {
+				return Boolean.toString((Boolean) value);
+			}
 		} else if (value instanceof Short) {
 			return Short.toString((Short) value);
 		} else if (value instanceof Integer) {
@@ -1109,7 +1251,7 @@ public final class TableTransfer {
 	private void writeFile() {
 		try {
 			countFileRows = 0;
-			logger.info("Start writing data in file: " + backupFile.getAbsolutePath());
+			info("Start writing data in file: " + backupFile.getAbsolutePath());
 			final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
 			boolean endFlagReceived = false;
 			while (endFlagReceived == false) {
@@ -1118,7 +1260,7 @@ public final class TableTransfer {
 					fileQueue.drainTo(queueObjects, batchSize);
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {
-							logger.info("Write file thread: Stop flag received.");
+							info("Write file thread: Stop flag received.");
 							endFlagReceived = true;
 							break;
 						} else {
@@ -1128,11 +1270,10 @@ public final class TableTransfer {
 							break;
 						}
 					}
-					backupOutputWriter.flush();
 				} catch (Exception e) {
 					error("write file failed in line number " + countFileRows + " message:" + e.getMessage(), e);
 					if (dieOnError) {
-						returnCode = RETURN_CODE_ERROR;
+						returnCode = RETURN_CODE_ERROR_OUPUT;
 						break;
 					}
 				}
@@ -1144,9 +1285,21 @@ public final class TableTransfer {
 				error("Close file failed: " + e.getMessage(), e);
 			}
 			runningFile = false;
-			logger.info("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
-			logger.info("Rename tmp file: " + backupFileTmp.getAbsolutePath() + " to target file: " + backupFile.getAbsolutePath());
-			backupFileTmp.renameTo(backupFile);
+			if (returnCode == RETURN_CODE_OK) {
+				info("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
+				info("Rename tmp file: " + backupFileTmp.getAbsolutePath() + " to target file: " + backupFile.getAbsolutePath());
+				backupFileTmp.renameTo(backupFile);
+			} else if (returnCode == RETURN_CODE_ERROR_INPUT) {
+				info("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
+				warn("Read has been failed. Rename file as error file.", null);
+				File errorFile = new File(backupFile.getAbsolutePath() + ".error");
+				backupFileTmp.renameTo(errorFile);
+			} else if (returnCode == RETURN_CODE_ERROR_OUPUT) {
+				info("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
+				warn("Write to file has been failed. Rename file as error file.", null);
+				File errorFile = new File(backupFile.getAbsolutePath() + ".error");
+				backupFileTmp.renameTo(errorFile);
+			}
 		} catch (Exception e) {
 			try {
 				backupOutputWriter.flush();
@@ -1155,9 +1308,9 @@ public final class TableTransfer {
 				error("Close file failed: " + e.getMessage(), e);
 			}
 			runningFile = false;
-			logger.error("Write data into file " + backupFile.getAbsolutePath() + " count rows:" + countFileRows + " failed: " + e.getMessage(), e);
+			error("Write data into file " + backupFile.getAbsolutePath() + " count rows:" + countFileRows + " failed: " + e.getMessage(), e);
 		}
-		logger.info("Write file finished");
+		info("Write file finished");
 	}
 
 	public boolean isOutputToTable() {
@@ -1167,5 +1320,38 @@ public final class TableTransfer {
 	public void setOutputToTable(boolean outputToTable) {
 		this.outputToTable = outputToTable;
 	}
+	
+	public void setDebug(boolean debug) {
+		if (logger != null) {
+			Logger.getRootLogger().setLevel(Level.DEBUG);
+		}
+		this.debug = debug;
+	}
+	
+	public void setLogger(Logger logger) {
+		this.logger = logger;
+	}
 
+	public boolean isExportBooleanAsNumber() {
+		return exportBooleanAsNumber;
+	}
+
+	public void setExportBooleanAsNumber(Boolean exportBooleanAsNumber) {
+		if (exportBooleanAsNumber != null) {
+			this.exportBooleanAsNumber = exportBooleanAsNumber.booleanValue();
+		}
+	}
+
+	public boolean isKeepDataModels() {
+		return keepDataModels;
+	}
+
+	public void setKeepDataModels(boolean keepDataModels, String key) {
+		this.keepDataModels = keepDataModels;
+		if (keepDataModels && (key == null || key.trim().isEmpty())) {
+			throw new IllegalArgumentException("If the model should kept statically the key cannot be null or empty!");
+		}
+		this.modelKey = key;
+	}
+	
 }

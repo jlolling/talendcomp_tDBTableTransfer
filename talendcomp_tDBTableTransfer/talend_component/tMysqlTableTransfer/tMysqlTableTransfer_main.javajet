@@ -12,6 +12,7 @@
 	String cid = node.getUniqueName();
     String disableKeys = ElementParameterParser.getValue(node, "__TARGET_DISABLE_KEYS__");
     boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
+    boolean dieOnError = "true".equals(ElementParameterParser.getValue(node, "__DIE_ON_ERROR__"));
 %>
 	// start transfers
 	<%=cid%>.execute();
@@ -56,8 +57,15 @@
 <%  } else { %>
 	System.out.println("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts());
 <%  } %>
-	if (<%=cid%>.getErrorException() != null) {
-		throw <%=cid%>.getErrorException();
+	if (<%=cid%>.isSuccessful() == false) {
+	    globalMap.put("<%=cid%>_ERROR_MESSAGE", <%=cid%>.getErrorMessage());
+<%  if (dieOnError) { %>
+	    if (<%=cid%>.getErrorException() != null) {
+			throw <%=cid%>.getErrorException();
+	    } else {
+	    	throw new Exception(<%=cid%>.getErrorMessage());
+	    }
+<%  } %>
 	}
 <%  if (outputToTable && "true".equalsIgnoreCase(disableKeys)) {%>
     System.out.println("enable keys on target table...");

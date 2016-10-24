@@ -231,7 +231,7 @@
 		<IMPORTS>
 			<IMPORT NAME="Log4J" MODULE="log4j-1.2.17.jar" REQUIRED="true" />
 			<IMPORT NAME="SQLRunner" MODULE="sqlrunner-11.3.jar" REQUIRED="true" />
-			<IMPORT NAME="cimt Table Transfer" MODULE="table_transfer-3.2.jar" REQUIRED="true" />
+			<IMPORT NAME="cimt Table Transfer" MODULE="table_transfer-4.0.jar" REQUIRED="true" />
 			<IMPORT NAME="MySQLJDBCDriver" MODULE="mysql-connector-java-5.1.30-bin.jar" REQUIRED="true" />
 		</IMPORTS>
 	</CODEGENERATION>

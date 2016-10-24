@@ -46,14 +46,14 @@ import java.util.regex.Pattern;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
+import dbtools.SQLPSParam;
+import dbtools.SQLStatement;
 import sqlrunner.datamodel.SQLDataModel;
 import sqlrunner.datamodel.SQLField;
 import sqlrunner.datamodel.SQLSchema;
 import sqlrunner.datamodel.SQLTable;
 import sqlrunner.generator.SQLCodeGenerator;
 import sqlrunner.text.StringReplacer;
-import dbtools.SQLPSParam;
-import dbtools.SQLStatement;
 
 public final class TableTransfer {
 
@@ -133,6 +133,15 @@ public final class TableTransfer {
 	private boolean keepDataModels = false;
 	private String modelKey = null;
 	private Map<Integer, String> outputClassMap = new HashMap<Integer, String>();
+	private String valueRangeColumn = null;
+	private String timeRangeColumn = null;
+	private int valueRangeColumnIndex = -1;
+	private int timeRangeColumnIndex = -1;
+	private Date timeRangeStart = null;
+	private Date timeRangeEnd = null;
+	private String valueRangeStart = null;
+	private String valueRangeEnd = null;
+	private boolean doCommit = true;
 	
 	public void enableLog4J(boolean enable) {
 		if (enable) {
@@ -219,10 +228,10 @@ public final class TableTransfer {
 		}
 		if (outputToFile) {
 			runningFile = true;
-			info("Create backup file: " + backupFile.getAbsolutePath());
+			debug("Create backup file: " + backupFile.getAbsolutePath());
 			backupFileTmp = new File(backupFile.getAbsolutePath() + ".tmp");
 			backupOutputWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupFileTmp), "UTF-8"));
-			info("Backup file established.");
+			debug("Backup file established.");
 			writerBackupThread = new Thread() {
 				@Override
 				public void run() {
@@ -253,7 +262,7 @@ public final class TableTransfer {
 	 * disconnects from the database 
 	 */
 	public final void disconnect() {
-		info("Close source connection...");
+		debug("Close source connection...");
 		if (sourceConnection != null) {
 			try {
 				if (sourceConnection.isClosed() == false) {
@@ -264,7 +273,7 @@ public final class TableTransfer {
 			}
 		}
 		if (outputToTable) {
-			info("Close target connection...");
+			debug("Close target connection...");
 			if (targetConnection != null) {
 				try {
 					if (targetConnection.isClosed() == false) {
@@ -279,19 +288,26 @@ public final class TableTransfer {
 	
 	private final void read() {
 		if (sourceTable != null) {
-			info("Start fetch data from source table " + sourceTable.getAbsoluteName());
+			debug("Start fetch data from source table " + sourceTable.getAbsoluteName());
 		} else {
-			info("Start fetch data from source query " + sourceQuery);
+			debug("Start fetch data from source query " + sourceQuery);
 		}
 		try {
 			final ResultSet rs = sourceSelectStatement.executeQuery(sourceQuery);
-			info("Analyse result set...");
+			debug("Analyse result set...");
 			final ResultSetMetaData rsMeta = rs.getMetaData();
 			final int countColumns = rsMeta.getColumnCount();
 			listResultSetFieldNames = new ArrayList<String>(countColumns);
 			listResultSetFieldTypeNames = new ArrayList<String>(countColumns);
 			for (int i = 1; i <= countColumns; i++) {
 				String name = rsMeta.getColumnName(i).toLowerCase();
+				if (name.equalsIgnoreCase(valueRangeColumn)) {
+					valueRangeColumnIndex = i;
+					debug("Collect min/max for value-range from column: " + name + " at index: " + valueRangeColumnIndex);
+				} else if (name.equalsIgnoreCase(timeRangeColumn)) {
+					timeRangeColumnIndex = i;
+					debug("Collect min/max for time-range from column: " + name + " at index: " + timeRangeColumnIndex);
+				}
 				String type = rsMeta.getColumnTypeName(i).toUpperCase();
 				listResultSetFieldNames.add(name);
 				listResultSetFieldTypeNames.add(type);
@@ -302,10 +318,16 @@ public final class TableTransfer {
 				listResultSetFieldNames.add(cv.getColumnName());
 				debug("Name: " + cv.getColumnName());
 			}
-			info("Start fetching data...");
+			debug("Start fetching data...");
 			startTime = System.currentTimeMillis();
 			while (rs.next()) {
 				final Object[] row = fillRow(rs, countColumns);
+				if (valueRangeColumnIndex > 0) {
+					checkValueRange(row[valueRangeColumnIndex - 1]);
+				}
+				if (timeRangeColumnIndex > 0) {
+					checkTimeRange(row[timeRangeColumnIndex - 1]);
+				}
 				if (outputToTable) {
 					tableQueue.put(row);
 				}
@@ -328,9 +350,9 @@ public final class TableTransfer {
 			}
 			rs.close();
 			if (sourceTable != null) {
-				info("Finished fetch data from source table " + sourceTable.getAbsoluteName() + " count read:" + countRead);
+				debug("Finished fetch data from source table " + sourceTable.getAbsoluteName() + " count read:" + countRead);
 			} else {
-				info("Finished fetch data from source query, count read:" + countRead);
+				debug("Finished fetch data from source query, count read:" + countRead);
 			}
 		} catch (SQLException e) {
 			String message = e.getMessage();
@@ -349,11 +371,11 @@ public final class TableTransfer {
 		} finally {
 			try {
 				if (outputToTable) {
-					info("Stopping write table thread...");
+					debug("Stopping write table thread...");
 					tableQueue.put(closeFlag);
 				}
 				if (outputToFile) {
-					info("Stopping write file thread...");
+					debug("Stopping write file thread...");
 					fileQueue.put(closeFlag);
 				}
 			} catch (InterruptedException e) {
@@ -367,13 +389,13 @@ public final class TableTransfer {
 				sourceSelectStatement.close();
 			} catch (SQLException e) {}
 		}
-		info("End read.");
+		debug("End read.");
 	}
 	
 	private final Object[] fillRow(ResultSet rs, int countDBColumns) throws SQLException {
 		String dbType = null;
 		String javaType = null;
-		Object[] row = new Object[countDBColumns + fixedColumnValueList.size()];
+		final Object[] row = new Object[countDBColumns + fixedColumnValueList.size()];
 		int columnIndex = 0;
 		while (columnIndex < countDBColumns) {
 			dbType = listResultSetFieldTypeNames.get(columnIndex);
@@ -429,7 +451,7 @@ public final class TableTransfer {
 	}
 	
 	private final void writeTable() {
-		info("Start writing data into target table " + targetTable.getAbsoluteName());
+		debug("Start writing data into target table " + targetTable.getAbsoluteName());
 		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
 		int currentBatchCount = 0;
 		try {
@@ -447,7 +469,7 @@ public final class TableTransfer {
 					tableQueue.drainTo(queueObjects, batchSize);
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {
-							info("Write table thread: Stop flag received.");
+							debug("Write table thread: Stop flag received.");
 							endFlagReceived = true;
 							break;
 						} else {
@@ -458,8 +480,10 @@ public final class TableTransfer {
 							if (currentBatchCount == batchSize) {
 								debug("Write execute insert batch");
 								targetPSInsert.executeBatch();
-								if (autocommit == false) {
-									targetConnection.commit();
+								if (doCommit) {
+									if (autocommit == false) {
+										targetConnection.commit();
+									}
 								}
 								currentBatchCount = 0;
 							}
@@ -488,12 +512,14 @@ public final class TableTransfer {
 						}
 						break;
 					} else {
-						try {
-							if (autocommit == false) {
-								targetConnection.commit();
+						if (doCommit) {
+							try {
+								if (autocommit == false) {
+									targetConnection.commit();
+								}
+							} catch (SQLException e) {
+								error("write commit failed: " + e.getMessage(), e);
 							}
-						} catch (SQLException e) {
-							error("write commit failed: " + e.getMessage(), e);
 						}
 					}
 				} catch (Exception e1) {
@@ -506,8 +532,10 @@ public final class TableTransfer {
 				try {
 					debug("write execute final insert batch");
 					targetPSInsert.executeBatch();
-					if (autocommit == false) {
-						targetConnection.commit();
+					if (doCommit) {
+						if (autocommit == false) {
+							targetConnection.commit();
+						}
 					}
 					currentBatchCount = 0;
 				} catch (SQLException sqle) {
@@ -531,9 +559,9 @@ public final class TableTransfer {
 				targetPSInsert.close();
 			} catch (SQLException e) {}
 			runningDb = false;
-			info("Finished write data into target table " + targetTable.getAbsoluteName() + ", count inserts:" + countInserts);
+			debug("Finished write data into target table " + targetTable.getAbsoluteName() + ", count inserts:" + countInserts);
 		}
-		info("Write table finished.");
+		debug("Write table finished.");
 	}
 	
 	private final Object getRowValue(final String columnName, final Object[] row) {
@@ -595,6 +623,7 @@ public final class TableTransfer {
 			throw new Exception("executeSQLOnTarget failed because target connection is null or closed");
 		}
 		try {
+			debug("Execute statement: " + sqlStatement);
 			final Statement stat = targetConnection.createStatement();
 			stat.execute(sqlStatement);
 			stat.close();
@@ -1020,7 +1049,7 @@ public final class TableTransfer {
     	return returnCode == RETURN_CODE_OK;
     }
     
-	private final void warn(String message, Exception t) {
+	public final void warn(String message, Exception t) {
 		if (logger != null) {
 			if (t != null) {
 				logger.warn(message, t);
@@ -1041,15 +1070,7 @@ public final class TableTransfer {
 		}
 	}
 	
-	private final void info(String message) {
-		if (logger != null) {
-			logger.info(message);
-		} else {
-			System.out.println(message);
-		}
-	}
-
-	private final void debug(String message) {
+	public final void debug(String message) {
 		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug(message);
 		} else if (debug) {
@@ -1057,7 +1078,7 @@ public final class TableTransfer {
 		}
 	}
 
-	private final void error(String message, Exception t) {
+	public final void error(String message, Exception t) {
 		if (logger != null) {
 			if (t != null) {
 				logger.error(message, t);
@@ -1251,7 +1272,7 @@ public final class TableTransfer {
 	private void writeFile() {
 		try {
 			countFileRows = 0;
-			info("Start writing data in file: " + backupFile.getAbsolutePath());
+			debug("Start writing data in file: " + backupFile.getAbsolutePath());
 			final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
 			boolean endFlagReceived = false;
 			while (endFlagReceived == false) {
@@ -1260,7 +1281,7 @@ public final class TableTransfer {
 					fileQueue.drainTo(queueObjects, batchSize);
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {
-							info("Write file thread: Stop flag received.");
+							debug("Write file thread: Stop flag received.");
 							endFlagReceived = true;
 							break;
 						} else {
@@ -1286,16 +1307,16 @@ public final class TableTransfer {
 			}
 			runningFile = false;
 			if (returnCode == RETURN_CODE_OK) {
-				info("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
-				info("Rename tmp file: " + backupFileTmp.getAbsolutePath() + " to target file: " + backupFile.getAbsolutePath());
+				debug("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
+				debug("Rename tmp file: " + backupFileTmp.getAbsolutePath() + " to target file: " + backupFile.getAbsolutePath());
 				backupFileTmp.renameTo(backupFile);
 			} else if (returnCode == RETURN_CODE_ERROR_INPUT) {
-				info("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
+				debug("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
 				warn("Read has been failed. Rename file as error file.", null);
 				File errorFile = new File(backupFile.getAbsolutePath() + ".error");
 				backupFileTmp.renameTo(errorFile);
 			} else if (returnCode == RETURN_CODE_ERROR_OUPUT) {
-				info("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
+				debug("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
 				warn("Write to file has been failed. Rename file as error file.", null);
 				File errorFile = new File(backupFile.getAbsolutePath() + ".error");
 				backupFileTmp.renameTo(errorFile);
@@ -1310,7 +1331,7 @@ public final class TableTransfer {
 			runningFile = false;
 			error("Write data into file " + backupFile.getAbsolutePath() + " count rows:" + countFileRows + " failed: " + e.getMessage(), e);
 		}
-		info("Write file finished");
+		debug("Writing file has been finished.");
 	}
 
 	public boolean isOutputToTable() {
@@ -1323,7 +1344,11 @@ public final class TableTransfer {
 	
 	public void setDebug(boolean debug) {
 		if (logger != null) {
-			Logger.getRootLogger().setLevel(Level.DEBUG);
+			if (debug) {
+				Logger.getRootLogger().setLevel(Level.DEBUG);
+			} else {
+				Logger.getRootLogger().setLevel(Level.INFO);
+			}
 		}
 		this.debug = debug;
 	}
@@ -1353,5 +1378,314 @@ public final class TableTransfer {
 		}
 		this.modelKey = key;
 	}
+
+	public String getValueRangeColumn() {
+		return valueRangeColumn;
+	}
+
+	public void setValueRangeColumn(String valueRangeColumn) {
+		if (valueRangeColumn != null && valueRangeColumn.trim().isEmpty() == false) {
+			this.valueRangeColumn = valueRangeColumn;
+		}
+	}
+
+	public String getTimeRangeColumn() {
+		return timeRangeColumn;
+	}
+
+	public void setTimeRangeColumn(String timeRangeColumn) {
+		if (timeRangeColumn != null && timeRangeColumn.trim().isEmpty() == false) {
+			this.timeRangeColumn = timeRangeColumn;
+		}
+	}
+
+	public Date getTimeRangeStart() {
+		return timeRangeStart;
+	}
+
+	public Date getTimeRangeEnd() {
+		return timeRangeEnd;
+	}
+
+	public String getValueRangeStart() {
+		return valueRangeStart;
+	}
+
+	public String getValueRangeEnd() {
+		return valueRangeEnd;
+	}
 	
+	private void checkTimeRange(Object value) {
+		if (value instanceof Long) {
+			checkTimeRange((Long) value);
+		} else if (value instanceof Date) {
+			checkTimeRange((Date) value);
+		}
+	}
+	
+	private void checkTimeRange(Long timeRangeLong) {
+		if (timeRangeLong != null) {
+			Date timeRangeDate = new Date(timeRangeLong);
+			if (this.timeRangeStart == null || this.timeRangeStart.after(timeRangeDate)) {
+				this.timeRangeStart = timeRangeDate;
+			}
+			if (this.timeRangeEnd == null || this.timeRangeEnd.before(timeRangeDate)) {
+				this.timeRangeEnd = timeRangeDate;
+			}
+		}
+	}
+
+	private void checkTimeRange(Date timeRangeDate) {
+		if (timeRangeDate != null) {
+			if (this.timeRangeStart == null || this.timeRangeStart.after(timeRangeDate)) {
+				this.timeRangeStart = timeRangeDate;
+			}
+			if (this.timeRangeEnd == null || this.timeRangeEnd.before(timeRangeDate)) {
+				this.timeRangeEnd = timeRangeDate;
+			}
+		}
+	}
+	
+	private void checkValueRange(Object value) {
+		if (value instanceof String) {
+			checkValueRange((String) value);
+		} else if (value instanceof Integer) {
+			checkValueRange((Integer) value);
+		} else if (value instanceof Long) {
+			checkValueRange((Long) value);
+	    } else if (value instanceof BigDecimal) {
+			checkValueRange((BigDecimal) value);
+	    } else if (value instanceof BigInteger) {
+			checkValueRange((BigInteger) value);
+		} else if (value instanceof Short) {
+			checkValueRange((Short) value);
+		} else if (value instanceof Byte) {
+			checkValueRange((Byte) value);
+		} else if (value instanceof Character) {
+			checkValueRange((Character) value);
+		} else if (value instanceof Double) {
+			checkValueRange((Double) value);
+		} else if (value instanceof Float) {
+			checkValueRange((Float) value);
+		}
+	}
+	
+	private void checkValueRange(String newValue) {
+		if (newValue != null && newValue.trim().isEmpty() == false) {
+			if (valueRangeStart == null) {
+				valueRangeStart = newValue.trim();
+			} else {
+				if (valueRangeStart.compareTo(newValue) > 0) {
+					valueRangeStart = newValue;
+				}
+			}
+			if (valueRangeEnd == null) {
+				valueRangeEnd = newValue.trim();
+			} else {
+				if (valueRangeEnd.compareTo(newValue) < 0) {
+					valueRangeEnd = newValue;
+				}
+			}
+		}
+	}
+
+	private void checkValueRange(Long newValue) {
+		if (newValue != null) {
+			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+				valueRangeStart = String.valueOf(newValue);
+			} else {
+				long cv = Long.valueOf(valueRangeStart);
+				if (cv > newValue) {
+					valueRangeStart = String.valueOf(newValue);
+				}
+			}
+			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+				valueRangeEnd = String.valueOf(newValue);
+			} else {
+				long cv = Long.valueOf(valueRangeEnd);
+				if (cv < newValue) {
+					valueRangeEnd = String.valueOf(newValue);
+				}
+			}
+		}
+	}
+
+	private void checkValueRange(Character newValue) {
+		if (newValue != null) {
+			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+				valueRangeStart = String.valueOf(newValue);
+			} else {
+				char cv = valueRangeStart.charAt(0);
+				if (cv > newValue) {
+					valueRangeStart = String.valueOf(newValue);
+				}
+			}
+			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+				valueRangeEnd = String.valueOf(newValue);
+			} else {
+				char cv = valueRangeEnd.charAt(0);
+				if (cv < newValue) {
+					valueRangeEnd = String.valueOf(newValue);
+				}
+			}
+		}
+	}
+
+	private void checkValueRange(Double newValue) {
+		if (newValue != null) {
+			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+				valueRangeStart = String.valueOf(newValue);
+			} else {
+				double cv = Double.valueOf(valueRangeStart);
+				if (cv > newValue) {
+					valueRangeStart = String.valueOf(newValue);
+				}
+			}
+			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+				valueRangeEnd = String.valueOf(newValue);
+			} else {
+				double cv = Double.valueOf(valueRangeEnd);
+				if (cv < newValue) {
+					valueRangeEnd = String.valueOf(newValue);
+				}
+			}
+		}
+	}
+
+	private void checkValueRange(Float newValue) {
+		if (newValue != null) {
+			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+				valueRangeStart = String.valueOf(newValue);
+			} else {
+				float cv = Float.valueOf(valueRangeStart);
+				if (cv > newValue) {
+					valueRangeStart = String.valueOf(newValue);
+				}
+			}
+			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+				valueRangeEnd = String.valueOf(newValue);
+			} else {
+				float cv = Float.valueOf(valueRangeEnd);
+				if (cv < newValue) {
+					valueRangeEnd = String.valueOf(newValue);
+				}
+			}
+		}
+	}
+
+	private void checkValueRange(Integer newValue) {
+		if (newValue != null) {
+			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+				valueRangeStart = String.valueOf(newValue);
+			} else {
+				int cv = Integer.valueOf(valueRangeStart);
+				if (cv > newValue) {
+					valueRangeStart = String.valueOf(newValue);
+				}
+			}
+			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+				valueRangeEnd = String.valueOf(newValue);
+			} else {
+				int cv = Integer.valueOf(valueRangeEnd);
+				if (cv < newValue) {
+					valueRangeEnd = String.valueOf(newValue);
+				}
+			}
+		}
+	}
+
+	private void checkValueRange(Short newValue) {
+		if (newValue != null) {
+			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+				valueRangeStart = String.valueOf(newValue);
+			} else {
+				short cv = Short.valueOf(valueRangeStart);
+				if (cv > newValue) {
+					valueRangeStart = String.valueOf(newValue);
+				}
+			}
+			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+				valueRangeEnd = String.valueOf(newValue);
+			} else {
+				short cv = Short.valueOf(valueRangeEnd);
+				if (cv < newValue) {
+					valueRangeEnd = String.valueOf(newValue);
+				}
+			}
+		}
+	}
+
+	private void checkValueRange(Byte newValue) {
+		if (newValue != null) {
+			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+				valueRangeStart = String.valueOf(newValue);
+			} else {
+				byte cv = Byte.valueOf(valueRangeStart);
+				if (cv > newValue) {
+					valueRangeStart = String.valueOf(newValue);
+				}
+			}
+			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+				valueRangeEnd = String.valueOf(newValue);
+			} else {
+				byte cv = Byte.valueOf(valueRangeEnd);
+				if (cv < newValue) {
+					valueRangeEnd = String.valueOf(newValue);
+				}
+			}
+		}
+	}
+
+	private void checkValueRange(BigDecimal newValue) {
+		if (newValue != null) {
+			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+				valueRangeStart = String.valueOf(newValue);
+			} else {
+				BigDecimal cv = new BigDecimal(valueRangeStart);
+				if (cv.compareTo(newValue) > 0) {
+					valueRangeStart = String.valueOf(newValue);
+				}
+			}
+			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+				valueRangeEnd = String.valueOf(newValue);
+			} else {
+				BigDecimal cv = new BigDecimal(valueRangeEnd);
+				if (cv.compareTo(newValue) < 0) {
+					valueRangeEnd = String.valueOf(newValue);
+				}
+			}
+		}
+	}	
+	
+	public void checkValueRange(BigInteger newValue) {
+		if (newValue != null) {
+			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+				valueRangeStart = String.valueOf(newValue);
+			} else {
+				BigInteger cv = new BigInteger(valueRangeStart);
+				if (cv.compareTo(newValue) > 0) {
+					valueRangeStart = String.valueOf(newValue);
+				}
+			}
+			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+				valueRangeEnd = String.valueOf(newValue);
+			} else {
+				BigInteger cv = new BigInteger(valueRangeEnd);
+				if (cv.compareTo(newValue) < 0) {
+					valueRangeEnd = String.valueOf(newValue);
+				}
+			}
+		}
+	}
+
+	public boolean isDoCommit() {
+		return doCommit;
+	}
+
+	public void setDoCommit(Boolean doCommit) {
+		if (doCommit != null) {
+			this.doCommit = doCommit;
+		}
+	}
+
 }

@@ -127,19 +127,6 @@
 		<copy todir="talend_component/tMysqlTableTransfer/" file="${distrib}/${jarfilename}" />
 
 		<delete failonerror="false">
-			<fileset dir="talend_component/tJDBCTableTransfer">
-				<include name="*.jar" />
-			</fileset>
-		</delete>
-		<copy todir="talend_component/tJDBCTableTransfer">
-			<fileset dir="${lib}">
-				<include name="log*.jar" />
-				<include name="sqlrunner*.jar" />
-			</fileset>
-		</copy>
-		<copy todir="talend_component/tJDBCTableTransfer/" file="${distrib}/${jarfilename}" />
-
-		<delete failonerror="false">
 			<fileset dir="talend_component/tDB2TableTransfer">
 				<include name="*.jar" />
 			</fileset>

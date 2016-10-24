@@ -10,7 +10,6 @@ public class MySQLHelper implements DBHelper {
 			Class<?> stmtClass = stmt.getClass();
 			if (stmt instanceof com.mysql.jdbc.Statement) {
 				((com.mysql.jdbc.Statement) stmt).enableStreamingResults();
-				System.out.println("Streaming enabled.");
 			} else if (stmtClass.getName().equals("org.apache.commons.dbcp2.DelegatingPreparedStatement")) {
 				Method method = stmtClass.getMethod("getDelegate", (Class<?>[]) null);
 				Object result = method.invoke(stmt, (Object[]) null);

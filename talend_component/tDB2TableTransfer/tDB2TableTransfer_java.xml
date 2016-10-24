@@ -194,8 +194,8 @@
 	<CODEGENERATION>
 		<IMPORTS>
 			<IMPORT NAME="Log4J" MODULE="log4j-1.2.17.jar" REQUIRED="true" />
-			<IMPORT NAME="SQLRunner" MODULE="sqlrunner-9.4.jar" REQUIRED="true" />
-			<IMPORT NAME="cimt Table Transfer" MODULE="table_transfer-1.7.jar" REQUIRED="true" />
+			<IMPORT NAME="SQLRunner" MODULE="sqlrunner-11.3.jar" REQUIRED="true" />
+			<IMPORT NAME="cimt Table Transfer" MODULE="table_transfer-4.0.jar" REQUIRED="true" />
 			<IMPORT NAME="db2Driver" MODULE="db2jcc4.jar" REQUIRED="true" />
 			<IMPORT NAME="db2Driver_license" MODULE="db2jcc_license_cu.jar" REQUIRED="true" />
 		</IMPORTS>

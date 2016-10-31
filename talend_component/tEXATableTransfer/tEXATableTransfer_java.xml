@@ -1,12 +1,12 @@
 <COMPONENT>
 	<HEADER PLATEFORM="ALL" SERIAL="" VERSION="4.0" STATUS="ALPHA"
-		COMPATIBILITY="ALL" AUTHOR="Jan Lolling" RELEASE_DATE="20161031A"
+		COMPATIBILITY="ALL" AUTHOR="Jan Lolling" RELEASE_DATE="20161024A"
 		STARTABLE="true" HAS_CONDITIONAL_OUTPUTS="false">
 		<SIGNATURE />
 	</HEADER>
 
 	<FAMILIES>
-		<FAMILY>Databases/DB2</FAMILY>
+		<FAMILY>Databases/Oracle</FAMILY>
 	</FAMILIES>
 
 	<DOCUMENTATION>
@@ -64,7 +64,7 @@
 		<PARAMETER 
 			NAME="CONNECTION_TARGET" 
 			FIELD="COMPONENT_LIST"
-			FILTER="tDB2Connection" 
+			FILTER="tEXAConnection" 
 			NUM_ROW="20" 
 			GROUP="CONNECTIONS"
 			SHOW_IF="(USE_DATA_SOURCE == 'false') and (BACKUP_DATA_ONLY == 'false')" 
@@ -151,7 +151,7 @@
 		</PARAMETER>
 
 		<PARAMETER NAME="EXPORT_BOOL_AS_NUMBER" FIELD="CHECK" NUM_ROW="170" SHOW_IF="BACKUP_DATA == 'true'">
-			<DEFAULT>false</DEFAULT>
+			<DEFAULT>true</DEFAULT>
 		</PARAMETER>
 
 		<PARAMETER NAME="MEASURE_TIME_RANGE" FIELD="CHECK" NUM_ROW="180">
@@ -175,12 +175,12 @@
 	<ADVANCED_PARAMETERS>
 		<PARAMETER FIELD="TEXT" NAME="SOURCE_FETCHSIZE" NUM_ROW="10"
 			READONLY="false" REQUIRED="true" SHOW="true">
-			<DEFAULT>50000</DEFAULT>
+			<DEFAULT>10000</DEFAULT>
 		</PARAMETER>
 
 		<PARAMETER NAME="TARGET_BATCHSIZE" FIELD="TEXT" REQUIRED="true"
 			NUM_ROW="30">
-			<DEFAULT>50000</DEFAULT>
+			<DEFAULT>10000</DEFAULT>
 		</PARAMETER>
 
 		<PARAMETER NAME="USE_EXTERNAL_COMMIT_COMPONENT" FIELD="CHECK" NUM_ROW="40">
@@ -248,12 +248,7 @@
 			<IMPORT NAME="Log4J" MODULE="log4j-1.2.17.jar" REQUIRED="true" />
 			<IMPORT NAME="SQLRunner" MODULE="sqlrunner-11.3.jar" REQUIRED="true" />
 			<IMPORT NAME="cimt Table Transfer" MODULE="table_transfer-4.0.jar" REQUIRED="true" />
-			<IMPORT NAME="Driver-DB2" MODULE="db2jcc4.jar"
-				UrlPath="platform:/plugin/org.talend.libraries.jdbc.db2/lib/db2jcc4.jar"
-				REQUIRED="true" />
-			<IMPORT NAME="Driver-DB2" MODULE="db2jcc_license_cu.jar"
-				UrlPath="platform:/plugin/org.talend.libraries.jdbc.db2/lib/db2jcc_license_cu.jar"
-				REQUIRED="true" />
+			<IMPORT NAME="EXASolution JDBC" MODULE="exajdbc-5.0.16.jar" REQUIRED="true" />
 		</IMPORTS>
 	</CODEGENERATION>
 

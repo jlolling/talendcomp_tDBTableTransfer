@@ -137,15 +137,15 @@
 <%		} else { %>
 	// use this table as source (query will be generated)
 	{
-		String schemaName = (String) globalMap.get("tableschema_<%=sourceConnCompName%>");
-		if (schemaName == null) {
-			schemaName = (String) globalMap.get("dbschema_<%=sourceConnCompName%>");
-		}
+		String schemaName = (String) globalMap.get("schema_<%=sourceConnCompName%>");
 		if (schemaName == null) {
 			schemaName = (String) globalMap.get("db_<%=sourceConnCompName%>");
 		}
 		if (schemaName == null) {
-			schemaName = (String) globalMap.get("schema_<%=sourceConnCompName%>");
+			schemaName = (String) globalMap.get("tableschema_<%=sourceConnCompName%>");
+		}
+		if (schemaName == null) {
+			schemaName = (String) globalMap.get("dbschema_<%=sourceConnCompName%>");
 		}
 		if (schemaName == null) {
 			schemaName = (String) globalMap.get("dbname_<%=sourceConnCompName%>");
@@ -168,7 +168,7 @@
 	<%=cid%>.setTargetTable(<%=targetTable%>);
 <%		} else { %>
    // use this table as source (query will be generated)
-	<%=cid%>.setTargetTable(((String) globalMap.get("tableschema_" + "<%=targetConnCompName%>")) + "." + <%=targetTable%>);
+	<%=cid%>.setTargetTable(((String) globalMap.get("schema_" + "<%=targetConnCompName%>")) + "." + <%=targetTable%>);
 <%      } %>
 <%  } %>
 <%  if (excludeFieldList != null) {
@@ -211,7 +211,7 @@
 	System.out.println("Target insert statement:" + <%=cid%>.getTargetInsertStatement());
 <%	 } %>
 <%  if (outputToTable && "true".equalsIgnoreCase(truncateTarget)) { %>
-	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable() + " immediate");
+	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
 <%	 } %>
    // log interval
 	long logInterval_<%=cid%> = (<%=logIntervalStr%>) * 1000;

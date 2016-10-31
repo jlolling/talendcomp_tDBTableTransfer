@@ -21,5 +21,4 @@
 	globalMap.put("<%=cid%>_TIME_RANGE_END", <%=cid%>.getTimeRangeEnd());
 	globalMap.put("<%=cid%>_VALUE_RANGE_START", <%=cid%>.getValueRangeStart());
 	globalMap.put("<%=cid%>_VALUE_RANGE_END", <%=cid%>.getValueRangeEnd());
-
 	

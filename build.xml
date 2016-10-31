@@ -107,7 +107,6 @@
 			<fileset dir="${lib}">
 				<include name="log*.jar" />
 				<include name="sqlrunner*.jar" />
-				<include name="postgresql*.jar" />
 			</fileset>
 		</copy>
 		<copy todir="talend_component/tPostgresqlTableTransfer/" file="${distrib}/${jarfilename}" />
@@ -121,7 +120,6 @@
 			<fileset dir="${lib}">
 				<include name="log*.jar" />
 				<include name="sqlrunner*.jar" />
-				<include name="mysql*.jar" />
 			</fileset>
 		</copy>
 		<copy todir="talend_component/tMysqlTableTransfer/" file="${distrib}/${jarfilename}" />
@@ -135,7 +133,6 @@
 			<fileset dir="${lib}">
 				<include name="log*.jar" />
 				<include name="sqlrunner*.jar" />
-				<include name="db2*.jar" />
 			</fileset>
 		</copy>
 		<copy todir="talend_component/tDB2TableTransfer/" file="${distrib}/${jarfilename}" />
@@ -149,10 +146,23 @@
 			<fileset dir="${lib}">
 				<include name="log*.jar" />
 				<include name="sqlrunner*.jar" />
-				<include name="ojdbc*.jar" />
 			</fileset>
 		</copy>
 		<copy todir="talend_component/tOracleTableTransfer" file="${distrib}/${jarfilename}" />
+
+		<delete failonerror="false">
+			<fileset dir="talend_component/tEXATableTransfer">
+				<include name="*.jar" />
+			</fileset>
+		</delete>
+		<copy todir="talend_component/tEXATableTransfer">
+			<fileset dir="${lib}">
+				<include name="log*.jar" />
+				<include name="sqlrunner*.jar" />
+			</fileset>
+		</copy>
+		<copy todir="talend_component/tEXATableTransfer" file="${distrib}/${jarfilename}" />
+
 	</target>
 
 </project>

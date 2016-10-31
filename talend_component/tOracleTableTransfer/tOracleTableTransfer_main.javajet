@@ -30,12 +30,12 @@
 				globalMap.put("<%=cid%>_NB_LINE", <%=cid%>.getCurrentCountReads());
 				globalMap.put("<%=cid%>_NB_INSERTS", <%=cid%>.getCurrentCountInserts());
 <%  if (outputToTable) { %>
-				System.out.println("<%=cid%> [" + <%=cid%>.getTargetTable() + "] read:" + <%=cid%>.getCurrentCountReads() + " inserted:" + <%=cid%>.getCurrentCountInserts() + " rate inserts:" + insertsPerSecond_<%=cid%> + " rows/s");
+				<%=cid%>.info("<%=cid%> [" + <%=cid%>.getTargetTable() + "] read:" + <%=cid%>.getCurrentCountReads() + " inserted:" + <%=cid%>.getCurrentCountInserts() + " rate inserts:" + insertsPerSecond_<%=cid%> + " rows/s");
 <%  } else { %>
-				System.out.println("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts() + " rate writes:" + insertsPerSecond_<%=cid%> + " rows/s");
+				<%=cid%>.info("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts() + " rate writes:" + insertsPerSecond_<%=cid%> + " rows/s");
 <%  } %>
 			} else {
-				System.out.println("Starting....");		
+				<%=cid%>.info("Starting....");		
 			}
 	    }
 		try {
@@ -52,9 +52,9 @@
 	globalMap.put("<%=cid%>_NB_LINE", <%=cid%>.getCurrentCountReads());
 	globalMap.put("<%=cid%>_NB_INSERTS", <%=cid%>.getCurrentCountInserts());
 <%  if (outputToTable) { %>
-	System.out.println("<%=cid%> [" + <%=cid%>.getTargetTable() + "] read:" + <%=cid%>.getCurrentCountReads() + " inserted:" + <%=cid%>.getCurrentCountInserts());
+	<%=cid%>.info("<%=cid%> [" + <%=cid%>.getTargetTable() + "] read:" + <%=cid%>.getCurrentCountReads() + " inserted:" + <%=cid%>.getCurrentCountInserts());
 <%  } else { %>
-	System.out.println("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts());
+	<%=cid%>.info("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts());
 <%  } %>
 	if (<%=cid%>.isSuccessful() == false) {
 	    globalMap.put("<%=cid%>_ERROR_MESSAGE", <%=cid%>.getErrorMessage());

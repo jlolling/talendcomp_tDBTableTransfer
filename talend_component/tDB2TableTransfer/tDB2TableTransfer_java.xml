@@ -246,14 +246,8 @@
 	<CODEGENERATION>
 		<IMPORTS>
 			<IMPORT NAME="Log4J" MODULE="log4j-1.2.17.jar" REQUIRED="true" />
-			<IMPORT NAME="SQLRunner" MODULE="sqlrunner-11.3.jar" REQUIRED="true" />
-			<IMPORT NAME="cimt Table Transfer" MODULE="table_transfer-4.0.jar" REQUIRED="true" />
-			<IMPORT NAME="Driver-DB2" MODULE="db2jcc4.jar"
-				UrlPath="platform:/plugin/org.talend.libraries.jdbc.db2/lib/db2jcc4.jar"
-				REQUIRED="true" />
-			<IMPORT NAME="Driver-DB2" MODULE="db2jcc_license_cu.jar"
-				UrlPath="platform:/plugin/org.talend.libraries.jdbc.db2/lib/db2jcc_license_cu.jar"
-				REQUIRED="true" />
+			<IMPORT NAME="SQLRunner" MODULE="sqlrunner-14.2.jar" REQUIRED="true" />
+			<IMPORT NAME="cimt Table Transfer" MODULE="table_transfer-4.1.jar" REQUIRED="true" />
 		</IMPORTS>
 	</CODEGENERATION>
 

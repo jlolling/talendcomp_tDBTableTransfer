@@ -38,8 +38,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -228,10 +228,14 @@ public final class TableTransfer {
 		}
 		if (outputToFile) {
 			runningFile = true;
-			debug("Create backup file: " + backupFile.getAbsolutePath());
+			if (isDebugEnabled()) {
+				debug("Create backup file: " + backupFile.getAbsolutePath());
+			}
 			backupFileTmp = new File(backupFile.getAbsolutePath() + ".tmp");
 			backupOutputWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupFileTmp), "UTF-8"));
-			debug("Backup file established.");
+			if (isDebugEnabled()) {
+				debug("Backup file established.");
+			}
 			writerBackupThread = new Thread() {
 				@Override
 				public void run() {
@@ -262,7 +266,9 @@ public final class TableTransfer {
 	 * disconnects from the database 
 	 */
 	public final void disconnect() {
-		debug("Close source connection...");
+		if (isDebugEnabled()) {
+			debug("Close source connection...");
+		}
 		if (sourceConnection != null) {
 			try {
 				if (sourceConnection.isClosed() == false) {
@@ -273,7 +279,9 @@ public final class TableTransfer {
 			}
 		}
 		if (outputToTable) {
-			debug("Close target connection...");
+			if (isDebugEnabled()) {
+				debug("Close target connection...");
+			}
 			if (targetConnection != null) {
 				try {
 					if (targetConnection.isClosed() == false) {
@@ -287,14 +295,18 @@ public final class TableTransfer {
 	}
 	
 	private final void read() {
-		if (sourceTable != null) {
-			debug("Start fetch data from source table " + sourceTable.getAbsoluteName());
-		} else {
-			debug("Start fetch data from source query " + sourceQuery);
+		if (isDebugEnabled()) {
+			if (sourceTable != null) {
+				debug("Start fetch data from source table " + sourceTable.getAbsoluteName());
+			} else {
+				debug("Start fetch data from source query " + sourceQuery);
+			}
 		}
 		try {
 			final ResultSet rs = sourceSelectStatement.executeQuery(sourceQuery);
-			debug("Analyse result set...");
+			if (isDebugEnabled()) {
+				debug("Analyse result set...");
+			}
 			final ResultSetMetaData rsMeta = rs.getMetaData();
 			final int countColumns = rsMeta.getColumnCount();
 			listResultSetFieldNames = new ArrayList<String>(countColumns);
@@ -303,22 +315,32 @@ public final class TableTransfer {
 				String name = rsMeta.getColumnName(i).toLowerCase();
 				if (name.equalsIgnoreCase(valueRangeColumn)) {
 					valueRangeColumnIndex = i;
-					debug("Collect min/max for value-range from column: " + name + " at index: " + valueRangeColumnIndex);
+					if (isDebugEnabled()) {
+						debug("Collect min/max for value-range from column: " + name + " at index: " + valueRangeColumnIndex);
+					}
 				} else if (name.equalsIgnoreCase(timeRangeColumn)) {
 					timeRangeColumnIndex = i;
-					debug("Collect min/max for time-range from column: " + name + " at index: " + timeRangeColumnIndex);
+					if (isDebugEnabled()) {
+						debug("Collect min/max for time-range from column: " + name + " at index: " + timeRangeColumnIndex);
+					}
 				}
 				String type = rsMeta.getColumnTypeName(i).toUpperCase();
 				listResultSetFieldNames.add(name);
 				listResultSetFieldTypeNames.add(type);
-				debug("Name: " + name + ",  Type: " + type);
+				if (isDebugEnabled()) {
+					debug("Name: " + name + ",  Type: " + type);
+				}
 			}
 			// add fixed column value names
 			for (ColumnValue cv : fixedColumnValueList) {
 				listResultSetFieldNames.add(cv.getColumnName());
-				debug("Name: " + cv.getColumnName());
+				if (isDebugEnabled()) {
+					debug("Name: " + cv.getColumnName());
+				}
 			}
-			debug("Start fetching data...");
+			if (isDebugEnabled()) {
+				debug("Start fetching data...");
+			}
 			startTime = System.currentTimeMillis();
 			while (rs.next()) {
 				final Object[] row = fillRow(rs, countColumns);
@@ -349,10 +371,12 @@ public final class TableTransfer {
 				}
 			}
 			rs.close();
-			if (sourceTable != null) {
-				debug("Finished fetch data from source table " + sourceTable.getAbsoluteName() + " count read:" + countRead);
-			} else {
-				debug("Finished fetch data from source query, count read:" + countRead);
+			if (isDebugEnabled()) {
+				if (sourceTable != null) {
+					debug("Finished fetch data from source table " + sourceTable.getAbsoluteName() + " count read:" + countRead);
+				} else {
+					debug("Finished fetch data from source query, count read:" + countRead);
+				}
 			}
 		} catch (SQLException e) {
 			String message = e.getMessage();
@@ -371,11 +395,15 @@ public final class TableTransfer {
 		} finally {
 			try {
 				if (outputToTable) {
-					debug("Stopping write table thread...");
+					if (isDebugEnabled()) {
+						debug("Stopping write table thread...");
+					}
 					tableQueue.put(closeFlag);
 				}
 				if (outputToFile) {
-					debug("Stopping write file thread...");
+					if (isDebugEnabled()) {
+						debug("Stopping write file thread...");
+					}
 					fileQueue.put(closeFlag);
 				}
 			} catch (InterruptedException e) {
@@ -389,7 +417,9 @@ public final class TableTransfer {
 				sourceSelectStatement.close();
 			} catch (SQLException e) {}
 		}
-		debug("End read.");
+		if (isDebugEnabled()) {
+			debug("End read.");
+		}
 	}
 	
 	private final Object[] fillRow(ResultSet rs, int countDBColumns) throws SQLException {
@@ -451,7 +481,9 @@ public final class TableTransfer {
 	}
 	
 	private final void writeTable() {
-		debug("Start writing data into target table " + targetTable.getAbsoluteName());
+		if (isDebugEnabled()) {
+			debug("Start writing data into target table " + targetTable.getAbsoluteName());
+		}
 		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
 		int currentBatchCount = 0;
 		try {
@@ -469,7 +501,9 @@ public final class TableTransfer {
 					tableQueue.drainTo(queueObjects, batchSize);
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {
-							debug("Write table thread: Stop flag received.");
+							if (isDebugEnabled()) {
+								debug("Write table thread: Stop flag received.");
+							}
 							endFlagReceived = true;
 							break;
 						} else {
@@ -530,7 +564,9 @@ public final class TableTransfer {
 			}
 			if (currentBatchCount > 0 && returnCode == RETURN_CODE_OK) {
 				try {
-					debug("write execute final insert batch");
+					if (isDebugEnabled()) {
+						debug("write execute final insert batch");
+					}
 					targetPSInsert.executeBatch();
 					if (doCommit) {
 						if (autocommit == false) {
@@ -559,9 +595,13 @@ public final class TableTransfer {
 				targetPSInsert.close();
 			} catch (SQLException e) {}
 			runningDb = false;
-			debug("Finished write data into target table " + targetTable.getAbsoluteName() + ", count inserts:" + countInserts);
+			if (isDebugEnabled()) {
+				debug("Finished write data into target table " + targetTable.getAbsoluteName() + ", count inserts:" + countInserts);
+			}
 		}
-		debug("Write table finished.");
+		if (isDebugEnabled()) {
+			debug("Write table finished.");
+		}
 	}
 	
 	private final Object getRowValue(final String columnName, final Object[] row) {
@@ -581,7 +621,9 @@ public final class TableTransfer {
 				if (className == null) {
 					className = value.getClass().getSimpleName();
 					outputClassMap.put(p.getIndex(), className);
-					debug("Output class mapping: #" + p.getIndex() + " (" + p.getName() + ") use: " + className);
+					if (isDebugEnabled()) {
+						debug("Output class mapping: #" + p.getIndex() + " (" + p.getName() + ") use: " + className);
+					}
 				}
 				if ("BigDecimal".equals(className)) {
 					targetPSInsert.setBigDecimal(p.getIndex(), (BigDecimal) value);
@@ -623,7 +665,9 @@ public final class TableTransfer {
 			throw new Exception("executeSQLOnTarget failed because target connection is null or closed");
 		}
 		try {
-			debug("Execute statement: " + sqlStatement);
+			if (isDebugEnabled()) {
+				debug("Execute statement: " + sqlStatement);
+			}
 			final Statement stat = targetConnection.createStatement();
 			stat.execute(sqlStatement);
 			stat.close();
@@ -654,10 +698,10 @@ public final class TableTransfer {
 		final int fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "100"));
 		final int queueSize = Math.max(batchSize, fetchSize) + 100;
 		if (outputToTable) {
-			tableQueue = new LinkedBlockingQueue<Object>(queueSize);
+			tableQueue = new ArrayBlockingQueue<Object>(queueSize);
 		}
 		if (outputToFile) {
-			fileQueue = new LinkedBlockingQueue<Object>(queueSize);
+			fileQueue = new ArrayBlockingQueue<Object>(queueSize);
 		}
 		dieOnError = Boolean.parseBoolean(properties.getProperty(DIE_ON_ERROR, "true"));
 		patternForBackslash = Pattern.compile("\\", Pattern.LITERAL);
@@ -751,7 +795,9 @@ public final class TableTransfer {
 			Class.forName("com.mysql.jdbc.Statement");
 			mysqlDriverPresent = true;
 		} catch (ClassNotFoundException e) {
-			debug("No MySQL class loaded.");
+			if (isDebugEnabled()) {
+				debug("No MySQL class loaded.");
+			}
 		}
 		return mysqlDriverPresent;
 	}
@@ -762,7 +808,9 @@ public final class TableTransfer {
 			sourceQuery = codeGenerator.buildSelectStatement(getSourceSQLTable(), true) + buildSourceWhereSQL();
 			properties.put(SOURCE_QUERY, sourceQuery);
 		}
-		debug("createSourceSelectStatement SQL:" + sourceQuery);
+		if (isDebugEnabled()) {
+			debug("createSourceSelectStatement SQL:" + sourceQuery);
+		}
 		sourceSelectStatement = sourceConnection.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
 		int fetchSize = getFetchSize();
 		if (fetchSize > 0) {
@@ -787,7 +835,9 @@ public final class TableTransfer {
 	
 	private PreparedStatement createTargetInsertStatement() throws Exception {
 		targetInsertStatement = codeGenerator.buildPSInsertSQLStatement(getTargetSQLTable(), true);
-		debug("createTargetInsertStatement SQL:" + targetInsertStatement.getSQL());
+		if (isDebugEnabled()) {
+			debug("createTargetInsertStatement SQL:" + targetInsertStatement.getSQL());
+		}
 		targetPSInsert = targetConnection.prepareStatement(targetInsertStatement.getSQL());
 		return targetPSInsert;
 	}
@@ -1070,11 +1120,27 @@ public final class TableTransfer {
 		}
 	}
 	
+	public final boolean isDebugEnabled() {
+		if (logger != null) {
+			return logger.isDebugEnabled();
+		} else {
+			return debug;
+		}
+	}
+	
 	public final void debug(String message) {
-		if (logger != null && logger.isDebugEnabled()) {
+		if (logger != null) {
 			logger.debug(message);
 		} else if (debug) {
 			System.out.println("DEBUG: " + message);
+		}
+	}
+
+	public final void info(String message) {
+		if (logger != null) {
+			logger.info(message);
+		} else {
+			System.out.println("INFO: " + message);
 		}
 	}
 

@@ -604,7 +604,7 @@ public final class TableTransfer {
 		}
 	}
 	
-	private final Object getRowValue(final String columnName, final Object[] row) {
+	protected final Object getRowValue(final String columnName, final Object[] row) {
 		final int index = listResultSetFieldNames.indexOf(columnName.toLowerCase());
 		if (index != -1) {
 			return row[index];
@@ -613,7 +613,7 @@ public final class TableTransfer {
 		}
 	}
 	
-	private final void prepareInsertStatement(final Object[] row) throws Exception {
+	protected final void prepareInsertStatement(final Object[] row) throws Exception {
 		for (SQLPSParam p : targetInsertStatement.getParams()) {
 			final Object value = getRowValue(p.getName(), row);
 			if (value != null) {
@@ -711,7 +711,7 @@ public final class TableTransfer {
 		initialized = true;
 	}
 	
-	private final SQLTable getSourceSQLTable() throws Exception {
+	protected final SQLTable getSourceSQLTable() throws Exception {
 		final String tableAndSchemaName = properties.getProperty(SOURCE_TABLE);
 		if (sourceTable == null || sourceTable.getAbsoluteName().equalsIgnoreCase(tableAndSchemaName) == false) {
 			String schemaName = getSchemaName(tableAndSchemaName);
@@ -745,7 +745,7 @@ public final class TableTransfer {
 		return cat;
 	}
 	
-	private String getTargetDatabase() throws SQLException {
+	protected String getTargetDatabase() throws SQLException {
 		String cat = targetConnection.getCatalog();
 		if (cat == null || cat.trim().isEmpty()) {
 			cat = targetModel.getLoginSchemaName();
@@ -753,7 +753,7 @@ public final class TableTransfer {
 		return cat;
 	}
 
-	private final SQLTable getTargetSQLTable() throws Exception {
+	protected final SQLTable getTargetSQLTable() throws Exception {
 		final String tableAndSchemaName = properties.getProperty(TARGET_TABLE);
 		if (targetTable == null || targetTable.getAbsoluteName().equalsIgnoreCase(tableAndSchemaName) == false) {
 			String schemaName = getSchemaName(tableAndSchemaName);
@@ -802,7 +802,7 @@ public final class TableTransfer {
 		return mysqlDriverPresent;
 	}
 	
-	private Statement createSourceSelectStatement() throws Exception {
+	protected Statement createSourceSelectStatement() throws Exception {
 		sourceQuery = properties.getProperty(SOURCE_QUERY);
 		if (sourceQuery == null) {
 			sourceQuery = codeGenerator.buildSelectStatement(getSourceSQLTable(), true) + buildSourceWhereSQL();
@@ -823,7 +823,7 @@ public final class TableTransfer {
 		return sourceSelectStatement;
 	}
 	
-	private int getFetchSize() {
+	protected int getFetchSize() {
 		int fetchSize = 0;
 		try {
 			fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "0"));
@@ -833,7 +833,7 @@ public final class TableTransfer {
 		return fetchSize;
 	}
 	
-	private PreparedStatement createTargetInsertStatement() throws Exception {
+	protected PreparedStatement createTargetInsertStatement() throws Exception {
 		targetInsertStatement = codeGenerator.buildPSInsertSQLStatement(getTargetSQLTable(), true);
 		if (isDebugEnabled()) {
 			debug("createTargetInsertStatement SQL:" + targetInsertStatement.getSQL());
@@ -842,7 +842,7 @@ public final class TableTransfer {
 		return targetPSInsert;
 	}
 	
-	private final String buildSourceWhereSQL() {
+	protected final String buildSourceWhereSQL() {
 		String where = properties.getProperty(SOURCE_WHERE);
 		if (where != null && where.trim().isEmpty() == false) {
 			where = replacePlaceholders(where);

@@ -61,8 +61,8 @@
     boolean reuseModel = "true".equals(ElementParameterParser.getValue(node, "__REUSE_DATA_MODEL__"));
 %>
 
-	de.jlo.talendcomp.tabletransfer.TableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
-	<%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
+	de.cimt.talendcomp.tabletransfer.TableTransfer <%=cid%> = new de.cimt.talendcomp.tabletransfer.TableTransfer();
+	<%=cid%> = new de.cimt.talendcomp.tabletransfer.TableTransfer();
 	<%=cid%>.enableLog4J(<%=enablelog4j%>);
 	<%=cid%>.setDebug(<%=debug%>);
 <%  if (typeMap != null) {

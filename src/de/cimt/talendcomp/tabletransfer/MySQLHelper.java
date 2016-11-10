@@ -1,9 +1,9 @@
-package de.jlo.talendcomp.tabletransfer;
+package de.cimt.talendcomp.tabletransfer;
 
 import java.lang.reflect.Method;
 import java.sql.Statement;
 
-public class MySQLHelper implements DBHelper {
+public class MySQLHelper extends DBHelper {
 	
 	private void enableStreaming(java.sql.Statement stmt) throws Exception {
 		if (stmt != null) {
@@ -33,7 +33,7 @@ public class MySQLHelper implements DBHelper {
 	}
 
 	@Override
-	public void setupStatement(Statement statement) throws Exception {
+	public void setupSelectStatement(Statement statement) throws Exception {
 		enableStreaming(statement);
 	}
 

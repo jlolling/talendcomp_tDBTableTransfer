@@ -1,4 +1,4 @@
-package de.jlo.talendcomp.tabletransfer;
+package de.cimt.talendcomp.tabletransfer;
 
 public class ColumnValue {
 

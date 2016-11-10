@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.jlo.talendcomp.tabletransfer;
+package de.cimt.talendcomp.tabletransfer;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -55,7 +55,7 @@ import sqlrunner.datamodel.SQLTable;
 import sqlrunner.generator.SQLCodeGenerator;
 import sqlrunner.text.StringReplacer;
 
-public final class TableTransfer {
+public class TableTransfer {
 
 	private Logger logger = null; //Logger.getLogger(TableTransfer.class);
 	private Properties properties = new Properties();
@@ -737,7 +737,7 @@ public final class TableTransfer {
 		return sourceTable;
 	}
 	
-	private String getSourceDatabase() throws SQLException {
+	protected String getSourceDatabase() throws SQLException {
 		String cat = sourceConnection.getCatalog();
 		if (cat == null || cat.trim().isEmpty()) {
 			cat = sourceModel.getLoginSchemaName();
@@ -789,19 +789,6 @@ public final class TableTransfer {
 		return targetTable;
 	}
 	
-	private boolean isMysql() {
-		boolean mysqlDriverPresent = false;
-		try {
-			Class.forName("com.mysql.jdbc.Statement");
-			mysqlDriverPresent = true;
-		} catch (ClassNotFoundException e) {
-			if (isDebugEnabled()) {
-				debug("No MySQL class loaded.");
-			}
-		}
-		return mysqlDriverPresent;
-	}
-	
 	protected Statement createSourceSelectStatement() throws Exception {
 		sourceQuery = properties.getProperty(SOURCE_QUERY);
 		if (sourceQuery == null) {
@@ -816,9 +803,10 @@ public final class TableTransfer {
 		if (fetchSize > 0) {
 			sourceSelectStatement.setFetchSize(fetchSize);
 		}
-		if (isMysql()) {
+		// we have to check that here because we do not know which source database type we use.
+		if (DBHelper.isMySQLConnection(sourceConnection)) {
 			DBHelper util = (DBHelper) Class.forName("de.jlo.talendcomp.tabletransfer.MySQLHelper").newInstance();
-			util.setupStatement(sourceSelectStatement);
+			util.setupSelectStatement(sourceSelectStatement);
 		}
 		return sourceSelectStatement;
 	}
@@ -856,7 +844,7 @@ public final class TableTransfer {
 		}
 	}
 	
-	private final String replacePlaceholders(String stringWithPlaceholders) {
+	protected final String replacePlaceholders(String stringWithPlaceholders) {
 		boolean ready = false;
 		final List<String> listPlaceHolders = new ArrayList<String>();
 		int p0 = -1;
@@ -884,7 +872,7 @@ public final class TableTransfer {
 		return sr.getResultText();
 	}
 	
-	private final String getSchemaName(String schemaAndTable) {
+	protected final String getSchemaName(String schemaAndTable) {
 		final int pos = schemaAndTable.indexOf('.');
 		if (pos > 0) {
 			return schemaAndTable.substring(0, pos);
@@ -893,7 +881,7 @@ public final class TableTransfer {
 		}
 	}
 	
-	private final String getTableName(String schemaAndTable) {
+	protected final String getTableName(String schemaAndTable) {
 		int pos = schemaAndTable.indexOf('.');
 		if (pos > 0) {
 			return schemaAndTable.substring(pos + 1, schemaAndTable.length());

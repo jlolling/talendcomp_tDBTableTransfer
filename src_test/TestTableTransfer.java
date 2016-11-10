@@ -88,8 +88,8 @@ public class TestTableTransfer extends TalendTest {
 
 		int tos_count_tMysqlTableTransfer_1 = 0;
 
-		de.jlo.talendcomp.tabletransfer.TableTransfer tMysqlTableTransfer_1 = new de.jlo.talendcomp.tabletransfer.TableTransfer();
-		tMysqlTableTransfer_1 = new de.jlo.talendcomp.tabletransfer.TableTransfer();
+		de.cimt.talendcomp.tabletransfer.TableTransfer tMysqlTableTransfer_1 = new de.cimt.talendcomp.tabletransfer.TableTransfer();
+		tMysqlTableTransfer_1 = new de.cimt.talendcomp.tabletransfer.TableTransfer();
 		tMysqlTableTransfer_1.setDebug(true);
 		tMysqlTableTransfer_1.setExportBooleanAsNumber(true);
 		tMysqlTableTransfer_1.setOutputToTable(false);
@@ -150,7 +150,7 @@ public class TestTableTransfer extends TalendTest {
 					insertsPerSecond_tMysqlTableTransfer_1 = tMysqlTableTransfer_1
 							.getCurrentCountInserts()
 							/ duration_tMysqlTableTransfer_1;
-					insertsPerSecond_tMysqlTableTransfer_1 = de.jlo.talendcomp.tabletransfer.TableTransfer
+					insertsPerSecond_tMysqlTableTransfer_1 = de.cimt.talendcomp.tabletransfer.TableTransfer
 							.roundScale2(insertsPerSecond_tMysqlTableTransfer_1);
 					globalMap.put("tMysqlTableTransfer_1_NB_LINE",
 							tMysqlTableTransfer_1

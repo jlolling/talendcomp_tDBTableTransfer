@@ -23,7 +23,9 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.BatchUpdateException;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -85,7 +87,8 @@ public class TableTransfer {
 	private Thread readerThread;
 	private Thread writerThread;
 	private Thread writerBackupThread;
-	private volatile int countInserts = 0;
+	private volatile int countInsertsAdded = 0;
+	private volatile int countInsertsInDB = 0;
 	private volatile int countFileRows = 0;
 	private volatile int countRead = 0;
 	private volatile boolean runningDb = false;
@@ -126,7 +129,8 @@ public class TableTransfer {
 	private Pattern patternForQuota = null;
 	private String replacementForBackslash = null;
 	private String replacementForQuota = null;
-	private SQLCodeGenerator codeGenerator = new SQLCodeGenerator();
+	private SQLCodeGenerator sourceCodeGenerator = null;
+	private SQLCodeGenerator targetCodeGenerator = null;
 	private boolean exportBooleanAsNumber = true;
 	private Map<String, String> dbJavaTypeMap = new HashMap<String, String>();
 	private boolean debug = false;
@@ -174,7 +178,7 @@ public class TableTransfer {
 	}
 	
 	public final int getCurrentCountInserts() {
-		return Math.max(countInserts, countFileRows);
+		return Math.max(countInsertsInDB, countFileRows);
 	}
 	
 	public final int getCurrentCountReads() {
@@ -198,7 +202,8 @@ public class TableTransfer {
 			throw new Exception("Not initialized!");
 		}
 		countRead = 0;
-		countInserts = 0;
+		countInsertsAdded = 0;
+		countInsertsInDB = 0;
 		startWriting();
 		startReading();
 	}
@@ -498,7 +503,7 @@ public class TableTransfer {
 			while (endFlagReceived == false) {
 				try {
 					final List<Object> queueObjects = new ArrayList<Object>(batchSize);
-					tableQueue.drainTo(queueObjects, batchSize);
+					tableQueue.drainTo(queueObjects, batchSize); // moves elements from queue to this given list
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {
 							if (isDebugEnabled()) {
@@ -509,11 +514,12 @@ public class TableTransfer {
 						} else {
 							prepareInsertStatement((Object[]) item);
 							targetPSInsert.addBatch();
-							countInserts++;
+							countInsertsAdded++;
 							currentBatchCount++;
 							if (currentBatchCount == batchSize) {
-								debug("Write execute insert batch");
+								debug("Write execute insert batch ends with recno: " + countInsertsAdded);
 								targetPSInsert.executeBatch();
+								countInsertsInDB = countInsertsAdded;
 								if (doCommit) {
 									if (autocommit == false) {
 										targetConnection.commit();
@@ -527,13 +533,26 @@ public class TableTransfer {
 						}
 					}
 				} catch (InterruptedException e) {
-					error("Write interrupted in line " + countInserts, e);
+					error("Write interrupted in line " + countInsertsAdded, e);
 					returnCode = RETURN_CODE_ERROR_OUPUT;
 					break;
 				} catch (SQLException sqle) {
-					error("Write failed in line number " + countInserts + " message:" + sqle.getMessage(), sqle);
-					if (sqle.getNextException() != null) {
-						error("Next exception:" + sqle.getNextException().getMessage(), sqle.getNextException());
+					if (sqle instanceof BatchUpdateException) {
+						BatchUpdateException be = (BatchUpdateException) sqle;
+						debug("Write execute insert batch ends with recno: " + countInsertsAdded);
+						int[] counts = be.getUpdateCounts();
+						int batchIndex = 0;
+						for (int c : counts) {
+							batchIndex = batchIndex + c;
+						}
+						batchIndex = (countInsertsAdded - batchSize) + batchIndex; // set the batchIndex as the absolute over all index
+						error("Write failed in line number " + batchIndex + " message:" + sqle.getMessage(), sqle);
+					} else {
+						error("Write failed in line number " + countInsertsAdded + " message:" + sqle.getMessage(), sqle);
+					}
+					SQLException ne = sqle.getNextException();					
+					if (ne != null) {
+						error("Next exception:" + ne.getMessage(), ne);
 					}
 					if (dieOnError) {
 						returnCode = RETURN_CODE_ERROR_OUPUT;
@@ -542,7 +561,7 @@ public class TableTransfer {
 								targetConnection.rollback();
 							}
 						} catch (SQLException e) {
-							error("write rollback failed: " + e.getMessage(), e);
+							error("Write rollback failed: " + e.getMessage(), e);
 						}
 						break;
 					} else {
@@ -552,13 +571,13 @@ public class TableTransfer {
 									targetConnection.commit();
 								}
 							} catch (SQLException e) {
-								error("write commit failed: " + e.getMessage(), e);
+								error("Write commit failed: " + e.getMessage(), e);
 							}
 						}
 					}
 				} catch (Exception e1) {
 					returnCode = RETURN_CODE_ERROR_OUPUT;
-					error("write failed:" + e1.getMessage(), e1);
+					error("Write failed:" + e1.getMessage(), e1);
 					break;
 				}
 			}
@@ -568,6 +587,7 @@ public class TableTransfer {
 						debug("write execute final insert batch");
 					}
 					targetPSInsert.executeBatch();
+					countInsertsInDB = countInsertsInDB + currentBatchCount;
 					if (doCommit) {
 						if (autocommit == false) {
 							targetConnection.commit();
@@ -576,9 +596,21 @@ public class TableTransfer {
 					currentBatchCount = 0;
 				} catch (SQLException sqle) {
 					returnCode = RETURN_CODE_ERROR_OUPUT;
-					error("write failed executing last batch message:" + sqle.getMessage(), sqle);
-					if (sqle.getNextException() != null) {
-						error("write failed embedded error:" + sqle.getNextException().getMessage(), sqle.getNextException());
+					if (sqle instanceof BatchUpdateException) {
+						BatchUpdateException be = (BatchUpdateException) sqle;
+						int[] counts = be.getUpdateCounts();
+						int batchIndex = 0;
+						for (int c : counts) {
+							batchIndex = batchIndex + c;
+						}
+						batchIndex = (countInsertsAdded - batchSize) + batchIndex; // set the batchIndex to the absolute over all index
+						error("Write failed in line number " + batchIndex + " message:" + sqle.getMessage(), sqle);
+					} else {
+						error("Write failed in line number " + countInsertsAdded + " message:" + sqle.getMessage(), sqle);
+					}
+					SQLException ne = sqle.getNextException();					
+					if (ne != null) {
+						error("Next exception:" + ne.getMessage(), ne);
 					}
 					try {
 						targetConnection.rollback();
@@ -596,7 +628,7 @@ public class TableTransfer {
 			} catch (SQLException e) {}
 			runningDb = false;
 			if (isDebugEnabled()) {
-				debug("Finished write data into target table " + targetTable.getAbsoluteName() + ", count inserts:" + countInserts);
+				debug("Finished write data into target table " + targetTable.getAbsoluteName() + ", count inserts:" + countInsertsInDB);
 			}
 		}
 		if (isDebugEnabled()) {
@@ -765,6 +797,9 @@ public class TableTransfer {
 				throw new Exception("getTargetSQLTable failed: schema " + schemaName + " not available");
 			}
 			String tableName = getTableName(tableAndSchemaName);
+			if (tableName.startsWith("\"")) {
+				tableName = tableName.substring(1, tableName.length() - 1);
+			}
 			targetTable = schema.getTable(tableName);
 			if (targetTable == null) {
 				throw new Exception("getTargetSQLTable failed: table " + schemaName + "." + tableName + " not available");
@@ -792,7 +827,7 @@ public class TableTransfer {
 	protected Statement createSourceSelectStatement() throws Exception {
 		sourceQuery = properties.getProperty(SOURCE_QUERY);
 		if (sourceQuery == null) {
-			sourceQuery = codeGenerator.buildSelectStatement(getSourceSQLTable(), true) + buildSourceWhereSQL();
+			sourceQuery = getSourceCodeGenerator().buildSelectStatement(getSourceSQLTable(), true) + buildSourceWhereSQL();
 			properties.put(SOURCE_QUERY, sourceQuery);
 		}
 		if (isDebugEnabled()) {
@@ -822,7 +857,7 @@ public class TableTransfer {
 	}
 	
 	protected PreparedStatement createTargetInsertStatement() throws Exception {
-		targetInsertStatement = codeGenerator.buildPSInsertSQLStatement(getTargetSQLTable(), true);
+		targetInsertStatement = getTargetCodeGenerator().buildPSInsertSQLStatement(getTargetSQLTable(), true);
 		if (isDebugEnabled()) {
 			debug("createTargetInsertStatement SQL:" + targetInsertStatement.getSQL());
 		}
@@ -990,8 +1025,8 @@ public class TableTransfer {
 		properties.setProperty(SOURCE_QUERY, sourceQuery);
 	}
 
-    public String getSourceTable() {
-    	return codeGenerator.getEncapsulatedName(properties.getProperty(SOURCE_TABLE));
+    public String getSourceTable() throws SQLException {
+    	return getSourceCodeGenerator().getEncapsulatedName(properties.getProperty(SOURCE_TABLE));
     }
     
     public void setSourceTable(String tableAndSchema) {
@@ -1055,8 +1090,8 @@ public class TableTransfer {
     	properties.setProperty(TARGET_BATCHSIZE, batchSize);
     }
     
-    public String getTargetTable() {
-    	return codeGenerator.getEncapsulatedName(properties.getProperty(TARGET_TABLE));
+    public String getTargetTable() throws SQLException {
+    	return getTargetCodeGenerator().getEncapsulatedName(properties.getProperty(TARGET_TABLE));
     }
     
     public void setTargetTable(String tableAndSchema) {
@@ -1740,6 +1775,51 @@ public class TableTransfer {
 		if (doCommit != null) {
 			this.doCommit = doCommit;
 		}
+	}
+	
+	private void setupKeywords(Connection conn, SQLCodeGenerator codeGen) throws SQLException {
+		if (conn == null) {
+			throw new IllegalArgumentException("Connection cannot be null");
+		}
+		DatabaseMetaData dbmd = conn.getMetaData();
+		codeGen.setEnclosureChar(dbmd.getIdentifierQuoteString());
+		String numKeyWords = dbmd.getNumericFunctions();
+		if (numKeyWords != null && numKeyWords.trim().isEmpty() == false) {
+			String[] words =  numKeyWords.split(",;");
+			for (String w : words) {
+				codeGen.addKeyword(w);
+			}
+		}
+		String sqlKeyWords = dbmd.getSQLKeywords();
+		if (sqlKeyWords != null && sqlKeyWords.trim().isEmpty() == false) {
+			String[] words =  sqlKeyWords.split(",;");
+			for (String w : words) {
+				codeGen.addKeyword(w);
+			}
+		}
+		String stringKeyWords = dbmd.getStringFunctions();
+		if (stringKeyWords != null && stringKeyWords.trim().isEmpty() == false) {
+			String[] words =  sqlKeyWords.split(",;");
+			for (String w : words) {
+				codeGen.addKeyword(w);
+			}
+		}
+	}
+
+	public SQLCodeGenerator getSourceCodeGenerator() throws SQLException {
+		if (sourceCodeGenerator == null) {
+			sourceCodeGenerator = new SQLCodeGenerator();
+			setupKeywords(sourceConnection, sourceCodeGenerator);
+		}
+		return sourceCodeGenerator;
+	}
+	
+	public SQLCodeGenerator getTargetCodeGenerator() throws SQLException {
+		if (targetCodeGenerator == null) {
+			targetCodeGenerator = new SQLCodeGenerator();
+			setupKeywords(targetConnection, targetCodeGenerator);
+		}
+		return targetCodeGenerator;
 	}
 
 }

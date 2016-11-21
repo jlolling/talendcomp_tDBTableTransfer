@@ -1785,23 +1785,23 @@ public class TableTransfer {
 		codeGen.setEnclosureChar(dbmd.getIdentifierQuoteString());
 		String numKeyWords = dbmd.getNumericFunctions();
 		if (numKeyWords != null && numKeyWords.trim().isEmpty() == false) {
-			String[] words =  numKeyWords.split(",;");
+			String[] words =  numKeyWords.split(",");
 			for (String w : words) {
-				codeGen.addKeyword(w);
+				codeGen.addKeyword(w.trim());
 			}
 		}
 		String sqlKeyWords = dbmd.getSQLKeywords();
 		if (sqlKeyWords != null && sqlKeyWords.trim().isEmpty() == false) {
-			String[] words =  sqlKeyWords.split(",;");
+			String[] words =  sqlKeyWords.split(",");
 			for (String w : words) {
-				codeGen.addKeyword(w);
+				codeGen.addKeyword(w.trim());
 			}
 		}
 		String stringKeyWords = dbmd.getStringFunctions();
 		if (stringKeyWords != null && stringKeyWords.trim().isEmpty() == false) {
-			String[] words =  sqlKeyWords.split(",;");
+			String[] words =  sqlKeyWords.split(",");
 			for (String w : words) {
-				codeGen.addKeyword(w);
+				codeGen.addKeyword(w.trim());
 			}
 		}
 	}

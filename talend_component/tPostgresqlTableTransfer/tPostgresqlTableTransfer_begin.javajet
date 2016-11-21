@@ -69,13 +69,21 @@
 	if (valueRangeColumn == null || valueRangeColumn.trim().isEmpty()) {
 		valueRangeColumn = "null";
 	}
+	String onConflict = ElementParameterParser.getValue(node, "__ON_CONFLICT__");
 %>
 
-	de.cimt.talendcomp.tabletransfer.TableTransfer <%=cid%> = new de.cimt.talendcomp.tabletransfer.TableTransfer();
-	<%=cid%> = new de.cimt.talendcomp.tabletransfer.TableTransfer();
+	de.cimt.talendcomp.tabletransfer.PostgresqlTableTransfer <%=cid%> = new de.cimt.talendcomp.tabletransfer.PostgresqlTableTransfer();
 	<%=cid%>.enableLog4J(<%=enablelog4j%>);
 	<%=cid%>.setDebug(<%=debug%>);
 	<%=cid%>.setDoCommit(<%=doCommit%>);
+<%	if ("IGNORE".equals(onConflict)) { %>
+	<%=cid%>.setOnConflictIgnore(true);
+<%	} else if ("UPDATE".equals(onConflict)) { %>
+	<%=cid%>.setOnConflictUpdate(true);
+<%  } else { %>
+	<%=cid%>.setOnConflictIgnore(false);
+	<%=cid%>.setOnConflictUpdate(false);
+<%  } %>
 <%  if (typeMap != null) {
 		for (Map<String, String> map : typeMap) {
 			String dbType = map.get("DB_TYPE");

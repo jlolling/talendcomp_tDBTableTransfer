@@ -63,9 +63,9 @@ public class TableTransfer {
 	private Properties properties = new Properties();
 	private Connection sourceConnection;
 	private Connection targetConnection;
-	private SQLStatement targetInsertStatement;
+	protected SQLStatement targetInsertStatement;
 	private Statement sourceSelectStatement;
-	private PreparedStatement targetPSInsert;
+	protected PreparedStatement targetPSInsert;
 	private SQLDataModel sourceModel;
 	private static final Map<String, SQLDataModel> sqlModelCache = new HashMap<String, SQLDataModel>();
 	private SQLDataModel targetModel;
@@ -930,14 +930,14 @@ public class TableTransfer {
 			sourceModel = sqlModelCache.get("source_" + modelKey);
 			if (sourceModel == null) {
 				sourceModel = new SQLDataModel(sourceConnection);
-				sourceModel.loadSchemas();
+				sourceModel.loadCatalogs();
 				sqlModelCache.put("source_" + modelKey, sourceModel);
 			} else {
 				sourceModel.setConnection(sourceConnection);
 			}
 		} else {
 			sourceModel = new SQLDataModel(sourceConnection);
-			sourceModel.loadSchemas();
+			sourceModel.loadCatalogs();
 		}
 		if (sourceConnection != null && sourceConnection.getAutoCommit() == false) {
 			sourceConnection.commit();
@@ -947,14 +947,14 @@ public class TableTransfer {
 				targetModel = sqlModelCache.get("target_" + modelKey);
 				if (targetModel == null) {
 					targetModel = new SQLDataModel(targetConnection);
-					targetModel.loadSchemas();
+					targetModel.loadCatalogs();
 					sqlModelCache.put("target_" + modelKey, targetModel);
 				} else {
 					targetModel.setConnection(targetConnection);
 				}
 			} else {
 				targetModel = new SQLDataModel(targetConnection);
-				targetModel.loadSchemas();
+				targetModel.loadCatalogs();
 			}
 			if (targetConnection.getAutoCommit() == false) {
 				targetConnection.commit();
@@ -1777,7 +1777,7 @@ public class TableTransfer {
 		}
 	}
 	
-	private void setupKeywords(Connection conn, SQLCodeGenerator codeGen) throws SQLException {
+	protected void setupKeywords(Connection conn, SQLCodeGenerator codeGen) throws SQLException {
 		if (conn == null) {
 			throw new IllegalArgumentException("Connection cannot be null");
 		}

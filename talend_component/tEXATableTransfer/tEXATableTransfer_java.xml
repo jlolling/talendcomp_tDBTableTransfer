@@ -253,8 +253,8 @@
 	<CODEGENERATION>
 		<IMPORTS>
 			<IMPORT NAME="Log4J" MODULE="log4j-1.2.17.jar" REQUIRED="true" />
-			<IMPORT NAME="SQLRunner" MODULE="sqlrunner-14.2.jar" REQUIRED="true" />
-			<IMPORT NAME="cimt Table Transfer" MODULE="table_transfer-5.1.jar" REQUIRED="true" />
+			<IMPORT NAME="SQLRunner" MODULE="sqlrunner-15.0.jar" REQUIRED="true" />
+			<IMPORT NAME="cimt Table Transfer" MODULE="table_transfer-5.2.jar" REQUIRED="true" />
 		</IMPORTS>
 	</CODEGENERATION>
 

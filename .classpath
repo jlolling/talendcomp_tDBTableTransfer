@@ -6,6 +6,6 @@
 	<classpathentry kind="lib" path="lib/log4j-1.2.17.jar"/>
 	<classpathentry kind="lib" path="lib/postgresql-9.4-1203.jdbc4.jar"/>
 	<classpathentry kind="lib" path="lib/mysql-connector-java-5.1.30-bin.jar"/>
-	<classpathentry kind="lib" path="lib/sqlrunner-14.2.jar" sourcepath="lib/sqlrunner-14.2.jar-src.zip"/>
+	<classpathentry kind="lib" path="lib/sqlrunner-15.0.jar" sourcepath="lib/sqlrunner-15.0.jar-src.zip"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

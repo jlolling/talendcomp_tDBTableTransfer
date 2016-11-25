@@ -172,10 +172,10 @@
 <%  if (outputToTable) { %>
 	// configure target table
 <%		if (useDataSource) { %>
-   // use this table as target
+    // use this table as target
 	<%=cid%>.setTargetTable(<%=targetTable%>);
 <%		} else { %>
-   // use this table as source (query will be generated)
+    // use this table as source (query will be generated)
 	<%=cid%>.setTargetTable(((String) globalMap.get("schema_" + "<%=targetConnCompName%>")) + "." + <%=targetTable%>);
 <%      } %>
 <%  } %>

@@ -94,22 +94,12 @@ public class TableTransfer {
 	private volatile boolean runningDb = false;
 	private volatile boolean runningFile = false;
 	private long startTime;
-	public static final String SOURCE_URL = "source.url";
-	public static final String SOURCE_USER = "source.user";
-	public static final String SOURCE_PASSWORD = "source.password";
-	public static final String SOURCE_DRIVER = "source.driverClass";
 	public static final String SOURCE_FETCHSIZE = "source.fetchSize";
-	public static final String SOURCE_PROPERTIES = "source.properties";
 	public static final String SOURCE_TABLE = "source.table";
 	public static final String SOURCE_WHERE = "source.whereClause";
 	public static final String SOURCE_QUERY = "source.query";
-	public static final String TARGET_URL = "target.url";
-	public static final String TARGET_USER = "target.user";
-	public static final String TARGET_PASSWORD = "target.password";
-	public static final String TARGET_DRIVER = "target.driverClass";
 	public static final String TARGET_BATCHSIZE = "target.batchSize";
 	public static final String TARGET_TABLE = "target.table";
-	public static final String TARGET_PROPERTIES = "target.properties";
 	public static final String DIE_ON_ERROR = "abortIfErrors";
 	private boolean dieOnError = true;
 	private boolean initialized = false;
@@ -494,6 +484,9 @@ public class TableTransfer {
 		try {
 			boolean autocommitTemp = false;
 			try {
+				if (targetConnection == null || targetConnection.isClosed()) {
+					throw new IllegalStateException("writeTable failed because target connection is null or closed");
+				}
 				autocommitTemp = targetConnection.getAutoCommit();
 			} catch (SQLException e2) {
 				warn("Failed to detect autocommit state: " + e2.getMessage(), e2);
@@ -714,6 +707,9 @@ public class TableTransfer {
 	}
 	
 	public void commitTarget() throws SQLException {
+		if (targetConnection == null || targetConnection.isClosed()) {
+			throw new IllegalStateException("writeTable failed because target connection is null or closed");
+		}
 		targetConnection.commit();
 	}
 	
@@ -973,38 +969,6 @@ public class TableTransfer {
         }
     }
     
-    public void setSourceURL(String url) {
-    	properties.setProperty(SOURCE_URL, url);
-    }
-    
-    public String getSourceURL() {
-    	return properties.getProperty(SOURCE_URL);
-    }
-    
-    public void setSourceUser(String sourceUser) {
-    	properties.setProperty(SOURCE_USER, sourceUser);
-    }
-    
-    public String getSourceUser() {
-    	return properties.getProperty(SOURCE_USER);
-    }
-    
-    public String getSourcePassword() {
-    	return properties.getProperty(SOURCE_PASSWORD);
-    }
-    
-    public void setSourcePassword(String passwd) {
-    	properties.setProperty(SOURCE_PASSWORD, passwd);
-    }
-    
-    public String getSourceDriverClass() {
-    	return properties.getProperty(SOURCE_DRIVER);
-    }
-    
-    public void setSourceDriverClass(String driverClassName) {
-    	properties.setProperty(SOURCE_DRIVER, driverClassName);
-    }
-    
     public String getSourceFetchSize() {
     	return properties.getProperty(SOURCE_FETCHSIZE);
     }
@@ -1030,6 +994,13 @@ public class TableTransfer {
     }
     
     public void setSourceTable(String tableAndSchema) {
+    	if (tableAndSchema == null || tableAndSchema.trim().isEmpty()) {
+    		throw new IllegalArgumentException("Source schema.table cannot be null or empty! (Got: " + tableAndSchema + ")");
+    	} else if (tableAndSchema.endsWith(".null") || tableAndSchema.endsWith(".")) {
+    		throw new IllegalArgumentException("Source table cannot be null or empty! (Got: " + tableAndSchema + ")");
+    	} else if (tableAndSchema.startsWith("null.") || tableAndSchema.startsWith(".")) {
+    		throw new IllegalArgumentException("Source schema cannot be null or empty! (Got: " + tableAndSchema + ")");
+    	}
     	properties.setProperty(SOURCE_TABLE, tableAndSchema);
     	properties.remove(SOURCE_QUERY); // remove query from previous run
     }
@@ -1040,46 +1011,6 @@ public class TableTransfer {
     
     public void setSourceWhereClause(String whereClause) {
     	properties.setProperty(SOURCE_WHERE, whereClause);
-    }
-    
-    public void setSourceProperties(String propertiesString) {
-    	properties.setProperty(SOURCE_PROPERTIES, propertiesString);
-    }
-    
-    public String getSourceProperties() {
-    	return properties.getProperty(SOURCE_PROPERTIES);
-    }
-
-    public void setTargetURL(String url) {
-    	properties.setProperty(TARGET_URL, url);
-    }
-    
-    public String getTargetURL() {
-    	return properties.getProperty(TARGET_URL);
-    }
-    
-    public void setTargetUser(String targetUser) {
-    	properties.setProperty(TARGET_USER, targetUser);
-    }
-    
-    public String getTargetUser() {
-    	return properties.getProperty(TARGET_USER);
-    }
-    
-    public String getTargetPassword() {
-    	return properties.getProperty(TARGET_PASSWORD);
-    }
-    
-    public void setTargetPassword(String passwd) {
-    	properties.setProperty(TARGET_PASSWORD, passwd);
-    }
-    
-    public String getTargetDriverClass() {
-    	return properties.getProperty(TARGET_DRIVER);
-    }
-    
-    public void setTargetDriverClass(String driverClassName) {
-    	properties.setProperty(TARGET_DRIVER, driverClassName);
     }
     
     public String getTargetBatchSize() {
@@ -1095,15 +1026,14 @@ public class TableTransfer {
     }
     
     public void setTargetTable(String tableAndSchema) {
+    	if (tableAndSchema == null || tableAndSchema.trim().isEmpty()) {
+    		throw new IllegalArgumentException("Target schema.table cannot be null or empty! (Got: " + tableAndSchema + ")");
+    	} else if (tableAndSchema.endsWith(".null") || tableAndSchema.endsWith(".")) {
+    		throw new IllegalArgumentException("Target table cannot be null or empty! (Got: " + tableAndSchema + ")");
+    	} else if (tableAndSchema.startsWith("null.") || tableAndSchema.startsWith(".")) {
+    		throw new IllegalArgumentException("Target schema cannot be null or empty! (Got: " + tableAndSchema + ")");
+    	}
     	properties.setProperty(TARGET_TABLE, tableAndSchema);
-    }
-
-    public void setTargetProperties(String propertiesString) {
-    	properties.setProperty(TARGET_PROPERTIES, propertiesString);
-    }
-    
-    public String getTargetProperties() {
-    	return properties.getProperty(TARGET_PROPERTIES);
     }
 
     public int getReturnCode() {

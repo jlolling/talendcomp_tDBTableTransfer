@@ -59,11 +59,32 @@
     	modelKey = "jobName + " + "\"" + cid + "\"";
     }
     boolean reuseModel = "true".equals(ElementParameterParser.getValue(node, "__REUSE_DATA_MODEL__"));
+    boolean doCommit = "false".equals(ElementParameterParser.getValue(node, "__USE_EXTERNAL_COMMIT_COMPONENT__"));
+    boolean measureTimeRange = "true".equals(ElementParameterParser.getValue(node, "__MEASURE_TIME_RANGE__"));
+    String timeRangeColumn = ElementParameterParser.getValue(node, "__TIME_RANGE_COLUMN__");
+	if (timeRangeColumn == null || timeRangeColumn.trim().isEmpty()) {
+		timeRangeColumn = "null";
+	}
+    boolean measureValueRange = "true".equals(ElementParameterParser.getValue(node, "__MEASURE_VALUE_RANGE__"));
+    String valueRangeColumn = ElementParameterParser.getValue(node, "__VALUE_RANGE_COLUMN__");
+	if (valueRangeColumn == null || valueRangeColumn.trim().isEmpty()) {
+		valueRangeColumn = "null";
+	}
+	String onConflict = ElementParameterParser.getValue(node, "__ON_CONFLICT__");
 %>
 
-	de.cimt.talendcomp.tabletransfer.TableTransfer <%=cid%> = new de.cimt.talendcomp.tabletransfer.TableTransfer();
+	de.cimt.talendcomp.tabletransfer.MysqlTableTransfer <%=cid%> = new de.cimt.talendcomp.tabletransfer.MysqlTableTransfer();
 	<%=cid%>.enableLog4J(<%=enablelog4j%>);
 	<%=cid%>.setDebug(<%=debug%>);
+	<%=cid%>.setDoCommit(<%=doCommit%>);
+<%	if ("IGNORE".equals(onConflict)) { %>
+	<%=cid%>.setOnConflictIgnore(true);
+<%	} else if ("UPDATE".equals(onConflict)) { %>
+	<%=cid%>.setOnConflictUpdate(true);
+<%  } else { %>
+	<%=cid%>.setOnConflictIgnore(false);
+	<%=cid%>.setOnConflictUpdate(false);
+<%  } %>
 <%  if (typeMap != null) {
 		for (Map<String, String> map : typeMap) {
 			String dbType = map.get("DB_TYPE");
@@ -75,6 +96,12 @@
   } %>
 	<%=cid%>.setExportBooleanAsNumber(<%=exportBooleanAsNumber%>);
 	<%=cid%>.setOutputToTable(<%=outputToTable%>);
+<%  if (measureTimeRange) { %>
+	<%=cid%>.setTimeRangeColumn(<%=timeRangeColumn%>);
+<%  } %>
+<%  if (measureValueRange) { %>
+	<%=cid%>.setValueRangeColumn(<%=valueRangeColumn%>);
+<%  } %>
 	// configure connections
 <%  if (useDataSource) {%>
 	{
@@ -106,7 +133,7 @@
 	<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
 <%    } %>
 <%  } %>
-   <%=cid%>.setKeepDataModels(<%=reuseModel%>, <%=modelKey%>);
+    <%=cid%>.setKeepDataModels(<%=reuseModel%>, <%=modelKey%>);
 	<%=cid%>.setupDataModels();
 <%  if (useQuery) { %>
     // use our own query as source

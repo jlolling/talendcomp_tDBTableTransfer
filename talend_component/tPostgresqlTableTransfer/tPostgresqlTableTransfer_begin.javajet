@@ -132,7 +132,7 @@
 	<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
 <%    } %>
 <%  } %>
-   <%=cid%>.setKeepDataModels(<%=reuseModel%>, <%=modelKey%>);
+    <%=cid%>.setKeepDataModels(<%=reuseModel%>, <%=modelKey%>);
 	<%=cid%>.setupDataModels();
 <%  if (useQuery) { %>
     // use our own query as source

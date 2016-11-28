@@ -1270,7 +1270,7 @@ public class TableTransfer {
 		}
 	}
 	
-	private void writeRowToBackup(Object[] row) throws Exception {
+	private void writeRowInFile(Object[] row) throws Exception {
 		if (row != null) {
 			boolean firstLoop = true;
 			for (Object value : row) {
@@ -1279,9 +1279,13 @@ public class TableTransfer {
 				} else {
 					backupOutputWriter.write(fieldSeparator);
 				}
-				backupOutputWriter.write(fieldEclosure);
-				backupOutputWriter.write(convertToString(value));
-				backupOutputWriter.write(fieldEclosure);
+				if (value != null) {
+					backupOutputWriter.write(fieldEclosure);
+					backupOutputWriter.write(convertToString(value));
+					backupOutputWriter.write(fieldEclosure);
+				} else {
+					backupOutputWriter.write(nullReplacement);
+				}
 			}
 			backupOutputWriter.write("\n");
 			countFileRows++;
@@ -1304,7 +1308,7 @@ public class TableTransfer {
 							endFlagReceived = true;
 							break;
 						} else {
-							writeRowToBackup((Object[]) item);
+							writeRowInFile((Object[]) item);
 						}
 						if (Thread.currentThread().isInterrupted()) {
 							break;

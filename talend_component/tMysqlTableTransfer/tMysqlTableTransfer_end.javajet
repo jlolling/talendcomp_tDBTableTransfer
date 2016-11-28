@@ -17,5 +17,9 @@
 	// disconnect in case of we use data sources means we put back the connection into the pool
 	<%=cid%>.disconnect();
 <% } %>
+	globalMap.put("<%=cid%>_TIME_RANGE_START", <%=cid%>.getTimeRangeStart());
+	globalMap.put("<%=cid%>_TIME_RANGE_END", <%=cid%>.getTimeRangeEnd());
+	globalMap.put("<%=cid%>_VALUE_RANGE_START", <%=cid%>.getValueRangeStart());
+	globalMap.put("<%=cid%>_VALUE_RANGE_END", <%=cid%>.getValueRangeEnd());
 
 	

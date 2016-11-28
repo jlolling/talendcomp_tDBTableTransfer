@@ -735,7 +735,11 @@ public class TableTransfer {
 		patternForBackslash = Pattern.compile("\\", Pattern.LITERAL);
 		patternForQuota = Pattern.compile("\"", Pattern.LITERAL);
 		replacementForBackslash = Matcher.quoteReplacement("\\\\");
-		replacementForQuota = Matcher.quoteReplacement("\\\"");
+		if (replacementForQuota != null) {
+			replacementForQuota = Matcher.quoteReplacement(replacementForQuota);
+		} else {
+			replacementForQuota = Matcher.quoteReplacement("\\\"");
+		}
 		initialized = true;
 	}
 	
@@ -1754,6 +1758,25 @@ public class TableTransfer {
 			setupKeywords(targetConnection, targetCodeGenerator);
 		}
 		return targetCodeGenerator;
+	}
+
+	public String getNullReplacement() {
+		return nullReplacement;
+	}
+
+	public void setNullReplacement(String nullReplacement) {
+		if (nullReplacement == null) {
+			nullReplacement = "";
+		}
+		this.nullReplacement = nullReplacement;
+	}
+
+	public String getReplacementForQuota() {
+		return replacementForQuota;
+	}
+
+	public void setReplacementForQuota(String replacementForQuota) {
+		this.replacementForQuota = replacementForQuota;
 	}
 
 }

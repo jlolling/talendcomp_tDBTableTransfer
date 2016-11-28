@@ -80,10 +80,12 @@
 			String javaType = map.get("JAVA_TYPE");
 			if (dbType != null && javaType != null) { %>
 	<%=cid%>.addDbJavaTypeMapping(<%=dbType%>, "<%=javaType%>");
-<%       }					
+<%			}
 		}
-  } %>
+	} %>
 	<%=cid%>.setExportBooleanAsNumber(<%=exportBooleanAsNumber%>);
+	<%=cid%>.setNullReplacement("NULL");
+	<%=cid%>.setReplacementForQuota("\"\"");
 	<%=cid%>.setOutputToTable(<%=outputToTable%>);
 <%  if (measureTimeRange) { %>
 	<%=cid%>.setTimeRangeColumn(<%=timeRangeColumn%>);
@@ -94,7 +96,7 @@
 	// configure connections
 <%  if (useDataSource) {%>
 	{
-      @SuppressWarnings("unchecked")
+      	@SuppressWarnings("unchecked")
 		java.util.Map<String, routines.system.TalendDataSource> dataSources = (java.util.Map<String, routines.system.TalendDataSource>) globalMap.get(KEY_DB_DATASOURCES);
 		if (dataSources == null) {
 		 	throw new Exception("No data sources available in this job!");
@@ -162,10 +164,10 @@
 <%  if (outputToTable) { %>
 	// configure target table
 <%		if (useDataSource) { %>
-   // use this table as target
+    // use this table as target
 	<%=cid%>.setTargetTable(<%=targetTable%>);
 <%		} else { %>
-   // use this table as source (query will be generated)
+    // use this table as source (query will be generated)
 	<%=cid%>.setTargetTable(((String) globalMap.get("schema_" + "<%=targetConnCompName%>")) + "." + <%=targetTable%>);
 <%      } %>
 <%  } %>

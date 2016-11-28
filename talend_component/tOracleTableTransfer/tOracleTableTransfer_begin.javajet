@@ -85,6 +85,8 @@
 		}
   } %>
 	<%=cid%>.setExportBooleanAsNumber(<%=exportBooleanAsNumber%>);
+	<%=cid%>.setNullReplacement("");
+	<%=cid%>.setReplacementForQuota("\"\"");
 	<%=cid%>.setOutputToTable(<%=outputToTable%>);
 <%  if (measureTimeRange) { %>
 	<%=cid%>.setTimeRangeColumn(<%=timeRangeColumn%>);

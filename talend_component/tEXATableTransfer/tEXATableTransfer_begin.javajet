@@ -70,7 +70,7 @@
 		valueRangeColumn = "null";
 	}
 %>
-	de.cimt.talendcomp.tabletransfer.TableTransfer <%=cid%> = new de.cimt.talendcomp.tabletransfer.TableTransfer();
+	de.jlo.talendcomp.tabletransfer.TableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
 	<%=cid%>.enableLog4J(<%=enablelog4j%>);
 	<%=cid%>.setDebug(<%=debug%>);
 	<%=cid%>.setDoCommit(<%=doCommit%>);

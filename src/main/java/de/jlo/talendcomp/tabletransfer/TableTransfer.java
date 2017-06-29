@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.cimt.talendcomp.tabletransfer;
+package de.jlo.talendcomp.tabletransfer;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -109,6 +109,7 @@ public class TableTransfer {
 	private boolean outputToFile = false;
 	private File backupFile = null;
 	private File backupFileTmp = null;
+	private String backupFileCharSet = "UTF-8";
 	private String fieldSeparator = ";";
 	private String fieldEclosure = "\"";
 	private String nullReplacement = "\\N";
@@ -227,7 +228,7 @@ public class TableTransfer {
 				debug("Create backup file: " + backupFile.getAbsolutePath());
 			}
 			backupFileTmp = new File(backupFile.getAbsolutePath() + ".tmp");
-			backupOutputWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupFileTmp), "UTF-8"));
+			backupOutputWriter = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(backupFileTmp), backupFileCharSet));
 			if (isDebugEnabled()) {
 				debug("Backup file established.");
 			}
@@ -1777,6 +1778,16 @@ public class TableTransfer {
 
 	public void setReplacementForQuota(String replacementForQuota) {
 		this.replacementForQuota = replacementForQuota;
+	}
+
+	public String getBackupFileCharSet() {
+		return backupFileCharSet;
+	}
+
+	public void setBackupFileCharSet(String backupFileCharSet) {
+		if (backupFileCharSet != null && backupFileCharSet.trim().isEmpty() == false) {
+			this.backupFileCharSet = backupFileCharSet;
+		}
 	}
 
 }

@@ -1,4 +1,4 @@
-package de.cimt.talendcomp.tabletransfer;
+package de.jlo.talendcomp.tabletransfer;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;

@@ -1,4 +1,4 @@
-package de.cimt.talendcomp.tabletransfer;
+package de.jlo.talendcomp.tabletransfer;
 
 import java.lang.reflect.Method;
 import java.sql.Statement;

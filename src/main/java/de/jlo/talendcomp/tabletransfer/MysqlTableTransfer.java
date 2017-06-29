@@ -1,18 +1,18 @@
-package de.cimt.talendcomp.tabletransfer;
+package de.jlo.talendcomp.tabletransfer;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class PostgresqlTableTransfer extends TableTransfer {
+public class MysqlTableTransfer extends TableTransfer {
 	
-	private PostgresqlSQLCodeGenerator codeGenerator = null;
+	private MysqlSQLCodeGenerator codeGenerator = null;
 	private boolean onConflictIgnore = false;
 	private boolean onConflictUpdate = false;
 	
 	@Override
-	public PostgresqlSQLCodeGenerator getTargetCodeGenerator() throws SQLException {
+	public MysqlSQLCodeGenerator getTargetCodeGenerator() throws SQLException {
 		if (codeGenerator == null) {
-			codeGenerator = new PostgresqlSQLCodeGenerator();
+			codeGenerator = new MysqlSQLCodeGenerator();
 			setupKeywords(getTargetConnection(), codeGenerator);
 		}
 		return codeGenerator;

@@ -725,7 +725,7 @@ public class TableTransfer {
 		}
 		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "100"));
 		final int fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "100"));
-		final int queueSize = Math.max(batchSize, fetchSize) + 100;
+		final int queueSize = Math.max(batchSize, fetchSize);
 		if (outputToTable) {
 			tableQueue = new ArrayBlockingQueue<Object>(queueSize);
 		}

@@ -757,6 +757,9 @@ public class TableTransfer {
 			}
 			String tableName = getTableName(tableAndSchemaName);
 			sourceTable = schema.getTable(tableName);
+			if (sourceTable.isFieldsLoaded() == false) {
+				sourceTable.loadColumns(true);
+			}
 			if (sourceTable == null) {
 				throw new Exception("getSourceTable failed: table " + schemaName + "." + tableName + " not available");
 			}
@@ -828,7 +831,11 @@ public class TableTransfer {
 	protected Statement createSourceSelectStatement() throws Exception {
 		sourceQuery = properties.getProperty(SOURCE_QUERY);
 		if (sourceQuery == null) {
-			sourceQuery = getSourceCodeGenerator().buildSelectStatement(getSourceSQLTable(), true) + buildSourceWhereSQL();
+			SQLTable table = getSourceSQLTable();
+			if (table.isFieldsLoaded() == false) {
+				table.loadColumns(true);
+			}
+			sourceQuery = getSourceCodeGenerator().buildSelectStatement(table, true) + buildSourceWhereSQL();
 			properties.put(SOURCE_QUERY, sourceQuery);
 		}
 		if (isDebugEnabled()) {
@@ -858,7 +865,11 @@ public class TableTransfer {
 	}
 	
 	protected PreparedStatement createTargetInsertStatement() throws Exception {
-		targetInsertStatement = getTargetCodeGenerator().buildPSInsertSQLStatement(getTargetSQLTable(), true);
+		SQLTable table = getTargetSQLTable();
+		if (table.isFieldsLoaded() == false) {
+			table.loadColumns(true);
+		}
+		targetInsertStatement = getTargetCodeGenerator().buildPSInsertSQLStatement(table, true);
 		if (isDebugEnabled()) {
 			debug("createTargetInsertStatement SQL:" + targetInsertStatement.getSQL());
 		}

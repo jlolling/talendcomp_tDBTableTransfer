@@ -3,6 +3,8 @@ package de.jlo.talendcomp.tabletransfer;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import sqlrunner.datamodel.SQLTable;
+
 public class PostgresqlTableTransfer extends TableTransfer {
 	
 	private PostgresqlSQLCodeGenerator codeGenerator = null;
@@ -20,7 +22,11 @@ public class PostgresqlTableTransfer extends TableTransfer {
 
 	@Override
 	protected PreparedStatement createTargetInsertStatement() throws Exception {
-		targetInsertStatement = getTargetCodeGenerator().buildPSInsertSQLStatement(getTargetSQLTable(), true, onConflictIgnore, onConflictUpdate);
+		SQLTable table = getTargetSQLTable();
+		if (table.isFieldsLoaded() == false) {
+			table.loadColumns(true);
+		}
+		targetInsertStatement = getTargetCodeGenerator().buildPSInsertSQLStatement(table, true, onConflictIgnore, onConflictUpdate);
 		if (isDebugEnabled()) {
 			debug("createTargetInsertStatement SQL:" + targetInsertStatement.getSQL());
 		}

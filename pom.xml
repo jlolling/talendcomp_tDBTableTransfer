@@ -4,7 +4,7 @@
 	<groupId>de.jlo.talendcomp</groupId>
 	<artifactId>jlo-talendcomp-tabletransfer</artifactId>
 	<name>Talend Table Transfer Components</name>
-	<version>6.1</version>
+	<version>6.3</version>
 	<organization>
 		<name>Jan Lolling</name>
 	</organization>
@@ -87,7 +87,7 @@
 			<artifactId>sqlrunner</artifactId>
 			<version>17.1</version>
 			<scope>system</scope>
-			<systemPath>${project.basedir}/lib/sqlrunner-17.1.jar</systemPath>
+			<systemPath>${project.basedir}/lib/sqlrunner-18.1.jar</systemPath>
 		</dependency>
 	</dependencies>
 </project>

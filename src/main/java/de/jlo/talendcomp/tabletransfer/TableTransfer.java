@@ -757,11 +757,11 @@ public class TableTransfer {
 			}
 			String tableName = getTableName(tableAndSchemaName);
 			sourceTable = schema.getTable(tableName);
-			if (sourceTable.isFieldsLoaded() == false) {
-				sourceTable.loadColumns(true);
-			}
 			if (sourceTable == null) {
 				throw new Exception("getSourceTable failed: table " + schemaName + "." + tableName + " not available");
+			}
+			if (sourceTable.isFieldsLoaded() == false) {
+				sourceTable.loadColumns(true);
 			}
 			for (String exclFieldName : excludeFieldList) {
 				SQLField field = sourceTable.getField(exclFieldName);
@@ -939,13 +939,15 @@ public class TableTransfer {
 	
 	public final void setupDataModels() throws SQLException {
 		if (keepDataModels) {
-			sourceModel = sqlModelCache.get("source_" + modelKey);
-			if (sourceModel == null) {
-				sourceModel = new SQLDataModel(sourceConnection);
-				sourceModel.loadCatalogs();
-				sqlModelCache.put("source_" + modelKey, sourceModel);
-			} else {
-				sourceModel.setConnection(sourceConnection);
+			synchronized (sqlModelCache) {
+				sourceModel = sqlModelCache.get("source_" + modelKey);
+				if (sourceModel == null) {
+					sourceModel = new SQLDataModel(sourceConnection);
+					sourceModel.loadCatalogs();
+					sqlModelCache.put("source_" + modelKey, sourceModel);
+				} else {
+					sourceModel.setConnection(sourceConnection);
+				}
 			}
 		} else {
 			sourceModel = new SQLDataModel(sourceConnection);
@@ -956,13 +958,15 @@ public class TableTransfer {
 		}
 		if (outputToTable) {
 			if (keepDataModels) {
-				targetModel = sqlModelCache.get("target_" + modelKey);
-				if (targetModel == null) {
-					targetModel = new SQLDataModel(targetConnection);
-					targetModel.loadCatalogs();
-					sqlModelCache.put("target_" + modelKey, targetModel);
-				} else {
-					targetModel.setConnection(targetConnection);
+				synchronized (sqlModelCache) {
+					targetModel = sqlModelCache.get("target_" + modelKey);
+					if (targetModel == null) {
+						targetModel = new SQLDataModel(targetConnection);
+						targetModel.loadCatalogs();
+						sqlModelCache.put("target_" + modelKey, targetModel);
+					} else {
+						targetModel.setConnection(targetConnection);
+					}
 				}
 			} else {
 				targetModel = new SQLDataModel(targetConnection);

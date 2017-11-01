@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <COMPONENT> 
-  <HEADER PLATEFORM="ALL" SERIAL="" VERSION="6.3" STATUS="ALPHA" COMPATIBILITY="ALL" AUTHOR="Jan Lolling" RELEASE_DATE="20171101" STARTABLE="true" HAS_CONDITIONAL_OUTPUTS="false"> 
+  <HEADER PLATEFORM="ALL" SERIAL="" VERSION="6.4" STATUS="ALPHA" COMPATIBILITY="ALL" AUTHOR="Jan Lolling" RELEASE_DATE="20171101" STARTABLE="true" HAS_CONDITIONAL_OUTPUTS="false"> 
     <SIGNATURE/> 
   </HEADER>  
   <FAMILIES> 
@@ -159,12 +159,12 @@
       <DEFAULT/> 
     </PARAMETER>  
     <PARAMETER NAME="RELEASE_LABEL_20171101" FIELD="LABEL" COLOR="0;0;0" NUM_ROW="900">
-      <DEFAULT>Release: 6.3 build at: 20171101</DEFAULT>
+      <DEFAULT>Release: 6.4 build at: 20171101</DEFAULT>
     </PARAMETER>
   </ADVANCED_PARAMETERS>  
   <CODEGENERATION> 
     <IMPORTS> 
-      <IMPORT NAME="jlo-talendcomp-tabletransfer" MODULE="jlo-talendcomp-tabletransfer-6.3.jar" REQUIRED="true"/>
+      <IMPORT NAME="jlo-talendcomp-tabletransfer" MODULE="jlo-talendcomp-tabletransfer-6.4.jar" REQUIRED="true"/>
       <IMPORT NAME="sqlrunner" MODULE="sqlrunner-18.2.jar" REQUIRED="true"/>
     </IMPORTS> 
   </CODEGENERATION>  

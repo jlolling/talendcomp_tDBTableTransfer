@@ -83,11 +83,17 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
+		    <groupId>org.postgresql</groupId>
+		    <artifactId>postgresql</artifactId>
+		    <version>9.4.1212.jre7</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
 			<groupId>sqlrunner</groupId>
 			<artifactId>sqlrunner</artifactId>
-			<version>17.1</version>
+			<version>18.2</version>
 			<scope>system</scope>
-			<systemPath>${project.basedir}/lib/sqlrunner-18.1.jar</systemPath>
+			<systemPath>${project.basedir}/lib/sqlrunner-18.2.jar</systemPath>
 		</dependency>
 	</dependencies>
 </project>

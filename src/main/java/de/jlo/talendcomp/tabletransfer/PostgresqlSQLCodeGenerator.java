@@ -69,7 +69,7 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 				sb.append(") ");
 				if (onConflictIgnore || (hasNonePrimaryKeyFields == false)) {
 					// we cannot do an update on pk fields
-					sb.append("ignore");
+					sb.append("do nothing");
 				} else if (onConflictUpdate && hasNonePrimaryKeyFields) {
 					// we can only update if we have pk and value fields
 					sb.append("do update set ");

@@ -168,7 +168,7 @@
   <CODEGENERATION> 
     <IMPORTS> 
       <IMPORT NAME="jlo-talendcomp-tabletransfer" MODULE="jlo-talendcomp-tabletransfer-6.3.jar" REQUIRED="true"/>
-      <IMPORT NAME="sqlrunner" MODULE="sqlrunner-18.1.jar" REQUIRED="true"/>
+      <IMPORT NAME="sqlrunner" MODULE="sqlrunner-18.2.jar" REQUIRED="true"/>
     </IMPORTS> 
   </CODEGENERATION>  
   <RETURNS> 

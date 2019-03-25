@@ -1,10 +1,9 @@
-package de.jlo.talendcomp.tabletransfer;
+package de.jlo.datamodel.generator;
 
 import de.jlo.datamodel.SQLField;
 import de.jlo.datamodel.SQLPSParam;
 import de.jlo.datamodel.SQLStatement;
 import de.jlo.datamodel.SQLTable;
-import de.jlo.datamodel.generator.SQLCodeGenerator;
 
 public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 	

@@ -3,6 +3,8 @@ package de.jlo.talendcomp.tabletransfer;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import de.jlo.datamodel.generator.MysqlSQLCodeGenerator;
+
 public class MysqlTableTransfer extends TableTransfer {
 	
 	private MysqlSQLCodeGenerator codeGenerator = null;

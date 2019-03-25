@@ -4,6 +4,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 import de.jlo.datamodel.SQLTable;
+import de.jlo.datamodel.generator.PostgresqlSQLCodeGenerator;
 
 public class PostgresqlTableTransfer extends TableTransfer {
 	

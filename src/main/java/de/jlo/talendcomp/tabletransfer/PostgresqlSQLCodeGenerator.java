@@ -1,10 +1,10 @@
 package de.jlo.talendcomp.tabletransfer;
 
-import dbtools.SQLPSParam;
-import dbtools.SQLStatement;
-import sqlrunner.datamodel.SQLField;
-import sqlrunner.datamodel.SQLTable;
-import sqlrunner.generator.SQLCodeGenerator;
+import de.jlo.datamodel.SQLField;
+import de.jlo.datamodel.SQLPSParam;
+import de.jlo.datamodel.SQLStatement;
+import de.jlo.datamodel.SQLTable;
+import de.jlo.datamodel.generator.SQLCodeGenerator;
 
 public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 	
@@ -23,7 +23,7 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 		sb.append(" ("); 
 		SQLField field = null;
 		boolean hasPrimaryKey = false;
-		boolean hasNonePrimaryKeyFields = false;
+		boolean hasFieldsNotPartOfPK = false;
 		for (int i = 0; i < table.getFieldCount(); i++) {
 			field = table.getFieldAt(i);
 			if (i > 0) {
@@ -33,7 +33,7 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 			if (field.isPrimaryKey()) {
 				hasPrimaryKey = true;
 			} else {
-				hasNonePrimaryKeyFields = true;
+				hasFieldsNotPartOfPK = true;
 			}
 		}
 		sb.append(")\n values("); 
@@ -63,14 +63,14 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 						} else {
 							sb.append(',');
 						}
-						sb.append(field.getName());
+						sb.append(getEncapsulatedName(field.getName()));
 					}
 				}
 				sb.append(") ");
-				if (onConflictIgnore || (hasNonePrimaryKeyFields == false)) {
+				if (onConflictIgnore || (hasFieldsNotPartOfPK == false)) {
 					// we cannot do an update on pk fields
 					sb.append("do nothing");
-				} else if (onConflictUpdate && hasNonePrimaryKeyFields) {
+				} else if (onConflictUpdate && hasFieldsNotPartOfPK) {
 					// we can only update if we have pk and value fields
 					sb.append("do update set ");
 					firstLoop = true;
@@ -83,9 +83,9 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 								sb.append(',');
 							}
 							sb.append("\n\t");
-							sb.append(field.getName());
+							sb.append(getEncapsulatedName(field.getName()));
 							sb.append(" = excluded.");
-							sb.append(field.getName());
+							sb.append(getEncapsulatedName(field.getName()));
 						}
 					}
 				}

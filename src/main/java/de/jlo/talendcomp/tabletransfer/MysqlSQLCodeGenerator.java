@@ -1,10 +1,10 @@
 package de.jlo.talendcomp.tabletransfer;
 
-import dbtools.SQLPSParam;
-import dbtools.SQLStatement;
-import sqlrunner.datamodel.SQLField;
-import sqlrunner.datamodel.SQLTable;
-import sqlrunner.generator.SQLCodeGenerator;
+import de.jlo.datamodel.SQLField;
+import de.jlo.datamodel.SQLPSParam;
+import de.jlo.datamodel.SQLStatement;
+import de.jlo.datamodel.SQLTable;
+import de.jlo.datamodel.generator.SQLCodeGenerator;
 
 public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 	

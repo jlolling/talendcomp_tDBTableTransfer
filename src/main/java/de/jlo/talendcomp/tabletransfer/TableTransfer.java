@@ -48,14 +48,14 @@ import java.util.regex.Pattern;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import dbtools.SQLPSParam;
-import dbtools.SQLStatement;
-import sqlrunner.datamodel.SQLDataModel;
-import sqlrunner.datamodel.SQLField;
-import sqlrunner.datamodel.SQLSchema;
-import sqlrunner.datamodel.SQLTable;
-import sqlrunner.generator.SQLCodeGenerator;
-import sqlrunner.text.StringReplacer;
+import de.jlo.datamodel.SQLDataModel;
+import de.jlo.datamodel.SQLField;
+import de.jlo.datamodel.SQLPSParam;
+import de.jlo.datamodel.SQLSchema;
+import de.jlo.datamodel.SQLStatement;
+import de.jlo.datamodel.SQLTable;
+import de.jlo.datamodel.StringReplacer;
+import de.jlo.datamodel.generator.SQLCodeGenerator;
 
 public class TableTransfer {
 
@@ -776,7 +776,7 @@ public class TableTransfer {
 	protected String getSourceDatabase() throws SQLException {
 		String cat = sourceConnection.getCatalog();
 		if (cat == null || cat.trim().isEmpty()) {
-			cat = sourceModel.getLoginSchemaName();
+			cat = "public";
 		}
 		return cat;
 	}
@@ -784,7 +784,7 @@ public class TableTransfer {
 	protected String getTargetDatabase() throws SQLException {
 		String cat = targetConnection.getCatalog();
 		if (cat == null || cat.trim().isEmpty()) {
-			cat = targetModel.getLoginSchemaName();
+			cat = "public";
 		}
 		return cat;
 	}

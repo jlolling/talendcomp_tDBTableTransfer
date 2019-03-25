@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <COMPONENT> 
-  <HEADER PLATEFORM="ALL" SERIAL="" VERSION="6.4" STATUS="ALPHA" COMPATIBILITY="ALL" AUTHOR="Jan Lolling" RELEASE_DATE="20171101" STARTABLE="true" HAS_CONDITIONAL_OUTPUTS="false"> 
+  <HEADER PLATEFORM="ALL" SERIAL="" VERSION="7.0" STATUS="ALPHA" COMPATIBILITY="ALL" AUTHOR="Jan Lolling" RELEASE_DATE="20190325" STARTABLE="true" HAS_CONDITIONAL_OUTPUTS="false"> 
     <SIGNATURE/> 
   </HEADER>  
   <FAMILIES> 
@@ -158,14 +158,13 @@
     <PARAMETER NAME="ALTERNATIVE_MODEL_KEY" FIELD="TEXT" NUM_ROW="80" SHOW_IF="REUSE_DATA_MODEL == 'true'"> 
       <DEFAULT/> 
     </PARAMETER>  
-    <PARAMETER NAME="RELEASE_LABEL_20171101" FIELD="LABEL" COLOR="0;0;0" NUM_ROW="900">
-      <DEFAULT>Release: 6.4 build at: 20171101</DEFAULT>
+    <PARAMETER NAME="RELEASE_LABEL_20190325" FIELD="LABEL" COLOR="0;0;0" NUM_ROW="900">
+      <DEFAULT>Release: 7.0 build at: 20190325</DEFAULT>
     </PARAMETER>
   </ADVANCED_PARAMETERS>  
   <CODEGENERATION> 
     <IMPORTS> 
-      <IMPORT NAME="jlo-talendcomp-tabletransfer" MODULE="jlo-talendcomp-tabletransfer-6.4.jar" REQUIRED="true"/>
-      <IMPORT NAME="sqlrunner" MODULE="sqlrunner-18.2.jar" REQUIRED="true"/>
+      <IMPORT NAME="jlo-talendcomp-tabletransfer" MODULE="jlo-talendcomp-tabletransfer-7.0.jar" REQUIRED="true"/>
     </IMPORTS> 
   </CODEGENERATION>  
   <RETURNS> 

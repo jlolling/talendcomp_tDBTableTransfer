@@ -3,7 +3,7 @@ package de.jlo.talendcomp.tabletransfer;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-import sqlrunner.datamodel.SQLTable;
+import de.jlo.datamodel.SQLTable;
 
 public class PostgresqlTableTransfer extends TableTransfer {
 	

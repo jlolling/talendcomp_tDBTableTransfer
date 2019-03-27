@@ -124,16 +124,16 @@
 		<%=cid%>.setTargetConnection(dataSources.get(<%=targetDataSourceAlias%>).getConnection());
 <%    } %>
 	}
-	<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
+	<%=cid%>.setSourceFetchSize(<%=sourceFetchSize%>);
 <%    if (outputToTable) { %>
-	<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
+	<%=cid%>.setTargetBatchSize(<%=targetBatchSize%>);
 <%    } %>
 <%  } else { %>
 	<%=cid%>.setSourceConnection((java.sql.Connection) globalMap.get("conn_" + "<%=sourceConnCompName%>"));
-	<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
+	<%=cid%>.setSourceFetchSize(<%=sourceFetchSize%>);
 <%    if (outputToTable) { %>
 	<%=cid%>.setTargetConnection((java.sql.Connection) globalMap.get("conn_" + "<%=targetConnCompName%>"));
-	<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
+	<%=cid%>.setTargetBatchSize(<%=targetBatchSize%>);
 <%    } %>
 <%  } %>
     <%=cid%>.setKeepDataModels(<%=reuseModel%>, <%=modelKey%>);

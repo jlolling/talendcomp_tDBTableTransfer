@@ -997,6 +997,12 @@ public class TableTransfer {
     	properties.setProperty(SOURCE_FETCHSIZE, fetchSize);
     }
     
+    public void setSourceFetchSize(Integer fetchSize) {
+    	if (fetchSize != null) {
+    		setSourceFetchSize(String.valueOf(fetchSize));
+    	}
+    }
+    
     public String getTargetInsertStatement() {
     	return targetInsertStatement.getSQL();
     }
@@ -1039,6 +1045,12 @@ public class TableTransfer {
     
     public void setTargetBatchSize(String batchSize) {
     	properties.setProperty(TARGET_BATCHSIZE, batchSize);
+    }
+    
+    public void setTargetBatchSize(Integer batchSize) {
+    	if (batchSize != null) {
+    		setTargetBatchSize(String.valueOf(batchSize));
+    	}
     }
     
     public String getTargetTable() throws SQLException {

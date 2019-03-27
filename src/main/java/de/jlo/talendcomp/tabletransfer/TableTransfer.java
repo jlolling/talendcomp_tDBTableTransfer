@@ -293,13 +293,18 @@ public class TableTransfer {
 	private final void read() {
 		if (isDebugEnabled()) {
 			if (sourceTable != null) {
-				debug("Start fetch data from source table " + sourceTable.getAbsoluteName());
+				debug("Start fetch data from source table: " + sourceTable.getAbsoluteName());
 			} else {
-				debug("Start fetch data from source query " + sourceQuery);
+				debug("Start fetch data from the given source query");
 			}
 		}
 		try {
+			if (isDebugEnabled()) {
+				debug("Execute source query: " + sourceQuery);
+				debug("Source select statement uses fetch size: " + sourceSelectStatement.getFetchSize());
+			}
 			final ResultSet rs = sourceSelectStatement.executeQuery(sourceQuery);
+			rs.setFetchSize(getFetchSize());
 			if (isDebugEnabled()) {
 				debug("Analyse result set...");
 			}
@@ -844,6 +849,7 @@ public class TableTransfer {
 		sourceSelectStatement = sourceConnection.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
 		int fetchSize = getFetchSize();
 		if (fetchSize > 0) {
+			debug("set source fetch size: " + fetchSize);
 			sourceSelectStatement.setFetchSize(fetchSize);
 		}
 		// we have to check that here because we do not know which source database type we use.
@@ -855,9 +861,9 @@ public class TableTransfer {
 	}
 	
 	protected int getFetchSize() {
-		int fetchSize = 0;
+		int fetchSize = 100;
 		try {
-			fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "0"));
+			fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "100"));
 		} catch (Exception e) {
 			warn("getFetchSize failed: " + e.getMessage(), e);
 		}

@@ -59,6 +59,15 @@
 							<componentName>tPostgresqlTableTransfer</componentName>
 						</configuration>
 					</execution>
+					<execution>
+						<id>tOracleTableTransfer</id>
+						<goals>
+							<goal>component</goal>
+						</goals>
+						<configuration>
+							<componentName>tOracleTableTransfer</componentName>
+						</configuration>
+					</execution>
 				</executions>
 			</plugin>
 		</plugins>

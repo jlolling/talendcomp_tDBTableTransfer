@@ -12,9 +12,6 @@
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
 	String cid = node.getUniqueName();
-	boolean useDataSource = "true".equals(ElementParameterParser.getValue(node, "__USE_DATA_SOURCE__"));
-	String sourceDataSourceAlias = ElementParameterParser.getValue(node, "__SOURCE_DATA_SOURCE_ALIAS__");
-	String targetDataSourceAlias = ElementParameterParser.getValue(node, "__TARGET_DATA_SOURCE_ALIAS__");
 	String sourceFetchSize = ElementParameterParser.getValue(node, "__SOURCE_FETCHSIZE__");
 	String targetBatchSize = ElementParameterParser.getValue(node, "__TARGET_BATCHSIZE__");
 	String sourceUseQuery = ElementParameterParser.getValue(node, "__USE_QUERY__");
@@ -107,82 +104,59 @@
 	<%=cid%>.setValueRangeColumn(<%=valueRangeColumn%>);
 <%  } %>
 	// configure connections
-<%  if (useDataSource) {%>
-	{
-      @SuppressWarnings("unchecked")
-		java.util.Map<String, routines.system.TalendDataSource> dataSources = (java.util.Map<String, routines.system.TalendDataSource>) globalMap.get(KEY_DB_DATASOURCES);
-		if (dataSources == null) {
-		 	throw new Exception("No data sources available in this job!");
-		}
-		if (dataSources.get(<%=sourceDataSourceAlias%>) == null) {
-			throw new Exception("No source data source available. Alias: " + <%=sourceDataSourceAlias%>);
-		}
-		<%=cid%>.setSourceConnection(dataSources.get(<%=sourceDataSourceAlias%>).getConnection());
-<%    if (outputToTable) { %>
-		if (dataSources.get(<%=targetDataSourceAlias%>) == null) {
-			throw new Exception("No target data source available. Alias: " + <%=targetDataSourceAlias%>);
-		}
-		<%=cid%>.setTargetConnection(dataSources.get(<%=targetDataSourceAlias%>).getConnection());
-<%    } %>
-	}
-	<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
-<%    if (outputToTable) { %>
-	<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
-<%    } %>
-<%  } else { %>
 	<%=cid%>.setSourceConnection((java.sql.Connection) globalMap.get("conn_" + "<%=sourceConnCompName%>"));
-	<%=cid%>.setSourceFetchSize("<%=sourceFetchSize%>");
-<%    if (outputToTable) { %>
+	<%=cid%>.setSourceFetchSize(<%=sourceFetchSize%>);
+<% if (outputToTable) { %>
 	<%=cid%>.setTargetConnection((java.sql.Connection) globalMap.get("conn_" + "<%=targetConnCompName%>"));
-	<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
-<%    } %>
-<%  } %>
-    <%=cid%>.setKeepDataModels(<%=reuseModel%>, <%=modelKey%>);
+	<%=cid%>.setTargetBatchSize(<%=targetBatchSize%>);
+<% } %>
+   <%=cid%>.setKeepDataModels(<%=reuseModel%>, <%=modelKey%>);
 	<%=cid%>.setupDataModels();
-<%  if (useQuery) { %>
-    // use our own query as source
-    String <%=cid%>_query = <%=sourceQuery%>;
+<% if (useQuery) { %>
+   // use our own query as source
+   String <%=cid%>_query = <%=sourceQuery%>;
 	<%=cid%>.setSourceQuery(<%=cid%>_query);
-<%  } else {
-		if (useDataSource) { %>
-    // use this table as source (query will be generated)
-	<%=cid%>.setSourceTable(<%=sourceTable%>);
-<%		} else { %>
+<% } else { %>
 	// use this table as source (query will be generated)
 	{
-		String schemaName = (String) globalMap.get("dbschema_<%=sourceConnCompName%>");
-		if (schemaName == null) {
-			schemaName = (String) globalMap.get("db_<%=sourceConnCompName%>");
-		}
-		if (schemaName == null) {
-			schemaName = (String) globalMap.get("tableschema_<%=sourceConnCompName%>");
-		}
-		if (schemaName == null) {
-			schemaName = (String) globalMap.get("schema_<%=sourceConnCompName%>");
-		}
-		if (schemaName == null) {
-			schemaName = (String) globalMap.get("dbname_<%=sourceConnCompName%>");
-		}
-		if (schemaName != null) {
-	    	<%=cid%>.setSourceTable(schemaName + "." + <%=sourceTable%>);
+		String sourceTableName = <%=sourceTable%>;
+		if (sourceTableName.contains(".") == false) {
+			String schemaName = (String) globalMap.get("dbschema_<%=sourceConnCompName%>");
+			if (schemaName == null) {
+				schemaName = (String) globalMap.get("db_<%=sourceConnCompName%>");
+			}
+			if (schemaName == null) {
+				schemaName = (String) globalMap.get("tableschema_<%=sourceConnCompName%>");
+			}
+			if (schemaName == null) {
+				schemaName = (String) globalMap.get("schema_<%=sourceConnCompName%>");
+			}
+			if (schemaName == null) {
+				schemaName = (String) globalMap.get("dbname_<%=sourceConnCompName%>");
+			}
+			if (schemaName != null && schemaName.trim().isEmpty() == false) {
+		    	<%=cid%>.setSourceTable(schemaName + "." + sourceTableName);
+			} else {
+		    	<%=cid%>.setSourceTable(sourceTableName);
+			}
 		} else {
-    		<%=cid%>.setSourceTable(<%=sourceTable%>);
+	    	<%=cid%>.setSourceTable(sourceTableName);
 		}
 	}
-<%      } %>
-<%      if (sourceTableWhere != null && sourceTableWhere.isEmpty() == false) {%>
+<%	} %>
+<%	if (sourceTableWhere != null && sourceTableWhere.isEmpty() == false) {%>
 	<%=cid%>.setSourceWhereClause(<%=sourceTableWhere%>);
-<%      } %>
-<%  } %>
+<%	} %>
 <%  if (outputToTable) { %>
 	// configure target table
-<%		if (useDataSource) { %>
-   // use this table as target
-	<%=cid%>.setTargetTable(<%=targetTable%>);
-<%		} else { %>
-   // use this table as source (query will be generated)
-	<%=cid%>.setTargetTable(((String) globalMap.get("db_" + "<%=targetConnCompName%>")) + "." + <%=targetTable%>);
-<%      } %>
+	{
+    	String targetTableName = <%=targetTable%>;
+    	if (targetTableName.contains(".") == false) {
+			<%=cid%>.setTargetTable(((String) globalMap.get("schema_" + "<%=targetConnCompName%>")) + "." + targetTableName);
+    	} else {
+    		<%=cid%>.setTargetTable(targetTableName);	
+    	}
+	}
 <%  } %>
 <%  if (excludeFieldList != null) {
       for (Map<String, String> entry : excludeFieldList) { %>

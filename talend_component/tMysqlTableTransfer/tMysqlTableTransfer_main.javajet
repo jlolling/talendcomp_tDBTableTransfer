@@ -36,7 +36,11 @@
 				<%=cid%>.info("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts() + " rate writes:" + insertsPerSecond_<%=cid%> + " rows/s");
 <%  } %>
 			} else {
-				<%=cid%>.info("Starting....");		
+<%  if (outputToTable) { %>
+				<%=cid%>.info("<%=cid%>: [" + <%=cid%>.getTargetTable() + "] Execute query...");	
+<%  } else { %>
+				<%=cid%>.info("<%=cid%>: [" + <%=cid%>.getBackupFilePath() + "] Execute query...");		
+<%  } %>
 			}
 	    }
 		try {
@@ -67,8 +71,3 @@
 	    }
 <%  } %>
 	}
-<%  if (outputToTable && "true".equalsIgnoreCase(disableKeys)) {%>
-    <%=cid%>.debug("enable keys on target table...");
-    <%=cid%>.executeSQLOnTarget("alter table " + <%=cid%>.getTargetTable() + " enable keys");
-<%	}%>
-	

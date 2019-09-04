@@ -863,7 +863,7 @@ public class TableTransfer {
 	protected int getFetchSize() {
 		int fetchSize = 100;
 		try {
-			fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "100"));
+			fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "1000"));
 		} catch (Exception e) {
 			warn("getFetchSize failed: " + e.getMessage(), e);
 		}

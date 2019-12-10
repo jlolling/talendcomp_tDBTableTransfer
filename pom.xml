@@ -4,7 +4,6 @@
 	<groupId>de.jlo.talendcomp</groupId>
 	<artifactId>jlo-talendcomp-tabletransfer</artifactId>
 	<name>Talend Table Transfer Components</name>
-	<version>7.2</version>
 	<organization>
 		<name>Jan Lolling</name>
 	</organization>
@@ -107,4 +106,5 @@
 		</dependency>
 -->
 	</dependencies>
+	<version>8.0</version>
 </project>

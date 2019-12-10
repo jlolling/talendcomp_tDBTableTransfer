@@ -27,7 +27,7 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 	public final char delimiter = 0x00;
 	private boolean schemasLoaded = false;
 	private boolean catalogsLoaded = false;
-	private SQLSchema currentSQLSchema;
+	private SQLSchema currentSQLSchema = null;
 	private ArrayList<DatamodelListener> listener = new ArrayList<DatamodelListener>();
 	private DatabaseExtension databaseExtension;
 	private Connection connection;
@@ -83,15 +83,17 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 		return userCaseSensitiveIdentifiers;
 	}
 
-	public SQLDataModel(Connection connection) {
+	public SQLDataModel(Connection connection) throws Exception {
 		super(null, "given-connection");
+		if (connection == null) {
+			throw new IllegalArgumentException("connection cannot be null");
+		}
+		if (connection.isClosed()) {
+			throw new IllegalStateException("connection is closed already");
+		}
 		this.connection = connection;
 		String driverClass = null;
-		try {
-			driverClass = connection.getMetaData().getDriverName();
-		} catch (SQLException e) {
-			logger.error("Unable to get database metadata: " + e.getMessage(), e);
-		}
+		driverClass = connection.getMetaData().getDriverName();
 		databaseExtension = DatabaseExtensionFactory.getDatabaseExtension(driverClass);
 	}
 	
@@ -289,6 +291,9 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 	public SQLTable getSQLTable(String schemaDotTableName) {
 		int pos = schemaDotTableName.indexOf('.');
 		if (pos == -1) {
+			if (currentSQLSchema == null) {
+				throw new IllegalStateException("current schema is null");
+			}
 			return currentSQLSchema.getTable(schemaDotTableName);
 		} else {
 			String schemaName = schemaDotTableName.substring(0, pos);

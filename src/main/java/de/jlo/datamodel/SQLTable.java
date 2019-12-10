@@ -248,7 +248,23 @@ public final class SQLTable extends SQLObject {
         return field;
     }
     
+    public List<String> getPrimaryKeyFieldNames() {
+        if (fieldsLoaded == false) {
+            loadColumns();
+        }
+    	List<String> names = new ArrayList<>();
+    	for (SQLField field : listColumns) {
+    		if (field.isPrimaryKey()) {
+        		names.add(field.getName());
+    		}
+    	}
+    	return names;
+    }
+    
     public List<String> getFieldNames() {
+        if (fieldsLoaded == false) {
+            loadColumns();
+        }
     	List<String> names = new ArrayList<String>();
     	for (SQLField field : listColumns) {
     		names.add(field.getName());

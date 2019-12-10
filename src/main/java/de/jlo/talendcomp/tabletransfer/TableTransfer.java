@@ -82,8 +82,8 @@ public class TableTransfer {
 	private BlockingQueue<Object> tableQueue;
 	private BlockingQueue<Object> fileQueue;
 	private final Object closeFlag = new String("The End");
-	private List<String> listResultSetFieldNames;
-	private List<String> listResultSetFieldTypeNames;
+	private List<String> listSourceFieldNames;
+	private List<String> listSourceFieldTypeNames;
 	private Thread readerThread;
 	private Thread writerThread;
 	private Thread writerBackupThread;
@@ -137,6 +137,7 @@ public class TableTransfer {
 	private String valueRangeStart = null;
 	private String valueRangeEnd = null;
 	private boolean doCommit = true;
+	private boolean strictFieldMatching = false;
 	
 	public void enableLog4J(boolean enable) {
 		if (enable) {
@@ -156,7 +157,7 @@ public class TableTransfer {
 	
 	public void addExcludeField(String name) {
 		if (name != null && name.trim().isEmpty() == false) {
-			excludeFieldList.add(name.trim());
+			excludeFieldList.add(name.trim().toLowerCase());
 		}
 	}
 	
@@ -310,8 +311,8 @@ public class TableTransfer {
 			}
 			final ResultSetMetaData rsMeta = rs.getMetaData();
 			final int countColumns = rsMeta.getColumnCount();
-			listResultSetFieldNames = new ArrayList<String>(countColumns);
-			listResultSetFieldTypeNames = new ArrayList<String>(countColumns);
+			listSourceFieldNames = new ArrayList<String>(countColumns);
+			listSourceFieldTypeNames = new ArrayList<String>(countColumns);
 			for (int i = 1; i <= countColumns; i++) {
 				String name = rsMeta.getColumnName(i).toLowerCase();
 				if (name.equalsIgnoreCase(valueRangeColumn)) {
@@ -326,15 +327,15 @@ public class TableTransfer {
 					}
 				}
 				String type = rsMeta.getColumnTypeName(i).toUpperCase();
-				listResultSetFieldNames.add(name);
-				listResultSetFieldTypeNames.add(type);
+				listSourceFieldNames.add(name);
+				listSourceFieldTypeNames.add(type);
 				if (isDebugEnabled()) {
 					debug("Name: " + name + ",  Type: " + type);
 				}
 			}
 			// add fixed column value names
 			for (ColumnValue cv : fixedColumnValueList) {
-				listResultSetFieldNames.add(cv.getColumnName());
+				listSourceFieldNames.add(cv.getColumnName());
 				if (isDebugEnabled()) {
 					debug("Name: " + cv.getColumnName());
 				}
@@ -429,7 +430,7 @@ public class TableTransfer {
 		final Object[] row = new Object[countDBColumns + fixedColumnValueList.size()];
 		int columnIndex = 0;
 		while (columnIndex < countDBColumns) {
-			dbType = listResultSetFieldTypeNames.get(columnIndex);
+			dbType = listSourceFieldTypeNames.get(columnIndex);
 			if (dbType != null) {
 				javaType = dbJavaTypeMap.get(dbType);
 			} else {
@@ -635,12 +636,16 @@ public class TableTransfer {
 		}
 	}
 	
-	protected final Object getRowValue(final String columnName, final Object[] row) {
-		final int index = listResultSetFieldNames.indexOf(columnName.toLowerCase());
+	protected final Object getRowValue(final String columnName, final Object[] row) throws Exception {
+		final int index = listSourceFieldNames.indexOf(columnName.toLowerCase());
 		if (index != -1) {
 			return row[index];
 		} else {
-			return null;
+			if (strictFieldMatching) {
+				throw new Exception("Target column: " + columnName + " has no matching input column! Because of strict mode, this is not allowed.");
+			} else {
+				return null;
+			}
 		}
 	}
 	
@@ -943,7 +948,7 @@ public class TableTransfer {
 		}
 	}
 	
-	public final void setupDataModels() throws SQLException {
+	public final void setupDataModels() throws Exception {
 		if (keepDataModels) {
 			synchronized (sqlModelCache) {
 				sourceModel = sqlModelCache.get("source_" + modelKey);
@@ -1820,6 +1825,16 @@ public class TableTransfer {
 	public void setBackupFileCharSet(String backupFileCharSet) {
 		if (backupFileCharSet != null && backupFileCharSet.trim().isEmpty() == false) {
 			this.backupFileCharSet = backupFileCharSet;
+		}
+	}
+
+	public boolean isStrictFieldMatching() {
+		return strictFieldMatching;
+	}
+
+	public void setStrictFieldMatching(Boolean strictFieldMatching) {
+		if (strictFieldMatching != null) {
+			this.strictFieldMatching = strictFieldMatching.booleanValue();
 		}
 	}
 

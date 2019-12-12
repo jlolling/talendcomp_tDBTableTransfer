@@ -759,6 +759,9 @@ public class TableTransfer {
 		if (sourceTable == null || sourceTable.getAbsoluteName().equalsIgnoreCase(tableAndSchemaName) == false) {
 			String schemaName = getSchemaName(tableAndSchemaName);
 			if (schemaName == null) {
+				schemaName = sourceConnection.getSchema();
+			}
+			if (schemaName == null) {
 				schemaName = getSourceDatabase();
 			}
 			SQLSchema schema = sourceModel.getSchema(schemaName);
@@ -803,6 +806,9 @@ public class TableTransfer {
 		final String tableAndSchemaName = properties.getProperty(TARGET_TABLE);
 		if (targetTable == null || targetTable.getAbsoluteName().equalsIgnoreCase(tableAndSchemaName) == false) {
 			String schemaName = getSchemaName(tableAndSchemaName);
+			if (schemaName == null) {
+				schemaName = targetConnection.getSchema();
+			}
 			if (schemaName == null) {
 				schemaName = getTargetDatabase();
 			}

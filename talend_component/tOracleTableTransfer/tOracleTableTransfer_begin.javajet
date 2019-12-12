@@ -143,8 +143,9 @@
 	// configure target table
 	{
     	String targetTableName = <%=targetTable%>;
-    	if (targetTableName.contains(".") == false) {
-			<%=cid%>.setTargetTable(((String) globalMap.get("schema_" + "<%=targetConnCompName%>")) + "." + targetTableName);
+    	String schemaName = (String) globalMap.get("dbschema_" + "<%=targetConnCompName%>");
+    	if (targetTableName.contains(".") == false && schemaName != null && schemaName.trim().isEmpty() == false) {
+			<%=cid%>.setTargetTable(schemaName + "." + targetTableName);
     	} else {
     		<%=cid%>.setTargetTable(targetTableName);	
     	}

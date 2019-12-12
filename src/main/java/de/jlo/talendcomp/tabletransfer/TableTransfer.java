@@ -335,7 +335,7 @@ public class TableTransfer {
 			}
 			// add fixed column value names
 			for (ColumnValue cv : fixedColumnValueList) {
-				listSourceFieldNames.add(cv.getColumnName());
+				listSourceFieldNames.add(cv.getColumnName().toLowerCase());
 				if (isDebugEnabled()) {
 					debug("Name: " + cv.getColumnName());
 				}

@@ -138,6 +138,7 @@ public class TableTransfer {
 	private String valueRangeEnd = null;
 	private boolean doCommit = true;
 	private boolean strictFieldMatching = false;
+	private boolean trimFields = false;
 	
 	public void enableLog4J(boolean enable) {
 		if (enable) {
@@ -438,7 +439,16 @@ public class TableTransfer {
 			}
 			try {
 				if (javaType == null) {
-					row[columnIndex] = rs.getObject(columnIndex + 1);
+					if (trimFields) {
+						Object v = rs.getObject(columnIndex + 1);
+						if (v instanceof String) {
+							row[columnIndex] = ((String) v).trim();
+						} else {
+							row[columnIndex] = v;
+						}
+					} else {
+						row[columnIndex] = rs.getObject(columnIndex + 1);
+					}
 				} else if ("date".equals(javaType)) {
 					row[columnIndex] = rs.getDate(columnIndex + 1);
 				} else if ("time".equals(javaType)) {
@@ -446,7 +456,12 @@ public class TableTransfer {
 				} else if ("timestamp".equals(javaType)) {
 					row[columnIndex] = rs.getTimestamp(columnIndex + 1);
 				} else if ("string".equals(javaType)) {
-					row[columnIndex] = rs.getString(columnIndex + 1);
+					String s = rs.getString(columnIndex + 1);
+					if (trimFields && s != null) {
+						row[columnIndex] = s.trim();
+					} else {
+						row[columnIndex] = s;
+					}
 				} else if ("boolean".equals(javaType)) {
 					row[columnIndex] = rs.getBoolean(columnIndex + 1);
 				} else if ("short".equals(javaType)) {
@@ -1842,6 +1857,14 @@ public class TableTransfer {
 		if (strictFieldMatching != null) {
 			this.strictFieldMatching = strictFieldMatching.booleanValue();
 		}
+	}
+
+	public boolean isTrimFields() {
+		return trimFields;
+	}
+
+	public void setTrimFields(boolean trimFields) {
+		this.trimFields = trimFields;
 	}
 
 }

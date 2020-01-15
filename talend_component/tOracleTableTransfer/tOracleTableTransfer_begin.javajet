@@ -30,6 +30,7 @@
 	String logoutQuery = ElementParameterParser.getValue(node, "__LOG_QUERY_SQL__");
 	String logoutInsert = ElementParameterParser.getValue(node, "__LOG_INSERT_SQL__");
 	boolean strictMode = "true".equals(ElementParameterParser.getValue(node, "__STRICT_FIELD_MAPPING__"));
+	boolean trim = "true".equals(ElementParameterParser.getValue(node, "__TRIM_TEXT_VALUES__"));
  	String sourceConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_SOURCE__");
     String targetConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_TARGET__");
     String truncateTarget = ElementParameterParser.getValue(node, "__TARGET_TRUNCATE__");
@@ -89,6 +90,7 @@
 	<%=cid%>.setExportBooleanAsNumber(<%=exportBooleanAsNumber%>);
 	<%=cid%>.setOutputToTable(<%=outputToTable%>);
 	<%=cid%>.setStrictFieldMatching(<%=strictMode%>);
+	<%=cid%>.setTrimFields(<%=trim%>);
 <%  if (measureTimeRange) { %>
 	<%=cid%>.setTimeRangeColumn(<%=timeRangeColumn%>);
 <%  } %>

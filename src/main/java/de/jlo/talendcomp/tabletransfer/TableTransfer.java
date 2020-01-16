@@ -1044,6 +1044,12 @@ public class TableTransfer {
 	}
 
 	public void setSourceQuery(String sourceQuery) {
+		if (sourceQuery != null) {
+			sourceQuery = sourceQuery.trim();
+		}
+		if (sourceQuery.endsWith(";")) {
+			sourceQuery = sourceQuery.substring(0, sourceQuery.length() - 1);
+		}
 		properties.setProperty(SOURCE_QUERY, sourceQuery);
 	}
 

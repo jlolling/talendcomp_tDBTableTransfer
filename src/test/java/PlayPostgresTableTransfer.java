@@ -1,9 +1,9 @@
 
-public class TestPostgresTableTransfer extends TalendTest {
+public class PlayPostgresTableTransfer extends TalendTest {
 
 	public static void main(String[] args) {
 		try {
-			new TestPostgresTableTransfer().testTransfer();
+			new PlayPostgresTableTransfer().testTransfer();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

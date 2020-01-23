@@ -59,7 +59,7 @@ import de.jlo.datamodel.generator.SQLCodeGenerator;
 
 public class TableTransfer {
 
-	private Logger logger = null; //Logger.getLogger(TableTransfer.class);
+	private Logger logger = null;
 	private Properties properties = new Properties();
 	private Connection sourceConnection;
 	private Connection targetConnection;
@@ -214,6 +214,7 @@ public class TableTransfer {
 	
 	private final void startWriting() throws Exception {
 		if (outputToTable) {
+			debug("Start writer thread...");
 			runningDb = true;
 			writerThread = new Thread() {
 				@Override
@@ -395,6 +396,9 @@ public class TableTransfer {
 		} catch (Exception ie) {
 			error("Read failed: " + ie.getMessage(), ie);
 			returnCode = RETURN_CODE_ERROR_INPUT;
+		} catch (Error ie) {
+			error("Read failed with Error: " + ie.getMessage(), ie);
+			returnCode = RETURN_CODE_ERROR_INPUT;
 		} finally {
 			try {
 				if (outputToTable) {
@@ -507,10 +511,10 @@ public class TableTransfer {
 			boolean autocommitTemp = false;
 			try {
 				if (targetConnection == null || targetConnection.isClosed()) {
-					throw new IllegalStateException("writeTable failed because target connection is null or closed");
+					throw new Exception("writeTable failed because target connection is null or closed");
 				}
 				autocommitTemp = targetConnection.getAutoCommit();
-			} catch (SQLException e2) {
+			} catch (Exception e2) {
 				warn("Failed to detect autocommit state: " + e2.getMessage(), e2);
 			}
 			final boolean autocommit = autocommitTemp;
@@ -518,7 +522,7 @@ public class TableTransfer {
 			while (endFlagReceived == false) {
 				try {
 					final List<Object> queueObjects = new ArrayList<Object>(batchSize);
-					tableQueue.drainTo(queueObjects, batchSize); // moves elements from queue to this given list
+					tableQueue.drainTo(queueObjects, batchSize); // pull elements from queue to this given list
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {
 							if (isDebugEnabled()) {
@@ -652,12 +656,25 @@ public class TableTransfer {
 	}
 	
 	protected final Object getRowValue(final String columnName, final Object[] row) throws Exception {
+		if (listSourceFieldNames == null) {
+			throw new Exception("List of source fields is not initialized");
+		}
+		if (listSourceFieldNames.isEmpty()) {
+			throw new Exception("List of source fields is empty");
+		}
 		final int index = listSourceFieldNames.indexOf(columnName.toLowerCase());
 		if (index != -1) {
 			return row[index];
 		} else {
 			if (strictFieldMatching) {
-				throw new Exception("Target column: " + columnName + " has no matching input column! Because of strict mode, this is not allowed.");
+				StringBuilder sb = new StringBuilder();
+				for (String sourceColumn : listSourceFieldNames) {
+					if (sb.length() > 0) {
+						sb.append(",");
+					}
+					sb.append(sourceColumn);
+				}
+				throw new Exception("Target column: " + columnName + " has no matching input column! Because of strict mode, this is not allowed.\nAvailable source columns: " + sb.toString());
 			} else {
 				return null;
 			}
@@ -712,18 +729,18 @@ public class TableTransfer {
 	}
 	
 	public final void executeSQLOnTarget(final String sqlStatement) throws Exception {
+		info("On target: Execute statement: " + sqlStatement);
 		if (targetConnection == null || targetConnection.isClosed()) {
-			throw new Exception("executeSQLOnTarget failed because target connection is null or closed");
+			error("Execute statement on target failed because connection is null or closed", null);
+			throw new Exception("Execute statement on target failed because connection is null or closed");
 		}
 		try {
-			if (isDebugEnabled()) {
-				debug("Execute statement: " + sqlStatement);
-			}
 			final Statement stat = targetConnection.createStatement();
 			stat.execute(sqlStatement);
 			stat.close();
+			info("On target: Execute statement finished successfully.");
 		} catch (SQLException sqle) {
-			error("executeSQLOnTarget sql=" + sqlStatement + " failed: " + sqle.getMessage(), sqle);
+			error("On target: Execute statement failed sql=" + sqlStatement + " message: " + sqle.getMessage(), sqle);
 			throw sqle;
 		}
 	}
@@ -1167,7 +1184,7 @@ public class TableTransfer {
 		}
 	}
 
-	public final void error(String message, Exception t) {
+	public final void error(String message, Throwable t) {
 		if (logger != null) {
 			if (t != null) {
 				logger.error(message, t);
@@ -1183,8 +1200,8 @@ public class TableTransfer {
 		if (message != null) {
 			errorMessage = message;
 		}
-		if (t != null) {
-			errorException = t;
+		if (t instanceof Exception) {
+			errorException = (Exception) t;
 		}
 	}
 

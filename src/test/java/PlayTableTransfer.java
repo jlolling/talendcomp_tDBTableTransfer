@@ -1,7 +1,7 @@
-public class TestTableTransfer extends TalendTest {
+public class PlayTableTransfer extends TalendTest {
 
 	public static void main(String[] args) {
-		TestTableTransfer test = new TestTableTransfer();
+		PlayTableTransfer test = new PlayTableTransfer();
 		try {
 			test.setupConnection();
 			//test.testSimpleTalendInput();

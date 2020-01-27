@@ -668,18 +668,37 @@ public class TableTransfer {
 		} else {
 			if (strictFieldMatching) {
 				StringBuilder sb = new StringBuilder();
+				sb.append("Following target columns does not have a matching column in the source query: ");
+				boolean firstLoop = true;
+				for (SQLPSParam p : targetInsertStatement.getParams()) {
+					String targetColumnName = p.getName().toLowerCase();
+					if (listSourceFieldNames.contains(targetColumnName) == false) {
+						if (firstLoop) {
+							firstLoop = false;
+						} else {
+							sb.append(",");
+						}
+						sb.append(targetColumnName);
+					}
+				}	
+				firstLoop = true;
+				sb.append("\nList of source query columns: ");
 				for (String sourceColumn : listSourceFieldNames) {
-					if (sb.length() > 0) {
+					if (firstLoop) {
+						firstLoop = false;
+					} else {
 						sb.append(",");
 					}
 					sb.append(sourceColumn);
 				}
-				throw new Exception("Target column: " + columnName + " has no matching input column! Because of strict mode, this is not allowed.\nAvailable source columns: " + sb.toString());
+				throw new Exception("Transfer in strict mode failed: " + sb.toString());
 			} else {
 				return null;
 			}
 		}
 	}
+	
+	
 	
 	protected final void prepareInsertStatement(final Object[] row) throws Exception {
 		for (SQLPSParam p : targetInsertStatement.getParams()) {

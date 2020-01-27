@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <COMPONENT> 
-  <HEADER PLATEFORM="ALL" SERIAL="" VERSION="8.4" STATUS="ALPHA" COMPATIBILITY="ALL" AUTHOR="Jan Lolling" RELEASE_DATE="20200123" STARTABLE="true" HAS_CONDITIONAL_OUTPUTS="false"> 
+  <HEADER PLATEFORM="ALL" SERIAL="" VERSION="8.5" STATUS="ALPHA" COMPATIBILITY="ALL" AUTHOR="Jan Lolling" RELEASE_DATE="20200127" STARTABLE="true" HAS_CONDITIONAL_OUTPUTS="false"> 
     <SIGNATURE/> 
   </HEADER>  
   <FAMILIES> 
@@ -39,6 +39,9 @@
     <PARAMETER NAME="TARGET_TABLE" FIELD="TEXT" NUM_ROW="110" REQUIRED="true" SHOW_IF="(BACKUP_DATA_ONLY == 'false')"> 
       <DEFAULT>""</DEFAULT> 
     </PARAMETER>  
+    <PARAMETER NAME="STRICT_FIELD_MAPPING" FIELD="CHECK" NUM_ROW="111" REQUIRED="true" SHOW_IF="(BACKUP_DATA_ONLY == 'false')"> 
+      <DEFAULT>false</DEFAULT> 
+    </PARAMETER>  
     <PARAMETER NAME="TARGET_TRUNCATE" FIELD="CHECK" NUM_ROW="120" SHOW_IF="(BACKUP_DATA_ONLY == 'false')"> 
       <DEFAULT>false</DEFAULT> 
     </PARAMETER>  
@@ -51,6 +54,9 @@
         <ITEM NAME="IGNORE" VALUE="IGNORE"/>  
         <ITEM NAME="UPDATE" VALUE="UPDATE"/> 
       </ITEMS> 
+    </PARAMETER>  
+    <PARAMETER NAME="TRIM_TEXT_VALUES" FIELD="CHECK" NUM_ROW="122"> 
+      <DEFAULT>false</DEFAULT> 
     </PARAMETER>  
     <PARAMETER NAME="ALLOW_EXCLUDE_COLUMNS" FIELD="CHECK" NUM_ROW="124"> 
       <DEFAULT>false</DEFAULT> 
@@ -152,13 +158,13 @@
     <PARAMETER NAME="ALTERNATIVE_MODEL_KEY" FIELD="TEXT" NUM_ROW="80" SHOW_IF="REUSE_DATA_MODEL == 'true'"> 
       <DEFAULT/> 
     </PARAMETER>  
-    <PARAMETER NAME="RELEASE_LABEL_20200123" FIELD="LABEL" COLOR="0;0;0" NUM_ROW="900">
-      <DEFAULT>Release: 8.4 build at: 20200123</DEFAULT>
+    <PARAMETER NAME="RELEASE_LABEL_20200127" FIELD="LABEL" COLOR="0;0;0" NUM_ROW="900">
+      <DEFAULT>Release: 8.5 build at: 20200127</DEFAULT>
     </PARAMETER>
   </ADVANCED_PARAMETERS>  
   <CODEGENERATION> 
     <IMPORTS> 
-      <IMPORT NAME="jlo-talendcomp-tabletransfer" MODULE="jlo-talendcomp-tabletransfer-8.4.jar" MVN="mvn:org.talend.libraries/jlo-talendcomp-tabletransfer-8.4/6.0.0-SNAPSHOT" REQUIRED="true"/>
+      <IMPORT NAME="jlo-talendcomp-tabletransfer" MODULE="jlo-talendcomp-tabletransfer-8.5.jar" MVN="mvn:org.talend.libraries/jlo-talendcomp-tabletransfer-8.5/6.0.0-SNAPSHOT" REQUIRED="true"/>
     </IMPORTS> 
   </CODEGENERATION>  
   <RETURNS> 

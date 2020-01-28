@@ -478,6 +478,8 @@ public class TableTransfer {
 					row[columnIndex] = rs.getLong(columnIndex + 1);
 				} else if ("bigdecimal".equals(javaType)) {
 					row[columnIndex] = rs.getBigDecimal(columnIndex + 1);
+				} else if ("biginteger".equals(javaType)) {
+					row[columnIndex] = new BigInteger(rs.getString(columnIndex + 1));
 				} else if ("double".equals(javaType)) {
 					row[columnIndex] = rs.getDouble(columnIndex + 1);
 				} else if ("float".equals(javaType)) {
@@ -511,7 +513,7 @@ public class TableTransfer {
 			boolean autocommitTemp = false;
 			try {
 				if (targetConnection == null || targetConnection.isClosed()) {
-					throw new Exception("writeTable failed because target connection is null or closed");
+					throw new Exception("Write into table: " + targetTable.getAbsoluteName() + " failed because target connection is null or closed");
 				}
 				autocommitTemp = targetConnection.getAutoCommit();
 			} catch (Exception e2) {
@@ -691,7 +693,7 @@ public class TableTransfer {
 					}
 					sb.append(sourceColumn);
 				}
-				throw new Exception("Transfer in strict mode failed: " + sb.toString());
+				throw new Exception("Transfer into table: " + targetTable.getAbsoluteName() + " in strict mode failed: " + sb.toString());
 			} else {
 				return null;
 			}
@@ -751,16 +753,16 @@ public class TableTransfer {
 		info("On target: Execute statement: " + sqlStatement);
 		if (targetConnection == null || targetConnection.isClosed()) {
 			error("Execute statement on target failed because connection is null or closed", null);
-			throw new Exception("Execute statement on target failed because connection is null or closed");
+			throw new Exception("Write into table: " + targetTable.getAbsoluteName() + " failed. Execute statement on target failed because connection is null or closed");
 		}
 		try {
 			final Statement stat = targetConnection.createStatement();
 			stat.execute(sqlStatement);
 			stat.close();
-			info("On target: Execute statement finished successfully.");
+			info("On target: " + targetTable.getAbsoluteName() + ": Execute statement finished successfully.");
 		} catch (SQLException sqle) {
-			error("On target: Execute statement failed sql=" + sqlStatement + " message: " + sqle.getMessage(), sqle);
-			throw sqle;
+			String message = "On target: " + targetTable.getAbsoluteName() + ": Execute statement failed sql=" + sqlStatement + " message: " + sqle.getMessage();
+			throw new Exception(message, sqle);
 		}
 	}
 	
@@ -865,7 +867,7 @@ public class TableTransfer {
 			}
 			SQLSchema schema = targetModel.getSchema(schemaName);
 			if (schema == null) {
-				throw new Exception("getTargetSQLTable failed: schema " + schemaName + " not available");
+				throw new Exception("Get information about target table: " + tableAndSchemaName + " failed: schema " + schemaName + " not available");
 			}
 			String tableName = getTableName(tableAndSchemaName);
 			if (tableName.startsWith("\"")) {
@@ -873,7 +875,7 @@ public class TableTransfer {
 			}
 			targetTable = schema.getTable(tableName);
 			if (targetTable == null) {
-				throw new Exception("getTargetSQLTable failed: table " + schemaName + "." + tableName + " not available");
+				throw new Exception("Get information about target table: " + schemaName + "." + tableName + " not available");
 			}
 			for (String exclFieldName : excludeFieldList) {
 				boolean exclude = true;

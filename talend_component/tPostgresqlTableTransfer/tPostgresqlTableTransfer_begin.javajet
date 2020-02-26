@@ -25,10 +25,6 @@
 	}
 	String sourceTable = ElementParameterParser.getValue(node, "__SOURCE_TABLE__");
 	String sourceTableWhere = ElementParameterParser.getValue(node, "__SOURCE_WHERE__");
-	String logIntervalStr = ElementParameterParser.getValue(node, "__LOG_INTERVAL__");
-	if (logIntervalStr == null || logIntervalStr.isEmpty()) {
-		logIntervalStr = "10";
-	}
 	String logoutQuery = ElementParameterParser.getValue(node, "__LOG_QUERY_SQL__");
 	String logoutInsert = ElementParameterParser.getValue(node, "__LOG_INSERT_SQL__");
  	String sourceConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_SOURCE__");
@@ -205,5 +201,3 @@
 <%  if (outputToTable && "true".equalsIgnoreCase(truncateTarget)) { %>
 	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
 <%	 } %>
-   // log interval
-	long logInterval_<%=cid%> = (<%=logIntervalStr%>) * 1000;

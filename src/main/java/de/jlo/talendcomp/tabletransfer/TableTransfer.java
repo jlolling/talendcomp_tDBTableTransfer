@@ -139,6 +139,8 @@ public class TableTransfer {
 	private boolean doCommit = true;
 	private boolean strictFieldMatching = false;
 	private boolean trimFields = false;
+	private String checkConnectionStatement = "select 1";
+	private boolean withinWriteAction = false;
 	
 	public void enableLog4J(boolean enable) {
 		if (enable) {
@@ -503,6 +505,22 @@ public class TableTransfer {
 		return row;
 	}
 	
+	public void executeKeepAliveStatementForTargetConnection() throws Exception {
+		if (withinWriteAction == false && checkConnectionStatement != null && checkConnectionStatement.trim().isEmpty() == false) {
+			try {
+				if (targetConnection.isClosed() == false) {
+					debug("execute keep a live statement on target connection");
+					Statement checkStat = targetConnection.createStatement();
+					checkStat.execute(checkConnectionStatement);
+					checkStat.close();
+				}
+			} catch (Exception e) {
+				stop();
+				throw new Exception("Check target connection with statement: " + checkConnectionStatement + " failed: " + e.getMessage(), e);
+			}
+		}
+	}
+	
 	private final void writeTable() {
 		if (isDebugEnabled()) {
 			debug("Start writing data into target table " + targetTable.getAbsoluteName());
@@ -524,7 +542,9 @@ public class TableTransfer {
 			while (endFlagReceived == false) {
 				try {
 					final List<Object> queueObjects = new ArrayList<Object>(batchSize);
+					withinWriteAction = false;
 					tableQueue.drainTo(queueObjects, batchSize); // pull elements from queue to this given list
+					withinWriteAction = true;
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {
 							if (isDebugEnabled()) {
@@ -1909,6 +1929,14 @@ public class TableTransfer {
 
 	public void setTrimFields(boolean trimFields) {
 		this.trimFields = trimFields;
+	}
+
+	public String getCheckConnectionStatement() {
+		return checkConnectionStatement;
+	}
+
+	public void setCheckConnectionStatement(String checkConnectionStatement) {
+		this.checkConnectionStatement = checkConnectionStatement;
 	}
 
 }

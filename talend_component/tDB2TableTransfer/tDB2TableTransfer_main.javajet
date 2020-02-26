@@ -10,9 +10,20 @@
 	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
 	INode node = (INode)codeGenArgument.getArgument();
 	String cid = node.getUniqueName();
-    boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
-    boolean dieOnError = "true".equals(ElementParameterParser.getValue(node, "__DIE_ON_ERROR__"));
+	boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
+	boolean dieOnError = "true".equals(ElementParameterParser.getValue(node, "__DIE_ON_ERROR__"));
+	boolean checkConnection = "true".equals(ElementParameterParser.getValue(node, "__ENABLE_CHECK_CONNECTION__"));
+	String checkConnectionStatement = ElementParameterParser.getValue(node, "__CHECK_CONNECTION_STATEMENT__");
+	String logIntervalStr = ElementParameterParser.getValue(node, "__LOG_INTERVAL__");
+	if (logIntervalStr == null || logIntervalStr.isEmpty()) {
+		logIntervalStr = "10";
+	}
 %>
+<%	if (checkConnection) { %>
+	<%=cid%>.setCheckConnectionStatement(<%=checkConnectionStatement%>);
+<%	} %>
+   // log interval
+	long logInterval_<%=cid%> = (<%=logIntervalStr%>) * 1000;
 	// start transfers
 	<%=cid%>.execute();
 	// wait until executing finished
@@ -31,15 +42,18 @@
 				globalMap.put("<%=cid%>_NB_INSERTS", <%=cid%>.getCurrentCountInserts());
 <%  if (outputToTable) { %>
 				<%=cid%>.info("<%=cid%> [" + <%=cid%>.getTargetTable() + "] read:" + <%=cid%>.getCurrentCountReads() + " inserted:" + <%=cid%>.getCurrentCountInserts() + " rate inserts:" + insertsPerSecond_<%=cid%> + " rows/s");
-<%  } else { %>
+<%	} else { %>
 				<%=cid%>.info("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts() + " rate writes:" + insertsPerSecond_<%=cid%> + " rows/s");
-<%  } %>
+<%	} %>
 			} else {
-<%  if (outputToTable) { %>
-				<%=cid%>.info("<%=cid%>: [" + <%=cid%>.getTargetTable() + "] Execute query...");	
-<%  } else { %>
-				<%=cid%>.info("<%=cid%>: [" + <%=cid%>.getBackupFilePath() + "] Execute query...");		
-<%  } %>
+<%	if (outputToTable) { %>
+				<%=cid%>.info("<%=cid%> [" + <%=cid%>.getTargetTable() + "] Execute query...");
+<%		if (checkConnection) { %>
+				<%=cid%>.executeKeepAliveStatementForTargetConnection();
+<%		} %>
+<%	} else { %>
+				<%=cid%>.info("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] Execute query...");
+<%	} %>
 			}
 	    }
 		try {
@@ -70,3 +84,4 @@
 	    }
 <%  } %>
 	}
+	

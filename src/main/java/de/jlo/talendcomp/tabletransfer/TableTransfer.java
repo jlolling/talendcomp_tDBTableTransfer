@@ -528,8 +528,11 @@ public class TableTransfer {
 		try {
 			boolean autocommitTemp = false;
 			try {
-				if (targetConnection == null || targetConnection.isClosed()) {
-					throw new Exception("Write into table: " + targetTable.getAbsoluteName() + " failed because target connection is null or closed");
+				if (targetConnection == null) {
+					throw new Exception("Write into table: " + targetTable.getAbsoluteName() + " failed because target connection is null");
+				}
+				if (targetConnection.isClosed()) {
+					throw new Exception("Write into table: " + targetTable.getAbsoluteName() + " failed because target connection is closed");
 				}
 				autocommitTemp = targetConnection.getAutoCommit();
 			} catch (Exception e2) {
@@ -541,34 +544,40 @@ public class TableTransfer {
 				try {
 					final List<Object> queueObjects = new ArrayList<Object>(batchSize);
 					withinWriteAction = false;
+					debug("Wait to get records from the queue...");
 					tableQueue.drainTo(queueObjects, batchSize); // pull elements from queue to this given list
-					withinWriteAction = true;
-					for (Object item : queueObjects) {
-						if (item == closeFlag) {
-							if (isDebugEnabled()) {
-								debug("Write table thread: Stop flag received.");
-							}
-							endFlagReceived = true;
-							break;
-						} else {
-							prepareInsertStatement((Object[]) item);
-							targetPSInsert.addBatch();
-							countInsertsAdded++;
-							currentBatchCount++;
-							if (currentBatchCount == batchSize) {
-								debug("Write execute insert batch ends with recno: " + countInsertsAdded);
-								targetPSInsert.executeBatch();
-								countInsertsInDB = countInsertsAdded;
-								if (doCommit) {
-									if (autocommit == false) {
-										targetConnection.commit();
-									}
+					debug("Got " + queueObjects.size() + " records from queue.");
+					if (queueObjects.size() == 0) {
+						Thread.sleep(100l);
+					} else {
+						withinWriteAction = true;
+						for (Object item : queueObjects) {
+							if (item == closeFlag) {
+								if (isDebugEnabled()) {
+									debug("Write table thread: Stop flag received.");
 								}
-								currentBatchCount = 0;
+								endFlagReceived = true;
+								break;
+							} else {
+								prepareInsertStatement((Object[]) item);
+								targetPSInsert.addBatch();
+								countInsertsAdded++;
+								currentBatchCount++;
+								if (currentBatchCount == batchSize) {
+									debug("Write execute insert batch ends with recno: " + countInsertsAdded);
+									targetPSInsert.executeBatch();
+									countInsertsInDB = countInsertsAdded;
+									if (doCommit) {
+										if (autocommit == false) {
+											targetConnection.commit();
+										}
+									}
+									currentBatchCount = 0;
+								}
 							}
-						}
-						if (Thread.currentThread().isInterrupted()) {
-							break;
+							if (Thread.currentThread().isInterrupted()) {
+								break;
+							}
 						}
 					}
 				} catch (InterruptedException e) {
@@ -1208,7 +1217,7 @@ public class TableTransfer {
 	}
 	
 	public final void debug(String message) {
-		if (logger != null) {
+		if (logger != null && logger.isDebugEnabled()) {
 			logger.debug(message);
 		} else if (debug) {
 			System.out.println("DEBUG: " + message);

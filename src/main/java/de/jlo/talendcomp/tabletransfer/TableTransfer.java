@@ -544,12 +544,11 @@ public class TableTransfer {
 				try {
 					final List<Object> queueObjects = new ArrayList<Object>(batchSize);
 					withinWriteAction = false;
-					debug("Wait to get records from the queue...");
 					tableQueue.drainTo(queueObjects, batchSize); // pull elements from queue to this given list
-					debug("Got " + queueObjects.size() + " records from queue.");
 					if (queueObjects.size() == 0) {
 						Thread.sleep(100l);
 					} else {
+						debug("Got " + queueObjects.size() + " records from queue.");
 						withinWriteAction = true;
 						for (Object item : queueObjects) {
 							if (item == closeFlag) {

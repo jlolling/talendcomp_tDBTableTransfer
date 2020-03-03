@@ -508,12 +508,10 @@ public class TableTransfer {
 	public void executeKeepAliveStatementForTargetConnection() throws Exception {
 		if (withinWriteAction == false && checkConnectionStatement != null && checkConnectionStatement.trim().isEmpty() == false) {
 			try {
-				if (targetConnection.isClosed() == false) {
-					debug("execute keep a live statement on target connection");
-					Statement checkStat = targetConnection.createStatement();
-					checkStat.execute(checkConnectionStatement);
-					checkStat.close();
-				}
+				debug("Execute keep alive statement on target connection...");
+				Statement checkStat = targetConnection.createStatement();
+				checkStat.execute(checkConnectionStatement);
+				checkStat.close();
 			} catch (Exception e) {
 				stop();
 				throw new Exception("Check target connection with statement: " + checkConnectionStatement + " failed: " + e.getMessage(), e);

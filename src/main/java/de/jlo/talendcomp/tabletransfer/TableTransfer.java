@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -544,39 +545,43 @@ public class TableTransfer {
 				try {
 					final List<Object> queueObjects = new ArrayList<Object>(batchSize);
 					withinWriteAction = false;
-					tableQueue.drainTo(queueObjects, batchSize); // pull elements from queue to this given list
-					if (queueObjects.size() == 0) {
-						Thread.sleep(100l);
+					// poll waits for a time until new records arrives
+					Object one = tableQueue.poll(10000, TimeUnit.MILLISECONDS);
+					if (one == null) {
+						continue;
 					} else {
-						debug("Got " + queueObjects.size() + " records from queue.");
-						withinWriteAction = true;
-						for (Object item : queueObjects) {
-							if (item == closeFlag) {
-								if (isDebugEnabled()) {
-									debug("Write table thread: Stop flag received.");
-								}
-								endFlagReceived = true;
-								break;
-							} else {
-								prepareInsertStatement((Object[]) item);
-								targetPSInsert.addBatch();
-								countInsertsAdded++;
-								currentBatchCount++;
-								if (currentBatchCount == batchSize) {
-									debug("Write execute insert batch ends with recno: " + countInsertsAdded);
-									targetPSInsert.executeBatch();
-									countInsertsInDB = countInsertsAdded;
-									if (doCommit) {
-										if (autocommit == false) {
-											targetConnection.commit();
-										}
+						queueObjects.add(one);
+					}
+					// drain never waits! Thats why we have to use poll before!
+					tableQueue.drainTo(queueObjects, batchSize); // pull elements from queue to this given list
+//					debug("Got " + queueObjects.size() + " records from queue.");
+					for (Object item : queueObjects) {
+						if (item == closeFlag) {
+							if (isDebugEnabled()) {
+								debug("Write table thread: Stop flag received.");
+							}
+							endFlagReceived = true;
+							break;
+						} else {
+							withinWriteAction = true;
+							prepareInsertStatement((Object[]) item);
+							targetPSInsert.addBatch();
+							countInsertsAdded++;
+							currentBatchCount++;
+							if (currentBatchCount == batchSize) {
+								debug("Write execute insert batch ends with recno: " + countInsertsAdded);
+								targetPSInsert.executeBatch();
+								countInsertsInDB = countInsertsAdded;
+								if (doCommit) {
+									if (autocommit == false) {
+										targetConnection.commit();
 									}
-									currentBatchCount = 0;
 								}
+								currentBatchCount = 0;
 							}
-							if (Thread.currentThread().isInterrupted()) {
-								break;
-							}
+						}
+						if (Thread.currentThread().isInterrupted()) {
+							break;
 						}
 					}
 				} catch (InterruptedException e) {
@@ -1435,6 +1440,14 @@ public class TableTransfer {
 			while (endFlagReceived == false) {
 				try {
 					final List<Object> queueObjects = new ArrayList<Object>(batchSize);
+					// poll waits for a time until new records arrives
+					Object one = fileQueue.poll(10000, TimeUnit.MILLISECONDS);
+					if (one == null) {
+						continue;
+					} else {
+						queueObjects.add(one);
+					}
+					// drain never waits! Thats why we have to use poll before!
 					fileQueue.drainTo(queueObjects, batchSize);
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {

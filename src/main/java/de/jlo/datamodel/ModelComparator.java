@@ -3,7 +3,8 @@ package de.jlo.datamodel;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.jlo.datamodel.generator.SQLCodeGenerator;
 
@@ -13,7 +14,7 @@ import de.jlo.datamodel.generator.SQLCodeGenerator;
  */
 public final class ModelComparator {
 
-	private static final Logger logger = Logger.getLogger(ModelComparator.class);
+	private static final Logger logger = LoggerFactory.getLogger(ModelComparator.class);
     private List<SQLTable> tablesToAdd = new ArrayList<SQLTable>();
     private List<SQLField> fieldsToAdd = new ArrayList<SQLField>();
     private List<SQLIndex> indicesToAdd = new ArrayList<SQLIndex>();

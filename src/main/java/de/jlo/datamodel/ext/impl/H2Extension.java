@@ -5,7 +5,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.jlo.datamodel.SQLTable;
 import de.jlo.datamodel.ext.GenericDatabaseExtension;
@@ -13,7 +14,7 @@ import de.jlo.datamodel.ext.GenericDatabaseExtension;
 public class H2Extension extends GenericDatabaseExtension {
 
 	private static final String name = "Derby Extension";
-	private static final Logger logger = Logger.getLogger(H2Extension.class);
+	private static final Logger logger = LoggerFactory.getLogger(H2Extension.class);
 	
 	public H2Extension() {
 		addDriverClassName("org.apache.derby.jdbc.EmbeddedDriver");

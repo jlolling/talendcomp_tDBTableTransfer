@@ -3,7 +3,8 @@ package de.jlo.datamodel.ext;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.jlo.datamodel.ext.impl.DB2Extension;
 import de.jlo.datamodel.ext.impl.DerbyExtension;
@@ -16,7 +17,7 @@ import de.jlo.datamodel.ext.impl.TeradataExtension;
 
 public class DatabaseExtensionFactory {
 	
-	private static final Logger logger = Logger.getLogger(DatabaseExtensionFactory.class);
+	private static final Logger logger = LoggerFactory.getLogger(DatabaseExtensionFactory.class);
 	private static List<DatabaseExtension> listExtensions = new ArrayList<DatabaseExtension>();
 	private static DatabaseExtension genericExtension = new GenericDatabaseExtension();
 	

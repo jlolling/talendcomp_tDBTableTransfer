@@ -46,8 +46,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.jlo.datamodel.SQLDataModel;
 import de.jlo.datamodel.SQLField;
@@ -60,7 +60,7 @@ import de.jlo.datamodel.generator.SQLCodeGenerator;
 
 public class TableTransfer {
 
-	private Logger logger = null;
+	private Logger logger = LoggerFactory.getLogger(TableTransfer.class);
 	private Properties properties = new Properties();
 	private Connection sourceConnection;
 	private Connection targetConnection;
@@ -142,14 +142,6 @@ public class TableTransfer {
 	private boolean trimFields = false;
 	private String checkConnectionStatement = "select 1";
 	private boolean withinWriteAction = false;
-	
-	public void enableLog4J(boolean enable) {
-		if (enable) {
-			logger = Logger.getLogger(TableTransfer.class);
-		} else {
-			logger = null;
-		}
-	}
 	
 	public void addDbJavaTypeMapping(String dbType, String javaType) {
 		if (dbType != null && dbType.trim().isEmpty() == false) {
@@ -1510,17 +1502,6 @@ public class TableTransfer {
 
 	public void setOutputToTable(boolean outputToTable) {
 		this.outputToTable = outputToTable;
-	}
-	
-	public void setDebug(boolean debug) {
-		if (logger != null) {
-			if (debug) {
-				Logger.getRootLogger().setLevel(Level.DEBUG);
-			} else {
-				Logger.getRootLogger().setLevel(Level.INFO);
-			}
-		}
-		this.debug = debug;
 	}
 	
 	public void setLogger(Logger logger) {

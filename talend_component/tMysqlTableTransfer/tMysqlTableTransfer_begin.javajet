@@ -50,8 +50,6 @@
     	backupFileCharSet = "null";
     }
     boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
-    String debug = ElementParameterParser.getValue(node, "__DEBUG__");
-    String enablelog4j = ElementParameterParser.getValue(node, "__ENABLE_LOG4J_EXPLICITLY__");
     String exportBooleanAsNumber = ElementParameterParser.getValue(node, "__EXPORT_BOOL_AS_NUMBER__");
     String modelKey = ElementParameterParser.getValue(node, "__ALTERNATIVE_MODEL_KEY__");
     if (modelKey == null || modelKey.trim().isEmpty()) {
@@ -73,8 +71,6 @@
 %>
 
 	de.jlo.talendcomp.tabletransfer.MysqlTableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.MysqlTableTransfer();
-	<%=cid%>.enableLog4J(<%=enablelog4j%>);
-	<%=cid%>.setDebug(<%=debug%>);
 	<%=cid%>.setDoCommit(<%=doCommit%>);
 <%	if ("IGNORE".equals(onConflict)) { %>
 	<%=cid%>.setOnConflictIgnore(true);

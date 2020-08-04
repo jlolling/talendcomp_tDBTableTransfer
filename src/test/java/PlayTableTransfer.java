@@ -90,7 +90,6 @@ public class PlayTableTransfer extends TalendTest {
 
 		de.jlo.talendcomp.tabletransfer.TableTransfer tMysqlTableTransfer_1 = new de.jlo.talendcomp.tabletransfer.TableTransfer();
 		tMysqlTableTransfer_1 = new de.jlo.talendcomp.tabletransfer.TableTransfer();
-		tMysqlTableTransfer_1.setDebug(true);
 		tMysqlTableTransfer_1.setExportBooleanAsNumber(true);
 		tMysqlTableTransfer_1.setOutputToTable(false);
 		// configure connections
@@ -141,7 +140,7 @@ public class PlayTableTransfer extends TalendTest {
 				if (Thread.currentThread().isInterrupted()) {
 					tMysqlTableTransfer_1.stop();
 				}
-				long duration_tMysqlTableTransfer_1 = (long) (System
+				long duration_tMysqlTableTransfer_1 = (System
 						.currentTimeMillis() - tMysqlTableTransfer_1
 						.getStartTime()) / 1000l;
 				double insertsPerSecond_tMysqlTableTransfer_1 = 0;

@@ -5,15 +5,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.jlo.datamodel.SQLTable;
 import de.jlo.datamodel.ext.GenericDatabaseExtension;
 
 public class DerbyExtension extends GenericDatabaseExtension {
 
+	private static final Logger logger = LoggerFactory.getLogger(DerbyExtension.class);
 	private static final String name = "Derby Extension";
-	private static final Logger logger = Logger.getLogger(DerbyExtension.class);
 	
 	public DerbyExtension() {
 		addDriverClassName("org.apache.derby.jdbc.EmbeddedDriver");

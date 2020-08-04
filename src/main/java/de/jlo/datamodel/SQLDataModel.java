@@ -9,14 +9,15 @@ import java.util.List;
 
 import javax.swing.SwingUtilities;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.jlo.datamodel.ext.DatabaseExtension;
 import de.jlo.datamodel.ext.DatabaseExtensionFactory;
 
 public final class SQLDataModel extends SQLObject implements Comparable<SQLDataModel> {
 
-	private static final Logger logger = Logger.getLogger(SQLDataModel.class);
+	private static final Logger logger = LoggerFactory.getLogger(SQLDataModel.class);
 	private String errorMessage;
 	private final List<SQLCatalog> catalogs = new ArrayList<SQLCatalog>();
 	private boolean loadingSchemas = false;

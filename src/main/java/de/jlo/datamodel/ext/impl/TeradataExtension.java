@@ -5,7 +5,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.jlo.datamodel.SQLProcedure;
 import de.jlo.datamodel.SQLTable;
@@ -15,7 +16,7 @@ import de.jlo.datamodel.ext.GenericDatabaseExtension;
 public class TeradataExtension extends GenericDatabaseExtension {
 
 	private static final String name = "Teradata Extension";
-	private static final Logger logger = Logger.getLogger(TeradataExtension.class);
+	private static final Logger logger = LoggerFactory.getLogger(TeradataExtension.class);
 
 	public TeradataExtension() {
 		addDriverClassName("com.teradata.jdbc.TeraDriver");

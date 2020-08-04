@@ -10,20 +10,21 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.jlo.datamodel.BasicDataType;
 import de.jlo.datamodel.Field;
 import de.jlo.datamodel.SQLProcedure;
+import de.jlo.datamodel.SQLProcedure.Parameter;
 import de.jlo.datamodel.SQLSchema;
 import de.jlo.datamodel.SQLSequence;
 import de.jlo.datamodel.SQLTable;
 import de.jlo.datamodel.SQLTrigger;
-import de.jlo.datamodel.SQLProcedure.Parameter;
 
 public class GenericDatabaseExtension implements DatabaseExtension {
 
-	private static final Logger logger = Logger.getLogger(GenericDatabaseExtension.class);
+	private static final Logger logger = LoggerFactory.getLogger(GenericDatabaseExtension.class);
 	private List<String> listkeywords = new ArrayList<String>();
 	private List<String> listdatatypes = new ArrayList<String>();
 	private List<String> listprockeywords = new ArrayList<String>();

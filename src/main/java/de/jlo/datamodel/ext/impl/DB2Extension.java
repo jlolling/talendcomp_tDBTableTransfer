@@ -6,20 +6,21 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.jlo.datamodel.BasicDataType;
 import de.jlo.datamodel.Field;
 import de.jlo.datamodel.SQLProcedure;
+import de.jlo.datamodel.SQLProcedure.Parameter;
 import de.jlo.datamodel.SQLSchema;
 import de.jlo.datamodel.SQLSequence;
 import de.jlo.datamodel.SQLTable;
-import de.jlo.datamodel.SQLProcedure.Parameter;
 import de.jlo.datamodel.ext.GenericDatabaseExtension;
 
 public class DB2Extension extends GenericDatabaseExtension {
 
-	private Logger logger = Logger.getLogger(DB2Extension.class);
+	private Logger logger = LoggerFactory.getLogger(DB2Extension.class);
 	private static final String driverClassName = "com.ibm.db2.jcc.DB2Driver";
 	private static final String name = "DB2 Extension";
 

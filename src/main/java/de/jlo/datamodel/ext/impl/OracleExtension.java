@@ -7,21 +7,22 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.jlo.datamodel.BasicDataType;
 import de.jlo.datamodel.Field;
 import de.jlo.datamodel.SQLProcedure;
+import de.jlo.datamodel.SQLProcedure.Parameter;
 import de.jlo.datamodel.SQLSchema;
 import de.jlo.datamodel.SQLSequence;
 import de.jlo.datamodel.SQLTable;
 import de.jlo.datamodel.SQLTrigger;
-import de.jlo.datamodel.SQLProcedure.Parameter;
 import de.jlo.datamodel.ext.GenericDatabaseExtension;
 
 public class OracleExtension extends GenericDatabaseExtension {
 
-	private static Logger logger = Logger.getLogger(OracleExtension.class);
+	private static Logger logger = LoggerFactory.getLogger(OracleExtension.class);
 	private static final String name = "Oracle Extension";
 
 	public OracleExtension() {

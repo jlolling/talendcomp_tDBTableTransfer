@@ -84,8 +84,6 @@ public class PlayPostgresTableTransfer extends TalendTest {
 		int tos_count_tPostgresqlTableTransfer_1 = 0;
 		
 		de.jlo.talendcomp.tabletransfer.PostgresqlTableTransfer tPostgresqlTableTransfer_1 = new de.jlo.talendcomp.tabletransfer.PostgresqlTableTransfer();
-		tPostgresqlTableTransfer_1.enableLog4J(true);
-		tPostgresqlTableTransfer_1.setDebug(true);
 		tPostgresqlTableTransfer_1.setDoCommit(true);
 		tPostgresqlTableTransfer_1.setOnConflictIgnore(false);
 		tPostgresqlTableTransfer_1.setOnConflictUpdate(true);

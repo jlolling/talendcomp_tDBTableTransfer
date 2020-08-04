@@ -6,7 +6,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.jlo.datamodel.BasicDataType;
 import de.jlo.datamodel.Field;
@@ -19,7 +20,7 @@ import de.jlo.datamodel.ext.GenericDatabaseExtension;
 
 public class PostgresqlExtension extends GenericDatabaseExtension {
 
-	private static Logger logger = Logger.getLogger(PostgresqlExtension.class);
+	private static Logger logger = LoggerFactory.getLogger(PostgresqlExtension.class);
 	private static final String driverClassName = "org.postgresql.Driver";
 	private static final String name = "PostgreSQL Extension";
 	

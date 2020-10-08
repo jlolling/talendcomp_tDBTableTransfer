@@ -542,9 +542,12 @@ public class TableTransfer {
 					if (one == null) {
 						continue;
 					} else {
+						// because poll removes already the one object
+						// we have to add it here
 						queueObjects.add(one);
 					}
 					// drain never waits! Thats why we have to use poll before!
+					// here we get the rest of all objects from the queue
 					tableQueue.drainTo(queueObjects, batchSize); // pull elements from queue to this given list
 //					debug("Got " + queueObjects.size() + " records from queue.");
 					for (Object item : queueObjects) {
@@ -809,8 +812,8 @@ public class TableTransfer {
 		if (outputToTable) {
 			createTargetInsertStatement();
 		}
-		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "100"));
-		final int fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "100"));
+		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1000"));
+		final int fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "1000"));
 		final int queueSize = Math.max(batchSize, fetchSize);
 		if (outputToTable) {
 			tableQueue = new ArrayBlockingQueue<Object>(queueSize);

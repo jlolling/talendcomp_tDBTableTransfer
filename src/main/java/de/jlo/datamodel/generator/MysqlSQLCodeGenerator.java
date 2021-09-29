@@ -13,7 +13,11 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 		sqlPs.setPrepared(true);
 		int paramIndex = 0;
 		final StringBuilder sb = new StringBuilder();
-		sb.append("insert into ");
+		if (onConflictIgnore) {
+			sb.append("insert ignore into ");
+		} else {
+			sb.append("insert into ");
+		}
 		if (fullName) {
 			sb.append(getEncapsulatedName(table.getAbsoluteName()));
 		} else {
@@ -47,14 +51,7 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 			sqlPs.addParam(psParam);
 		}
 		sb.append(")"); 
-		if (onConflictIgnore || (hasNonePrimaryKeyFields == false)) {
-			sb.append("\n on duplicate key update ");
-			// build dummy assignment col=col 
-			field = table.getFieldAt(0);
-			sb.append(field.getName());
-			sb.append("=");
-			sb.append(field.getName());
-		} else if (onConflictUpdate && hasNonePrimaryKeyFields) {
+		if (onConflictUpdate && hasNonePrimaryKeyFields) {
 			sb.append("\n on duplicate key update ");
 			// build assignment for the none-key fields
 			boolean firstLoop = true;

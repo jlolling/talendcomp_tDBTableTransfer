@@ -8,26 +8,26 @@ public class MySQLHelper extends DBHelper {
 	private void enableStreaming(java.sql.Statement stmt) throws Exception {
 		if (stmt != null) {
 			Class<?> stmtClass = stmt.getClass();
-			if (stmt instanceof com.mysql.jdbc.Statement) {
-				((com.mysql.jdbc.Statement) stmt).enableStreamingResults();
-			} else if (stmtClass.getName().equals("org.apache.commons.dbcp2.DelegatingPreparedStatement")) {
-				Method method = stmtClass.getMethod("getDelegate", (Class<?>[]) null);
-				Object result = method.invoke(stmt, (Object[]) null);
-				if (result instanceof java.sql.Statement) {
-					enableStreaming((java.sql.Statement) result);
-				} else {
-					System.err.println("Got no statement object. Instead we got: " + result);
+			boolean enablingSucceeded = false;
+			try {
+				Method method = stmtClass.getMethod("enableStreamingResults", (Class<?>[]) null);
+				method.invoke(stmt, (Object[]) null);
+				enablingSucceeded = true;
+			} catch (NoSuchMethodException nsme) {
+				// ignore intentionally
+			}
+			if (enablingSucceeded == false) {
+				// because it is a wrapper class from pools e.g.
+				try {
+					// most likely we will get the actual statement by fetching the delegate
+					Method method = stmtClass.getMethod("getDelegate", (Class<?>[]) null);
+					Object result = method.invoke(stmt, (Object[]) null);
+					if (result instanceof java.sql.Statement) {
+						enableStreaming((java.sql.Statement) result);
+					}
+				} catch (NoSuchMethodException nsme) {
+					// ignore intentionally
 				}
-			} else if (stmtClass.getName().equals("org.apache.commons.dbcp2.DelegatingStatement")) {
-				Method method = stmtClass.getMethod("getDelegate", (Class<?>[]) null);
-				Object result = method.invoke(stmt, (Object[]) null);
-				if (result instanceof java.sql.Statement) {
-					enableStreaming((java.sql.Statement) result);
-				} else {
-					System.err.println("Got no statement object. Instead we got: " + result);
-				}
-			} else {
-				System.err.println("Incompatible statement class found: " + stmt.getClass().getName());
 			}
 		}
 	}

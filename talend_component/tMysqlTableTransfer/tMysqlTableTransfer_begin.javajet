@@ -192,11 +192,11 @@
 	System.out.println("Source query statement:" + <%=cid%>.getSourceQuery());
 <%  } %>
 <%	 if (outputToTable && "true".equalsIgnoreCase(logoutInsert)) { %>
-   // log target statement
+    // log target statement
 	System.out.println("Target insert statement:" + <%=cid%>.getTargetInsertStatement());
 <%	 } %>
 <%  if (outputToTable && "true".equalsIgnoreCase(truncateTarget)) { %>
-   System.out.println("truncate target table...");
+    System.out.println("truncate target table...");
 	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
 <%	 } %>
 <%  if (outputToTable && "true".equalsIgnoreCase(disableKeys)) { %>

@@ -311,7 +311,14 @@ public class TableTransfer {
 			listSourceFieldNames = new ArrayList<String>(countColumns);
 			listSourceFieldTypeNames = new ArrayList<String>(countColumns);
 			for (int i = 1; i <= countColumns; i++) {
-				String name = rsMeta.getColumnName(i).toLowerCase();
+				String name = rsMeta.getColumnLabel(i);
+				if (name == null) {
+					name = rsMeta.getColumnName(i);
+				}
+				if (name == null) {
+					throw new Exception("Cannort retrieve column name or label from " + i + ". column of the query: " + sourceQuery);
+				}
+				name = name.toLowerCase();
 				if (name.equalsIgnoreCase(valueRangeColumn)) {
 					valueRangeColumnIndex = i;
 					if (isDebugEnabled()) {
@@ -757,7 +764,11 @@ public class TableTransfer {
 				} else if ("String".equals(className)) {
 					targetPSInsert.setString(p.getIndex(), (String) value);
 				} else if ("Date".equals(className)) {
-					targetPSInsert.setDate(p.getIndex(), (java.sql.Date) value);
+					if (value instanceof java.util.Date) {
+						targetPSInsert.setDate(p.getIndex(), new java.sql.Date(((java.sql.Date) value).getTime()));
+					} else {
+						targetPSInsert.setDate(p.getIndex(), (java.sql.Date) value);
+					}
 				} else if ("Timestamp".equals(className)) {
 					targetPSInsert.setTimestamp(p.getIndex(), (Timestamp) value);
 				} else if ("Time".equals(className)) {

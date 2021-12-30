@@ -113,6 +113,7 @@ public class TableTransfer {
 	private String backupFileCharSet = "UTF-8";
 	private String fieldSeparator = ";";
 	private String fieldEclosure = "\"";
+	private String lineEnd = "\n";
 	private String nullReplacement = "\\N";
 	private BufferedWriter backupOutputWriter = null;
 	private SimpleDateFormat sdfOut = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -1432,7 +1433,7 @@ public class TableTransfer {
 					backupOutputWriter.write(nullReplacement);
 				}
 			}
-			backupOutputWriter.write("\n");
+			backupOutputWriter.write(lineEnd);
 			countFileRows++;
 		}
 	}
@@ -1924,6 +1925,20 @@ public class TableTransfer {
 	public void setBackupFileCharSet(String backupFileCharSet) {
 		if (backupFileCharSet != null && backupFileCharSet.trim().isEmpty() == false) {
 			this.backupFileCharSet = backupFileCharSet;
+		}
+	}
+	
+	public void setFieldEclosure(String fieldEclosure) {
+		if (fieldEclosure != null) {
+			debug("Set fieldEnclosure to " + fieldEclosure + "");
+			this.fieldEclosure = fieldEclosure;
+		}
+	}
+	
+	public void setLineEnd(String lineEnd) {
+		if (lineEnd != null && lineEnd.length() > 0) {
+			debug("Set lineEnd to " + lineEnd + "");
+			this.lineEnd = lineEnd;
 		}
 	}
 

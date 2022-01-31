@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Jan Lolling jan.lolling@gmail.com
+ * Copyright 2022 Jan Lolling jan.lolling@gmail.com
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,8 +46,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import de.jlo.datamodel.SQLDataModel;
 import de.jlo.datamodel.SQLField;
@@ -60,7 +60,7 @@ import de.jlo.datamodel.generator.SQLCodeGenerator;
 
 public class TableTransfer {
 
-	private Logger logger = LoggerFactory.getLogger(TableTransfer.class);
+	private Logger logger = LogManager.getLogger(TableTransfer.class);
 	private Properties properties = new Properties();
 	private Connection sourceConnection;
 	private Connection targetConnection;
@@ -1283,7 +1283,7 @@ public class TableTransfer {
 		try {
 			return connection.isClosed();
 		} catch (SQLException e) {
-			logger.error("Check if connection is closed failed:" + e.getMessage(), e);
+			error("Check if connection is closed failed:" + e.getMessage(), e);
 			return true;
 		}
 	}
@@ -1518,8 +1518,10 @@ public class TableTransfer {
 		this.outputToTable = outputToTable;
 	}
 	
-	public void setLogger(Logger logger) {
-		this.logger = logger;
+	public void setLogger(Object logger) {
+		if (logger instanceof Logger) {
+			this.logger = (Logger) logger;
+		}
 	}
 
 	public boolean isExportBooleanAsNumber() {

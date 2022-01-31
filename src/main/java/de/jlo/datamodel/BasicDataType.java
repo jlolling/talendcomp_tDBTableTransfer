@@ -3,8 +3,6 @@ package de.jlo.datamodel;
 import java.sql.Types;
 import java.util.HashMap;
 
-import de.jlo.datamodel.SQLField;
-
 /**
  *
  * @author jan

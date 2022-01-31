@@ -1,3 +1,18 @@
+/**
+ * Copyright 2022 Jan Lolling jan.lolling@gmail.com
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package de.jlo.datamodel.ext.impl;
 
 import java.sql.Connection;
@@ -5,8 +20,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import de.jlo.datamodel.SQLTable;
 import de.jlo.datamodel.ext.GenericDatabaseExtension;
@@ -14,7 +29,7 @@ import de.jlo.datamodel.ext.GenericDatabaseExtension;
 public class H2Extension extends GenericDatabaseExtension {
 
 	private static final String name = "Derby Extension";
-	private static final Logger logger = LoggerFactory.getLogger(H2Extension.class);
+	private static final Logger logger = LogManager.getLogger(H2Extension.class);
 	
 	public H2Extension() {
 		addDriverClassName("org.apache.derby.jdbc.EmbeddedDriver");

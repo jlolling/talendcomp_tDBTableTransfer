@@ -21,7 +21,7 @@
 	boolean trim = "true".equals(ElementParameterParser.getValue(node, "__TRIM_TEXT_VALUES__"));
 	String sourceQuery = ElementParameterParser.getValue(node, "__SOURCE_QUERY__");
 	if (sourceQuery != null) {
-		sourceQuery = sourceQuery.replaceAll("\r\n","\\\\n").replaceAll("\n","\\\\n");
+		sourceQuery = sourceQuery.trim().replaceAll("\r\n","\\\\n").replaceAll("\n","\\\\n");
 	}
 	String sourceTable = ElementParameterParser.getValue(node, "__SOURCE_TABLE__");
 	String sourceTableWhere = ElementParameterParser.getValue(node, "__SOURCE_WHERE__");
@@ -66,8 +66,13 @@
 	if (valueRangeColumn == null || valueRangeColumn.trim().isEmpty()) {
 		valueRangeColumn = "null";
 	}
+    boolean log4jEnabled = "true".equals(org.talend.core.model.process.ElementParameterParser.getValue(node.getProcess(), "__LOG4J_ACTIVATE__")) && 
+   							"JOBLET".equals(node.getComponent().getComponentType().toString()) == false;
 %>
 	de.jlo.talendcomp.tabletransfer.TableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
+<%  if (log4jEnabled) { %>
+	<%=cid%>.setLogger(log);
+<%  } %>
 	<%=cid%>.setDoCommit(<%=doCommit%>);
 <%  if (typeMap != null) {
 		for (Map<String, String> map : typeMap) {
@@ -180,11 +185,11 @@
 <%  } %>
 <%  if ("true".equalsIgnoreCase(logoutQuery)) { %>
    // log source query
-	System.out.println("Source query statement:" + <%=cid%>.getSourceQuery());
+	<%=cid%>.info("Source query statement:" + <%=cid%>.getSourceQuery());
 <%  } %>
 <%	 if (outputToTable && "true".equalsIgnoreCase(logoutInsert)) { %>
    // log target statement
-	System.out.println("Target insert statement:" + <%=cid%>.getTargetInsertStatement());
+	<%=cid%>.info("Target insert statement:" + <%=cid%>.getTargetInsertStatement());
 <%	 } %>
 <%  if (outputToTable && "true".equalsIgnoreCase(truncateTarget)) { %>
 	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());

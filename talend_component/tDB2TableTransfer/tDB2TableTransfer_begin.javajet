@@ -48,6 +48,15 @@
     if (backupFileCharSet == null || backupFileCharSet.trim().isEmpty()) {
     	backupFileCharSet = "null";
     }
+    String fieldEclosure = ElementParameterParser.getValue(node, "__FIELD_ENCLOSURE__");
+    if (fieldEclosure == null) {
+    	fieldEclosure = "null";
+    }
+    String lineEnd = ElementParameterParser.getValue(node, "__LINE_END__");
+    if (lineEnd == null || lineEnd.trim().length()==0) {
+    	lineEnd = "null";
+    }  
+    
     boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
     String exportBooleanAsNumber = ElementParameterParser.getValue(node, "__EXPORT_BOOL_AS_NUMBER__");
     String modelKey = ElementParameterParser.getValue(node, "__ALTERNATIVE_MODEL_KEY__");
@@ -170,6 +179,8 @@
 		String backupFilePath = <%=backupFile%>;
 		globalMap.put("<%=cid%>_BACKUP_FILE", <%=cid%>.setBackupFilePath(backupFilePath));
 		<%=cid%>.setBackupFileCharSet(<%=backupFileCharSet%>);
+		<%=cid%>.setFieldEclosure(<%=fieldEclosure%>);
+		<%=cid%>.setLineEnd(<%=lineEnd%>);
 	}
 <%  } %>
 	// initialize statements

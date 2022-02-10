@@ -159,13 +159,18 @@ public class TableTransfer {
 	}
 	
 	public void setColumnValue(String name, Object value) {
+		setColumnValue(name, value, 0);
+	}
+	
+	public void setColumnValue(String name, Object value, int usageType) {
 		if (name != null && name.trim().isEmpty() == false) {
 			ColumnValue cv = new ColumnValue(name.trim());
 			cv.setValue(value);
+			cv.setUsageType(usageType);
 			fixedColumnValueList.add(cv);
 		}
 	}
-	
+
 	public final int getCurrentCountInserts() {
 		return Math.max(countInsertsInDB, countFileRows);
 	}
@@ -766,7 +771,7 @@ public class TableTransfer {
 					targetPSInsert.setString(p.getIndex(), (String) value);
 				} else if ("Date".equals(className)) {
 					if (value instanceof java.util.Date) {
-						targetPSInsert.setDate(p.getIndex(), new java.sql.Date(((java.sql.Date) value).getTime()));
+						targetPSInsert.setDate(p.getIndex(), new java.sql.Date(((java.util.Date) value).getTime()));
 					} else {
 						targetPSInsert.setDate(p.getIndex(), (java.sql.Date) value);
 					}

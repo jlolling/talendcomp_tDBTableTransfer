@@ -19,6 +19,7 @@ public class ColumnValue {
 
 	private String columnName;
 	private Object value;
+	private int usageType = 0;
 	
 	public ColumnValue(String name) {
 		if (name == null || name.trim().isEmpty()) {
@@ -37,6 +38,21 @@ public class ColumnValue {
 	
 	public void setValue(Object value) {
 		this.value = value;
+	}
+
+	public int getUsageType() {
+		return usageType;
+	}
+
+	/**
+	 * set the usage of this value
+	 * 0 = insert+update
+	 * 1 = insert only
+	 * 2 = update only
+	 * @param usageType
+	 */
+	public void setUsageType(int usageType) {
+		this.usageType = usageType;
 	}
 	
 }

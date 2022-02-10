@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.jlo.talendcomp</groupId>
 	<artifactId>jlo-talendcomp-tabletransfer</artifactId>
-	<version>10.0</version>
+	<version>11.0</version>
 	<name>Talend Table Transfer Components</name>
 	<organization>
 		<name>Jan Lolling</name>

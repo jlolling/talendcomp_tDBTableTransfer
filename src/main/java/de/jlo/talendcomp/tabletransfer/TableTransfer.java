@@ -708,6 +708,7 @@ public class TableTransfer {
 			return row[index];
 		} else {
 			if (strictFieldMatching) {
+				// create human readable error message
 				StringBuilder sb = new StringBuilder();
 				sb.append("Following target columns does not have a matching column in the source query: ");
 				boolean firstLoop = true;
@@ -734,6 +735,7 @@ public class TableTransfer {
 				}
 				throw new Exception("Transfer into table: " + targetTable.getAbsoluteName() + " in strict mode failed: " + sb.toString());
 			} else {
+				// otherwise simply use null
 				return null;
 			}
 		}

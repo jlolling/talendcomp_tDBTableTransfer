@@ -41,9 +41,15 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 		sb.append(" ("); 
 		SQLField field = null;
 		boolean hasNonePrimaryKeyFields = false;
+		boolean firstLoop = true;
 		for (int i = 0; i < table.getFieldCount(); i++) {
 			field = table.getFieldAt(i);
-			if (i > 0) {
+			if (field.getUsageType() == SQLField.USAGE_UPD_ONLY) {
+				continue;
+			}
+			if (firstLoop) {
+				firstLoop = false;
+			} else {
 				sb.append(',');
 			}
 			sb.append(getEncapsulatedName(field.getName()));
@@ -53,12 +59,18 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 		}
 		sb.append(")\n values("); 
 		SQLPSParam psParam = null;
+		firstLoop = true;
 		for (int i = 0; i < table.getFieldCount(); i++) {
 			field = table.getFieldAt(i);
-			if (i > 0) {
+			if (field.getUsageType() == SQLField.USAGE_UPD_ONLY) {
+				continue;
+			}
+			if (firstLoop) {
+				firstLoop = false;
+			} else {
 				sb.append(',');
 			}
-			sb.append("?"); 
+			sb.append("?");
 			psParam = new SQLPSParam();
 			psParam.setName(field.getName());
 			psParam.setIndex(++paramIndex);
@@ -69,9 +81,12 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 		if (onConflictUpdate && hasNonePrimaryKeyFields) {
 			sb.append("\n on duplicate key update ");
 			// build assignment for the none-key fields
-			boolean firstLoop = true;
+			firstLoop = true;
 			for (int i = 0; i < table.getFieldCount(); i++) {
 				field = table.getFieldAt(i);
+				if (field.getUsageType() == SQLField.USAGE_INS_ONLY) {
+					continue;
+				}
 				if (field.isPrimaryKey() == false) {
 					if (firstLoop) {
 						firstLoop = false;

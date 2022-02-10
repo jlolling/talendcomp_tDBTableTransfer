@@ -162,7 +162,7 @@ public class TableTransfer {
 		setColumnValue(name, value, 0);
 	}
 	
-	public void setColumnValue(String name, Object value, int usageType) {
+	public void setColumnValue(String name, Object value, Integer usageType) {
 		if (name != null && name.trim().isEmpty() == false) {
 			ColumnValue cv = new ColumnValue(name.trim());
 			cv.setValue(value);
@@ -874,6 +874,7 @@ public class TableTransfer {
 			if (sourceTable.isFieldsLoaded() == false) {
 				sourceTable.loadColumns(true);
 			}
+			// remove fields to be excluded
 			for (String exclFieldName : excludeFieldList) {
 				SQLField field = sourceTable.getField(exclFieldName);
 				if (field != null) {
@@ -922,6 +923,7 @@ public class TableTransfer {
 			if (targetTable == null) {
 				throw new Exception("Get information about target table: " + schemaName + "." + tableName + " not available");
 			}
+			// remove SQLFields which should be excluded
 			for (String exclFieldName : excludeFieldList) {
 				boolean exclude = true;
 				// take care we exclude a column only if we do not have a fixed value
@@ -936,6 +938,13 @@ public class TableTransfer {
 					if (field != null) {
 						targetTable.removeSQLField(field);
 					}
+				}
+			}
+			// configure usage type of SQLField according to fixed column value definition
+			for (ColumnValue cv : fixedColumnValueList) {
+				SQLField field = targetTable.getField(cv.getColumnName());
+				if (field != null) {
+					field.setUsageType(cv.getUsageType());
 				}
 			}
 		}
@@ -1052,7 +1061,7 @@ public class TableTransfer {
 		}
 	}
 	
-	public final void setupDataModels() throws Exception {
+	public void setupDataModels() throws Exception {
 		if (keepDataModels) {
 			synchronized (sqlModelCache) {
 				sourceModel = sqlModelCache.get("source_" + modelKey);

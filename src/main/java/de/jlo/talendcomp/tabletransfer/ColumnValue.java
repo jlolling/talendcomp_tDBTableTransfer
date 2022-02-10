@@ -15,6 +15,8 @@
  */
 package de.jlo.talendcomp.tabletransfer;
 
+import de.jlo.datamodel.SQLField;
+
 public class ColumnValue {
 
 	private String columnName;
@@ -51,8 +53,14 @@ public class ColumnValue {
 	 * 2 = update only
 	 * @param usageType
 	 */
-	public void setUsageType(int usageType) {
-		this.usageType = usageType;
-	}
-	
+	public void setUsageType(Integer usageType) {
+		if (usageType == null) {
+			throw new IllegalArgumentException("usageType of column: " + columnName + " cannot be null and must be 0 or 1 or 2");
+		}
+		if (usageType == SQLField.USAGE_INS_UPD || usageType == SQLField.USAGE_INS_ONLY || usageType == SQLField.USAGE_UPD_ONLY) {
+			this.usageType = usageType;
+		} else {
+			throw new IllegalArgumentException("Invalid usageType: " + usageType);
+		}
+	}	
 }

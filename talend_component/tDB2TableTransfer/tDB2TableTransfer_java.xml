@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <COMPONENT> 
-  <HEADER PLATEFORM="ALL" SERIAL="" VERSION="10.0" STATUS="ALPHA" COMPATIBILITY="ALL" AUTHOR="Jan Lolling" RELEASE_DATE="20220110" STARTABLE="true" HAS_CONDITIONAL_OUTPUTS="false"> 
+  <HEADER PLATEFORM="ALL" SERIAL="" VERSION="10.1" STATUS="ALPHA" COMPATIBILITY="ALL" AUTHOR="Jan Lolling" RELEASE_DATE="20220311" STARTABLE="true" HAS_CONDITIONAL_OUTPUTS="false"> 
     <SIGNATURE/> 
   </HEADER>  
   <FAMILIES> 
@@ -66,7 +66,7 @@
       </ITEMS> 
     </PARAMETER>  
     <PARAMETER NAME="DIE_ON_ERROR" FIELD="CHECK" NUM_ROW="130"> 
-      <DEFAULT>false</DEFAULT> 
+      <DEFAULT>true</DEFAULT> 
     </PARAMETER>  
     <PARAMETER NAME="BACKUP_DATA" FIELD="CHECK" NUM_ROW="150"> 
       <DEFAULT>false</DEFAULT> 
@@ -154,13 +154,13 @@
     <PARAMETER NAME="ALTERNATIVE_MODEL_KEY" FIELD="TEXT" NUM_ROW="80" SHOW_IF="REUSE_DATA_MODEL == 'true'"> 
       <DEFAULT/> 
     </PARAMETER>  
-    <PARAMETER NAME="RELEASE_LABEL_20220110" FIELD="LABEL" COLOR="0;0;0" NUM_ROW="900">
-      <DEFAULT>Release: 10.0 build at: 20220110</DEFAULT>
+    <PARAMETER NAME="RELEASE_LABEL_20220311" FIELD="LABEL" COLOR="0;0;0" NUM_ROW="900">
+      <DEFAULT>Release: 10.1 build at: 20220311</DEFAULT>
     </PARAMETER>
   </ADVANCED_PARAMETERS>  
   <CODEGENERATION> 
     <IMPORTS> 
-      <IMPORT NAME="jlo-talendcomp-tabletransfer" MODULE="jlo-talendcomp-tabletransfer-10.0.jar" MVN="mvn:org.talend.libraries/jlo-talendcomp-tabletransfer-10.0/6.0.0-SNAPSHOT" REQUIRED="true"/>
+      <IMPORT NAME="jlo-talendcomp-tabletransfer" MODULE="jlo-talendcomp-tabletransfer-10.1.jar" MVN="mvn:org.talend.libraries/jlo-talendcomp-tabletransfer-10.1/6.0.0-SNAPSHOT" REQUIRED="true"/>
     </IMPORTS> 
   </CODEGENERATION>  
   <RETURNS> 

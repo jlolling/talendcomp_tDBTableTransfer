@@ -158,7 +158,7 @@ public class TableTransfer {
 		}
 	}
 	
-	public void setColumnValue(String name, Object value) {
+	public void setFixedColumnValue(String name, Object value) {
 		if (name != null && name.trim().isEmpty() == false) {
 			ColumnValue cv = new ColumnValue(name.trim());
 			cv.setValue(value);
@@ -766,9 +766,11 @@ public class TableTransfer {
 					targetPSInsert.setString(p.getIndex(), (String) value);
 				} else if ("Date".equals(className)) {
 					if (value instanceof java.util.Date) {
-						targetPSInsert.setDate(p.getIndex(), new java.sql.Date(((java.sql.Date) value).getTime()));
-					} else {
+						targetPSInsert.setDate(p.getIndex(), new java.sql.Date(((java.util.Date) value).getTime()));
+					} else if (value instanceof java.sql.Date) {
 						targetPSInsert.setDate(p.getIndex(), (java.sql.Date) value);
+					} else {
+						throw new Exception("value: " + value + " has not valid class: " + value.getClass().getName() + " for type Date");
 					}
 				} else if ("Timestamp".equals(className)) {
 					targetPSInsert.setTimestamp(p.getIndex(), (Timestamp) value);

@@ -160,7 +160,7 @@
 			String columnName = entry.get("COLUMN_NAME");
 			String columnValue = entry.get("COLUMN_VALUE");
 			if (columnName != null && columnName.trim().isEmpty() == false && columnValue != null && columnValue.trim().isEmpty() == false) { %>
-	<%=cid%>.setColumnValue(<%=columnName.trim()%>, <%=columnValue.trim()%>);
+	<%=cid%>.setFixedColumnValue(<%=columnName.trim()%>, <%=columnValue.trim()%>);
 <%       } %>	      
 <%    } %>
 <%  } %>		

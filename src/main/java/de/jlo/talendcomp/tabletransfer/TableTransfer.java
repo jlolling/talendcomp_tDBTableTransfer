@@ -158,11 +158,11 @@ public class TableTransfer {
 		}
 	}
 	
-	public void setColumnValue(String name, Object value) {
-		setColumnValue(name, value, 0);
+	public void setFixedColumnValue(String name, Object value) {
+		setFixedColumnValue(name, value, 0);
 	}
 	
-	public void setColumnValue(String name, Object value, Integer usageType) {
+	public void setFixedColumnValue(String name, Object value, Integer usageType) {
 		if (name != null && name.trim().isEmpty() == false) {
 			ColumnValue cv = new ColumnValue(name.trim());
 			cv.setValue(value);
@@ -316,6 +316,7 @@ public class TableTransfer {
 			final int countColumns = rsMeta.getColumnCount();
 			listSourceFieldNames = new ArrayList<String>(countColumns);
 			listSourceFieldTypeNames = new ArrayList<String>(countColumns);
+			// register field names from query
 			for (int i = 1; i <= countColumns; i++) {
 				String name = rsMeta.getColumnLabel(i);
 				if (name == null) {
@@ -343,7 +344,7 @@ public class TableTransfer {
 					debug("Name: " + name + ",  Type: " + type);
 				}
 			}
-			// add fixed column value names
+			// register fixed column value names
 			for (ColumnValue cv : fixedColumnValueList) {
 				listSourceFieldNames.add(cv.getColumnName().toLowerCase());
 				if (isDebugEnabled()) {
@@ -936,6 +937,8 @@ public class TableTransfer {
 				if (exclude) {
 					SQLField field = targetTable.getField(exclFieldName);
 					if (field != null) {
+						// remove this field from table because
+						// the code generators takes the SQLTable for build sql code
 						targetTable.removeSQLField(field);
 					}
 				}

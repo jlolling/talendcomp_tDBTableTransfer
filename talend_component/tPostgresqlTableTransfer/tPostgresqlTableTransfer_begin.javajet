@@ -50,10 +50,6 @@
     }
     boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
     String exportBooleanAsNumber = ElementParameterParser.getValue(node, "__EXPORT_BOOL_AS_NUMBER__");
-    String modelKey = ElementParameterParser.getValue(node, "__ALTERNATIVE_MODEL_KEY__");
-    if (modelKey == null || modelKey.trim().isEmpty()) {
-    	modelKey = "jobName + " + "\"" + cid + "\"";
-    }
     boolean reuseModel = "true".equals(ElementParameterParser.getValue(node, "__REUSE_DATA_MODEL__"));
     boolean doCommit = "false".equals(ElementParameterParser.getValue(node, "__USE_EXTERNAL_COMMIT_COMPONENT__"));
     boolean measureTimeRange = "true".equals(ElementParameterParser.getValue(node, "__MEASURE_TIME_RANGE__"));
@@ -90,9 +86,9 @@
 			String javaType = map.get("JAVA_TYPE");
 			if (dbType != null && javaType != null) { %>
 	<%=cid%>.addDbJavaTypeMapping(<%=dbType%>, "<%=javaType%>");
-<%       }					
+<%          }					
 		}
-  } %>
+    } %>
 	<%=cid%>.setExportBooleanAsNumber(<%=exportBooleanAsNumber%>);
 	<%=cid%>.setOutputToTable(<%=outputToTable%>);
 	<%=cid%>.setStrictFieldMatching(<%=strictMode%>);
@@ -110,7 +106,7 @@
 	<%=cid%>.setTargetConnection((java.sql.Connection) globalMap.get("conn_" + "<%=targetConnCompName%>"));
 	<%=cid%>.setTargetBatchSize(<%=targetBatchSize%>);
 <% } %>
-   <%=cid%>.setKeepDataModels(<%=reuseModel%>, <%=modelKey%>);
+	<%=cid%>.setKeepDataModels(<%=reuseModel%>, jobName + "_" + <%=cid%>);
 	<%=cid%>.setupDataModels();
 <% if (useQuery) { %>
    // use our own query as source
@@ -168,10 +164,11 @@
 		for (Map<String, String> entry : fixedColumnValueList) {
 			String columnName = entry.get("COLUMN_NAME");
 			String columnValue = entry.get("COLUMN_VALUE");
-			if (columnName != null && columnName.trim().isEmpty() == false && columnValue != null && columnValue.trim().isEmpty() == false) { %>
-	<%=cid%>.setColumnValue(<%=columnName.trim()%>, <%=columnValue.trim()%>);
-<%       } %>	      
-<%    } %>
+			String usageType = entry.get("USAGE_TYPE");
+			if (columnName != null && columnName.trim().isEmpty() == false) { %>
+	<%=cid%>.setFixedColumnValue(<%=columnName.trim()%>, <%=columnValue.trim()%>, <%=usageType%>);
+<%          } %>	      
+<%      } %>
 <%  } %>		
 <%	 if (backupData && backupFile.trim().isEmpty() == false) { %>
 	// setup backup
@@ -186,19 +183,19 @@
 	// memorize query
   	globalMap.put("<%=cid%>_SOURCE_QUERY", <%=cid%>.getSourceQuery());
 <%  if (sourceTable != null && sourceTable.isEmpty() == false) { %>
-   globalMap.put("<%=cid%>_SOURCE_TABLE", <%=sourceTable%>);
+    globalMap.put("<%=cid%>_SOURCE_TABLE", <%=sourceTable%>);
 <%  } %>
 <%  if (outputToTable) { %>
-   globalMap.put("<%=cid%>_TARGET_TABLE", <%=targetTable%>);
+    globalMap.put("<%=cid%>_TARGET_TABLE", <%=targetTable%>);
 <%  } %>
 <%  if ("true".equalsIgnoreCase(logoutQuery)) { %>
    // log source query
 	<%=cid%>.info("Source query statement:" + <%=cid%>.getSourceQuery());
 <%  } %>
 <%	 if (outputToTable && "true".equalsIgnoreCase(logoutInsert)) { %>
-   // log target statement
+	// log target statement
 	<%=cid%>.info("Target insert statement:" + <%=cid%>.getTargetInsertStatement());
-<%	 } %>
+<%	} %>
 <%  if (outputToTable && "true".equalsIgnoreCase(truncateTarget)) { %>
 	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
-<%	 } %>
+<%	} %>

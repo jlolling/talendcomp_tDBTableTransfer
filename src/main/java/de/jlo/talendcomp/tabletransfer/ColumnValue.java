@@ -60,7 +60,7 @@ public class ColumnValue {
 		if (usageType == SQLField.USAGE_INS_UPD || usageType == SQLField.USAGE_INS_ONLY || usageType == SQLField.USAGE_UPD_ONLY) {
 			this.usageType = usageType;
 		} else {
-			throw new IllegalArgumentException("Invalid usageType: " + usageType);
+			throw new IllegalArgumentException("Invalid usageType: " + usageType + " for column: " + columnName);
 		}
 	}	
 }

@@ -323,7 +323,7 @@ public final class SQLField extends SQLObject implements Comparable<SQLField>, F
 		if (usageType == USAGE_INS_UPD || usageType == USAGE_INS_ONLY || usageType == USAGE_UPD_ONLY) {
 			this.usageType = usageType;
 		} else {
-			throw new IllegalArgumentException("Invalid usageType: " + usageType);
+			throw new IllegalArgumentException("Invalid usageType: " + usageType + " for column: " + getName() + " in table: " + getTableName());
 		}
 	}
 	

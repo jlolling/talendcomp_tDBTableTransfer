@@ -50,10 +50,6 @@
     }
     boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
     String exportBooleanAsNumber = ElementParameterParser.getValue(node, "__EXPORT_BOOL_AS_NUMBER__");
-    String modelKey = ElementParameterParser.getValue(node, "__ALTERNATIVE_MODEL_KEY__");
-    if (modelKey == null || modelKey.trim().isEmpty()) {
-    	modelKey = "jobName + " + "\"" + cid + "\"";
-    }
     boolean reuseModel = "true".equals(ElementParameterParser.getValue(node, "__REUSE_DATA_MODEL__"));
     boolean doCommit = "false".equals(ElementParameterParser.getValue(node, "__USE_EXTERNAL_COMMIT_COMPONENT__"));
     boolean measureTimeRange = "true".equals(ElementParameterParser.getValue(node, "__MEASURE_TIME_RANGE__"));
@@ -102,7 +98,7 @@
 	<%=cid%>.setTargetConnection((java.sql.Connection) globalMap.get("conn_" + "<%=targetConnCompName%>"));
 	<%=cid%>.setTargetBatchSize("<%=targetBatchSize%>");
 <%	} %>
-   <%=cid%>.setKeepDataModels(<%=reuseModel%>, <%=modelKey%>);
+	<%=cid%>.setKeepDataModels(<%=reuseModel%>, jobName + "_" + <%=cid%>);
 	<%=cid%>.setupDataModels();
 <%  if (useQuery) { %>
     // use our own query as source
@@ -161,7 +157,7 @@
 			String columnName = entry.get("COLUMN_NAME");
 			String columnValue = entry.get("COLUMN_VALUE");
 			if (columnName != null && columnName.trim().isEmpty() == false && columnValue != null && columnValue.trim().isEmpty() == false) { %>
-	<%=cid%>.setColumnValue(<%=columnName.trim()%>, <%=columnValue.trim()%>);
+	<%=cid%>.setFixedColumnValue(<%=columnName.trim()%>, <%=columnValue.trim()%>);
 <%       } %>	      
 <%    } %>
 <%  } %>		

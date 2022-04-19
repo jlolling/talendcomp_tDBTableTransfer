@@ -134,7 +134,7 @@ public class PlayPostgresTableTransfer extends TalendTest {
 				.get("schema_" + "tPostgresqlConnection_3"))
 				+ "."
 				+ "job_instance_status_1");
-		tPostgresqlTableTransfer_1.setColumnValue("job_instance_id",
+		tPostgresqlTableTransfer_1.setFixedColumnValue("job_instance_id",
 				(globalMap
 						.get("tJobInstanceStart_1_JOB_INSTANCE_ID")));
 		// initialize statements

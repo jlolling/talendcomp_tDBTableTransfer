@@ -19,6 +19,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.regex.Pattern;
 
 public abstract class DBHelper {
 	
@@ -31,6 +32,15 @@ public abstract class DBHelper {
 		} else {
 			return false;
 		}
+	}
+	
+	private static final Pattern noneUtf8Pattern = Pattern.compile("[^\\u0000-\\uFFFF]");
+
+	public static String stripNoneUTF8(String text) {
+		if (text == null || text.isEmpty()) {
+			return text;
+		}
+		return noneUtf8Pattern.matcher(text).replaceAll("");
 	}
 
 }

@@ -19,6 +19,7 @@
 	String targetTable = ElementParameterParser.getValue(node, "__TARGET_TABLE__");
 	boolean strictMode = "true".equals(ElementParameterParser.getValue(node, "__STRICT_FIELD_MAPPING__"));
 	boolean trim = "true".equals(ElementParameterParser.getValue(node, "__TRIM_TEXT_VALUES__"));
+	boolean removeNoneUTF8 = "true".equals(ElementParameterParser.getValue(node, "__REMOVE_NONE_UTF8_CHARACTERS__"));
 	String sourceQuery = ElementParameterParser.getValue(node, "__SOURCE_QUERY__");
 	if (sourceQuery != null) {
 		sourceQuery = sourceQuery.trim().replaceAll("\r\n","\\\\n").replaceAll("\n","\\\\n");
@@ -98,6 +99,7 @@
 	<%=cid%>.setOutputToTable(<%=outputToTable%>);
 	<%=cid%>.setStrictFieldMatching(<%=strictMode%>);
 	<%=cid%>.setTrimFields(<%=trim%>);
+	<%=cid%>.setStripNoneUTF8Characters(<%=removeNoneUTF8%>);
 <%  if (measureTimeRange) { %>
 	<%=cid%>.setTimeRangeColumn(<%=timeRangeColumn%>);
 <%  } %>

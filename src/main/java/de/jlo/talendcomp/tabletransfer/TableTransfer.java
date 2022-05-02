@@ -143,6 +143,7 @@ public class TableTransfer {
 	private boolean trimFields = false;
 	private String checkConnectionStatement = "select 1";
 	private boolean withinWriteAction = false;
+	private boolean stripNoneUTF8Characters = false;
 	
 	public void addDbJavaTypeMapping(String dbType, String javaType) {
 		if (dbType != null && dbType.trim().isEmpty() == false) {
@@ -465,10 +466,12 @@ public class TableTransfer {
 				} else if ("string".equals(javaType)) {
 					String s = rs.getString(columnIndex + 1);
 					if (trimFields && s != null) {
-						row[columnIndex] = s.trim();
-					} else {
-						row[columnIndex] = s;
+						s = s.trim();
 					}
+					if (stripNoneUTF8Characters) {
+						s = DBHelper.stripNoneUTF8(s);
+					}
+					row[columnIndex] = s;
 				} else if ("boolean".equals(javaType)) {
 					row[columnIndex] = rs.getBoolean(columnIndex + 1);
 				} else if ("short".equals(javaType)) {
@@ -1970,6 +1973,14 @@ public class TableTransfer {
 
 	public void setCheckConnectionStatement(String checkConnectionStatement) {
 		this.checkConnectionStatement = checkConnectionStatement;
+	}
+
+	public boolean isStripNoneUTF8Characters() {
+		return stripNoneUTF8Characters;
+	}
+
+	public void setStripNoneUTF8Characters(boolean stripNoneUTF8Characters) {
+		this.stripNoneUTF8Characters = stripNoneUTF8Characters;
 	}
 
 }

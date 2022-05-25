@@ -956,7 +956,7 @@ public class TableTransfer {
 		}
 		// we have to check that here because we do not know which source database type we use.
 		if (DBHelper.isMySQLConnection(sourceConnection)) {
-			DBHelper util = (DBHelper) Class.forName("de.jlo.talendcomp.tabletransfer.MySQLHelper").newInstance();
+			DBHelper util = (DBHelper) Class.forName("de.jlo.talendcomp.tabletransfer.MySQLHelper").getDeclaredConstructor().newInstance();
 			util.setupSelectStatement(sourceSelectStatement);
 		}
 		return sourceSelectStatement;

@@ -317,7 +317,7 @@ public class TableTransfer {
 					name = rsMeta.getColumnName(i);
 				}
 				if (name == null) {
-					throw new Exception("Cannort retrieve column name or label from " + i + ". column of the query: " + sourceQuery);
+					throw new Exception("Cannot retrieve column name or label from " + i + ". column of the query: " + sourceQuery);
 				}
 				name = name.toLowerCase();
 				if (name.equalsIgnoreCase(valueRangeColumn)) {

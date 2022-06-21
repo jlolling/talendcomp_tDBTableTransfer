@@ -318,7 +318,7 @@ public class TableTransfer {
 					name = rsMeta.getColumnName(i);
 				}
 				if (name == null) {
-					throw new Exception("Cannort retrieve column name or label from " + i + ". column of the query: " + sourceQuery);
+					throw new Exception("Cannot retrieve column name or label from " + i + ". column of the query: " + sourceQuery);
 				}
 				name = name.toLowerCase();
 				if (name.equalsIgnoreCase(valueRangeColumn)) {
@@ -971,7 +971,7 @@ public class TableTransfer {
 		}
 		// we have to check that here because we do not know which source database type we use.
 		if (DBHelper.isMySQLConnection(sourceConnection)) {
-			DBHelper util = (DBHelper) Class.forName("de.jlo.talendcomp.tabletransfer.MySQLHelper").newInstance();
+			DBHelper util = (DBHelper) Class.forName("de.jlo.talendcomp.tabletransfer.MySQLHelper").getDeclaredConstructor().newInstance();
 			util.setupSelectStatement(sourceSelectStatement);
 		}
 		return sourceSelectStatement;

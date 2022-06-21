@@ -765,19 +765,9 @@ public class TableTransfer {
 					targetPSInsert.setShort(p.getIndex(), (Short) value);
 				} else if ("String".equals(className)) {
 					targetPSInsert.setString(p.getIndex(), (String) value);
-				} else if ("Date".equals(className)) {
-					if (value instanceof java.util.Date) {
-						targetPSInsert.setDate(p.getIndex(), new java.sql.Date(((java.util.Date) value).getTime()));
-					} else if (value instanceof java.sql.Date) {
-						targetPSInsert.setDate(p.getIndex(), (java.sql.Date) value);
-					} else if (value instanceof java.sql.Timestamp) {
-						targetPSInsert.setDate(p.getIndex(), new java.sql.Date(((java.sql.Timestamp) value).getTime()));
-					} else {
-						throw new Exception("value: " + value + " has not valid class: " + value.getClass().getName() + " for type Date");
-					}
-				} else if ("Timestamp".equals(className)) {
+				} else if ("Timestamp".equals(className) || "Date".equals(className)) {
 					Timestamp t = null;
-					if (value instanceof Date) {
+					if (value instanceof java.util.Date) {
 						t = new Timestamp(((java.util.Date) value).getTime());
 					} else if (value instanceof java.sql.Date) {
 						t = new Timestamp(((java.sql.Date) value).getTime());

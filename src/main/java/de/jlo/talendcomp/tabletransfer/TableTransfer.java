@@ -736,9 +736,7 @@ public class TableTransfer {
 			}
 		}
 	}
-	
-	
-	
+		
 	protected final void prepareInsertStatement(final Object[] row) throws Exception {
 		for (SQLPSParam p : targetInsertStatement.getParams()) {
 			final Object value = getRowValue(p.getName(), row);
@@ -772,11 +770,23 @@ public class TableTransfer {
 						targetPSInsert.setDate(p.getIndex(), new java.sql.Date(((java.util.Date) value).getTime()));
 					} else if (value instanceof java.sql.Date) {
 						targetPSInsert.setDate(p.getIndex(), (java.sql.Date) value);
+					} else if (value instanceof java.sql.Timestamp) {
+						targetPSInsert.setDate(p.getIndex(), new java.sql.Date(((java.sql.Timestamp) value).getTime()));
 					} else {
 						throw new Exception("value: " + value + " has not valid class: " + value.getClass().getName() + " for type Date");
 					}
 				} else if ("Timestamp".equals(className)) {
-					targetPSInsert.setTimestamp(p.getIndex(), (Timestamp) value);
+					Timestamp t = null;
+					if (value instanceof Date) {
+						t = new Timestamp(((java.util.Date) value).getTime());
+					} else if (value instanceof java.sql.Date) {
+						t = new Timestamp(((java.sql.Date) value).getTime());
+					} else if (value instanceof Timestamp) {
+						t = (Timestamp) value;
+					} else {
+						throw new Exception("value: " + value + " has not valid class: " + value.getClass().getName() + " for type Timestamp");
+					}
+					targetPSInsert.setTimestamp(p.getIndex(), t);
 				} else if ("Time".equals(className)) {
 					targetPSInsert.setTime(p.getIndex(), (Time) value);
 				} else if ("Boolean".equals(className)) {

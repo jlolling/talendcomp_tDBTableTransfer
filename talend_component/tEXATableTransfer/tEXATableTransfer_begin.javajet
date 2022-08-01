@@ -161,13 +161,8 @@
 			if (columnValue == null || columnValue.trim().isEmpty()) {
 				columnValue = "null";
 			}
-			String usageType = entry.get("USAGE_TYPE");
-			if (onlyUpdate) {
-				usageType = "2";
-			}
 			if (columnName != null && columnName.trim().isEmpty() == false) { %>
-	// third parameter usageType: 0=insert+update, 1=insert, 2=update
-	<%=cid%>.setFixedColumnValue(<%=columnName.trim()%>, <%=columnValue.trim()%>, <%=usageType%>);
+	<%=cid%>.setFixedColumnValue(<%=columnName.trim()%>, <%=columnValue.trim()%>);
 <%          } %>	      
 <%      } %>
 <%  } %>		

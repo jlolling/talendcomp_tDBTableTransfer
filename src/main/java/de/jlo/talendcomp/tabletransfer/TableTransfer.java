@@ -64,9 +64,9 @@ public class TableTransfer {
 	private Properties properties = new Properties();
 	private Connection sourceConnection;
 	private Connection targetConnection;
-	protected SQLStatement targetInsertStatement;
+	protected SQLStatement targetSQLStatement;
 	private Statement sourceSelectStatement;
-	protected PreparedStatement targetPSInsert;
+	protected PreparedStatement targetPreparedStatement;
 	private SQLDataModel sourceModel;
 	private static final Map<String, SQLDataModel> sqlModelCache = new HashMap<String, SQLDataModel>();
 	private SQLDataModel targetModel;
@@ -143,6 +143,7 @@ public class TableTransfer {
 	private boolean trimFields = false;
 	private String checkConnectionStatement = "select 1";
 	private boolean withinWriteAction = false;
+	private boolean runOnlyUpdates = false;
 	private boolean stripNoneUTF8Characters = false;
 	
 	public void addDbJavaTypeMapping(String dbType, String javaType) {
@@ -160,13 +161,18 @@ public class TableTransfer {
 	}
 	
 	public void setFixedColumnValue(String name, Object value) {
+		setFixedColumnValue(name, value, 0);
+	}
+	
+	public void setFixedColumnValue(String name, Object value, Integer usageType) {
 		if (name != null && name.trim().isEmpty() == false) {
 			ColumnValue cv = new ColumnValue(name.trim());
 			cv.setValue(value);
+			cv.setUsageType(usageType);
 			fixedColumnValueList.add(cv);
 		}
 	}
-	
+
 	public final int getCurrentCountInserts() {
 		return Math.max(countInsertsInDB, countFileRows);
 	}
@@ -312,6 +318,7 @@ public class TableTransfer {
 			final int countColumns = rsMeta.getColumnCount();
 			listSourceFieldNames = new ArrayList<String>(countColumns);
 			listSourceFieldTypeNames = new ArrayList<String>(countColumns);
+			// register field names from query
 			for (int i = 1; i <= countColumns; i++) {
 				String name = rsMeta.getColumnLabel(i);
 				if (name == null) {
@@ -339,7 +346,7 @@ public class TableTransfer {
 					debug("Name: " + name + ",  Type: " + type);
 				}
 			}
-			// add fixed column value names
+			// register fixed column value names
 			for (ColumnValue cv : fixedColumnValueList) {
 				listSourceFieldNames.add(cv.getColumnName().toLowerCase());
 				if (isDebugEnabled()) {
@@ -571,12 +578,12 @@ public class TableTransfer {
 						} else {
 							withinWriteAction = true;
 							prepareInsertStatement((Object[]) item);
-							targetPSInsert.addBatch();
+							targetPreparedStatement.addBatch();
 							countInsertsAdded++;
 							currentBatchCount++;
 							if (currentBatchCount == batchSize) {
 								debug("Write execute insert batch ends with recno: " + countInsertsAdded);
-								targetPSInsert.executeBatch();
+								targetPreparedStatement.executeBatch();
 								countInsertsInDB = countInsertsAdded;
 								if (doCommit) {
 									if (autocommit == false) {
@@ -644,7 +651,7 @@ public class TableTransfer {
 					if (isDebugEnabled()) {
 						debug("write execute final insert batch");
 					}
-					targetPSInsert.executeBatch();
+					targetPreparedStatement.executeBatch();
 					countInsertsInDB = countInsertsInDB + currentBatchCount;
 					if (doCommit) {
 						if (autocommit == false) {
@@ -682,7 +689,7 @@ public class TableTransfer {
 			}
 		} finally {
 			try {
-				targetPSInsert.close();
+				targetPreparedStatement.close();
 			} catch (SQLException e) {}
 			runningDb = false;
 			if (isDebugEnabled()) {
@@ -706,10 +713,11 @@ public class TableTransfer {
 			return row[index];
 		} else {
 			if (strictFieldMatching) {
+				// create human readable error message
 				StringBuilder sb = new StringBuilder();
 				sb.append("Following target columns does not have a matching column in the source query: ");
 				boolean firstLoop = true;
-				for (SQLPSParam p : targetInsertStatement.getParams()) {
+				for (SQLPSParam p : targetSQLStatement.getParams()) {
 					String targetColumnName = p.getName().toLowerCase();
 					if (listSourceFieldNames.contains(targetColumnName) == false) {
 						if (firstLoop) {
@@ -732,13 +740,14 @@ public class TableTransfer {
 				}
 				throw new Exception("Transfer into table: " + targetTable.getAbsoluteName() + " in strict mode failed: " + sb.toString());
 			} else {
+				// otherwise simply use null
 				return null;
 			}
 		}
 	}
 		
 	protected final void prepareInsertStatement(final Object[] row) throws Exception {
-		for (SQLPSParam p : targetInsertStatement.getParams()) {
+		for (SQLPSParam p : targetSQLStatement.getParams()) {
 			final Object value = getRowValue(p.getName(), row);
 			if (value != null) {
 				String className = outputClassMap.get(p.getIndex());
@@ -750,44 +759,40 @@ public class TableTransfer {
 					}
 				}
 				if ("BigDecimal".equals(className)) {
-					targetPSInsert.setBigDecimal(p.getIndex(), (BigDecimal) value);
+					targetPreparedStatement.setBigDecimal(p.getIndex(), (BigDecimal) value);
 				} else if ("BigInteger".equals(className)) {
-					targetPSInsert.setLong(p.getIndex(), ((BigInteger) value).longValue());
+					targetPreparedStatement.setLong(p.getIndex(), ((BigInteger) value).longValue());
 				} else if ("Double".equals(className)) {
-					targetPSInsert.setDouble(p.getIndex(), (Double) value);
+					targetPreparedStatement.setDouble(p.getIndex(), (Double) value);
 				} else if ("Float".equals(className)) {
-					targetPSInsert.setFloat(p.getIndex(), (Float) value);
+					targetPreparedStatement.setFloat(p.getIndex(), (Float) value);
 				} else if ("Long".equals(className)) {
-					targetPSInsert.setLong(p.getIndex(), (Long) value);
+					targetPreparedStatement.setLong(p.getIndex(), (Long) value);
 				} else if ("Integer".equals(className)) {
-					targetPSInsert.setInt(p.getIndex(), (Integer) value);
+					targetPreparedStatement.setInt(p.getIndex(), (Integer) value);
 				} else if ("Short".equals(className)) {
-					targetPSInsert.setShort(p.getIndex(), (Short) value);
+					targetPreparedStatement.setShort(p.getIndex(), (Short) value);
 				} else if ("String".equals(className)) {
-					targetPSInsert.setString(p.getIndex(), (String) value);
-				} else if ("Timestamp".equals(className) || "Date".equals(className)) {
-					Timestamp t = null;
+					targetPreparedStatement.setString(p.getIndex(), (String) value);
+				} else if ("Date".equals(className)) {
 					if (value instanceof java.util.Date) {
-						t = new Timestamp(((java.util.Date) value).getTime());
-					} else if (value instanceof java.sql.Date) {
-						t = new Timestamp(((java.sql.Date) value).getTime());
-					} else if (value instanceof Timestamp) {
-						t = (Timestamp) value;
+						targetPreparedStatement.setTimestamp(p.getIndex(), new java.sql.Timestamp(((java.util.Date) value).getTime()));
 					} else {
-						throw new Exception("value: " + value + " has not valid class: " + value.getClass().getName() + " for type Timestamp");
+						targetPreparedStatement.setTimestamp(p.getIndex(), new java.sql.Timestamp(((java.sql.Date) value).getTime()));
 					}
-					targetPSInsert.setTimestamp(p.getIndex(), t);
+				} else if ("Timestamp".equals(className)) {
+					targetPreparedStatement.setTimestamp(p.getIndex(), (Timestamp) value);
 				} else if ("Time".equals(className)) {
-					targetPSInsert.setTime(p.getIndex(), (Time) value);
+					targetPreparedStatement.setTime(p.getIndex(), (Time) value);
 				} else if ("Boolean".equals(className)) {
-					targetPSInsert.setBoolean(p.getIndex(), (Boolean) value);
+					targetPreparedStatement.setBoolean(p.getIndex(), (Boolean) value);
 				} else if ("String".equals(className)) {
-					targetPSInsert.setString(p.getIndex(), (String) value);
+					targetPreparedStatement.setString(p.getIndex(), (String) value);
 				} else {
-					targetPSInsert.setObject(p.getIndex(), value);
+					targetPreparedStatement.setObject(p.getIndex(), value);
 				}
 			} else {
-				targetPSInsert.setNull(p.getIndex(), targetTable.getField(p.getName()).getType());
+				targetPreparedStatement.setNull(p.getIndex(), targetTable.getField(p.getName()).getType());
 			}
 		}
 	}
@@ -827,7 +832,7 @@ public class TableTransfer {
 	public final void setup() throws Exception {
 		createSourceSelectStatement();
 		if (outputToTable) {
-			createTargetInsertStatement();
+			createTargetStatement();
 		}
 		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1000"));
 		final int fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "1000"));
@@ -872,6 +877,7 @@ public class TableTransfer {
 			if (sourceTable.isFieldsLoaded() == false) {
 				sourceTable.loadColumns(true);
 			}
+			// remove fields to be excluded
 			for (String exclFieldName : excludeFieldList) {
 				SQLField field = sourceTable.getField(exclFieldName);
 				if (field != null) {
@@ -920,6 +926,10 @@ public class TableTransfer {
 			if (targetTable == null) {
 				throw new Exception("Get information about target table: " + schemaName + "." + tableName + " not available");
 			}
+			if (targetTable.isFieldsLoaded() == false) {
+				targetTable.loadColumns(true);
+			}
+			// remove SQLFields which should be excluded
 			for (String exclFieldName : excludeFieldList) {
 				boolean exclude = true;
 				// take care we exclude a column only if we do not have a fixed value
@@ -932,8 +942,18 @@ public class TableTransfer {
 				if (exclude) {
 					SQLField field = targetTable.getField(exclFieldName);
 					if (field != null) {
+						// remove this field from table because
+						// the code generators takes the SQLTable for build sql code
 						targetTable.removeSQLField(field);
 					}
+				}
+			}
+			// configure usage type of SQLField according to fixed column value definition
+			for (ColumnValue cv : fixedColumnValueList) {
+				SQLField field = targetTable.getField(cv.getColumnName());
+				if (field != null) {
+					field.setUsageType(cv.getUsageType());
+					field.setIsFixedValue(true);
 				}
 			}
 		}
@@ -977,17 +997,18 @@ public class TableTransfer {
 		return fetchSize;
 	}
 	
-	protected PreparedStatement createTargetInsertStatement() throws Exception {
+	protected PreparedStatement createTargetStatement() throws Exception {
 		SQLTable table = getTargetSQLTable();
-		if (table.isFieldsLoaded() == false) {
-			table.loadColumns(true);
+		if (runOnlyUpdates) {
+			targetSQLStatement = getTargetCodeGenerator().buildUpdateSQLStatement(table, true);
+		} else {
+			targetSQLStatement = getTargetCodeGenerator().buildInsertSQLStatement(table, true);
 		}
-		targetInsertStatement = getTargetCodeGenerator().buildPSInsertSQLStatement(table, true);
 		if (isDebugEnabled()) {
-			debug("createTargetInsertStatement SQL:" + targetInsertStatement.getSQL());
+			debug("createTargetInsertStatement SQL:" + targetSQLStatement.getSQL());
 		}
-		targetPSInsert = targetConnection.prepareStatement(targetInsertStatement.getSQL());
-		return targetPSInsert;
+		targetPreparedStatement = targetConnection.prepareStatement(targetSQLStatement.getSQL());
+		return targetPreparedStatement;
 	}
 	
 	protected final String buildSourceWhereSQL() {
@@ -1050,7 +1071,7 @@ public class TableTransfer {
 		}
 	}
 	
-	public final void setupDataModels() throws Exception {
+	public void setupDataModels() throws Exception {
 		if (keepDataModels) {
 			synchronized (sqlModelCache) {
 				sourceModel = sqlModelCache.get("source_" + modelKey);
@@ -1116,8 +1137,8 @@ public class TableTransfer {
     	}
     }
     
-    public String getTargetInsertStatement() {
-    	return targetInsertStatement.getSQL();
+    public String getTargetStatement() {
+    	return targetSQLStatement.getSQL();
     }
     
 	public String getSourceQuery() {
@@ -1973,6 +1994,14 @@ public class TableTransfer {
 
 	public void setCheckConnectionStatement(String checkConnectionStatement) {
 		this.checkConnectionStatement = checkConnectionStatement;
+	}
+
+	public boolean isRunOnlyUpdates() {
+		return runOnlyUpdates;
+	}
+
+	public void setRunOnlyUpdates(boolean runOnlyUpdates) {
+		this.runOnlyUpdates = runOnlyUpdates;
 	}
 
 	public boolean isStripNoneUTF8Characters() {

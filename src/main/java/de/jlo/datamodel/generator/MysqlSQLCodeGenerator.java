@@ -22,11 +22,14 @@ import de.jlo.datamodel.SQLTable;
 
 public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 	
-	public SQLStatement buildPSInsertSQLStatement(SQLTable table, boolean fullName, boolean onConflictIgnore, boolean onConflictUpdate) {
+	public MysqlSQLCodeGenerator() {
+		setEnclosureChar("`");
+	}
+	
+	public SQLStatement buildInsertSQLStatement(SQLTable table, boolean fullName, boolean onConflictIgnore, boolean onConflictUpdate) {
     	setupEnclosureChar(table);
 		final SQLStatement sqlPs = new SQLStatement();
 		sqlPs.setPrepared(true);
-		int paramIndex = 0;
 		final StringBuilder sb = new StringBuilder();
 		if (onConflictIgnore) {
 			sb.append("insert ignore into ");
@@ -41,9 +44,15 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 		sb.append(" ("); 
 		SQLField field = null;
 		boolean hasNonePrimaryKeyFields = false;
+		boolean firstLoop = true;
 		for (int i = 0; i < table.getFieldCount(); i++) {
 			field = table.getFieldAt(i);
-			if (i > 0) {
+			if (field.getUsageType() == SQLField.USAGE_UPD_ONLY) {
+				continue;
+			}
+			if (firstLoop) {
+				firstLoop = false;
+			} else {
 				sb.append(',');
 			}
 			sb.append(getEncapsulatedName(field.getName()));
@@ -52,13 +61,20 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 			}
 		}
 		sb.append(")\n values("); 
+		int paramIndex = 0;
 		SQLPSParam psParam = null;
+		firstLoop = true;
 		for (int i = 0; i < table.getFieldCount(); i++) {
 			field = table.getFieldAt(i);
-			if (i > 0) {
+			if (field.getUsageType() == SQLField.USAGE_UPD_ONLY) {
+				continue;
+			}
+			if (firstLoop) {
+				firstLoop = false;
+			} else {
 				sb.append(',');
 			}
-			sb.append("?"); 
+			sb.append("?");
 			psParam = new SQLPSParam();
 			psParam.setName(field.getName());
 			psParam.setIndex(++paramIndex);
@@ -69,9 +85,12 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 		if (onConflictUpdate && hasNonePrimaryKeyFields) {
 			sb.append("\n on duplicate key update ");
 			// build assignment for the none-key fields
-			boolean firstLoop = true;
+			firstLoop = true;
 			for (int i = 0; i < table.getFieldCount(); i++) {
 				field = table.getFieldAt(i);
+				if (field.getUsageType() == SQLField.USAGE_INS_ONLY) {
+					continue;
+				}
 				if (field.isPrimaryKey() == false) {
 					if (firstLoop) {
 						firstLoop = false;
@@ -79,10 +98,21 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 						sb.append(',');
 					}
 					sb.append("\n\t");
-					sb.append(field.getName());
-					sb.append(" = values(");
-					sb.append(field.getName());
-					sb.append(")");
+					sb.append(getEncapsulatedName(field.getName()));
+					sb.append(" = ");
+					if (field.isFixedValue()) {
+						sb.append("?");
+						psParam = new SQLPSParam();
+						psParam.setName(field.getName());
+						psParam.setIndex(++paramIndex);
+						psParam.setBasicType(field.getBasicType());
+						sqlPs.addParam(psParam);
+					} else {
+						// if the field comes from the normal read fields
+						sb.append("values(");
+						sb.append(getEncapsulatedName(field.getName()));
+						sb.append(")");
+					}
 				}
 			}
 		}

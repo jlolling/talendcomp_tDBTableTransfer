@@ -66,6 +66,8 @@ public class SQLCodeGenerator {
 		keywordList.add("table");
 		keywordList.add("view");
 		keywordList.add("date");
+		keywordList.add("time");
+		keywordList.add("datetime");
 		keywordList.add("timestamp");
 		keywordList.add("key");
 		keywordList.add("value");
@@ -535,7 +537,7 @@ public class SQLCodeGenerator {
         return sb.toString();
 	}
 
-	public String buildPSInsertStatement(SQLTable table, boolean fullName) {
+	public String buildInsertPreparedStatement(SQLTable table, boolean fullName) {
     	setupEnclosureChar(table);
 		final StringBuilder sb = new StringBuilder();
 		sb.append("insert into ");
@@ -565,7 +567,7 @@ public class SQLCodeGenerator {
 		return sb.toString();
 	}
 
-	public SQLStatement buildPSInsertSQLStatement(SQLTable table, boolean fullName) {
+	public SQLStatement buildInsertSQLStatement(SQLTable table, boolean fullName) {
     	setupEnclosureChar(table);
 		final SQLStatement sqlPs = new SQLStatement();
 		sqlPs.setPrepared(true);
@@ -617,7 +619,7 @@ public class SQLCodeGenerator {
 		return sb.toString();
 	}
 
-	public String buildPSCountStatement(SQLTable table, boolean fullName) {
+	public String buildCountPreparedStatement(SQLTable table, boolean fullName) {
     	setupEnclosureChar(table);
 		final StringBuilder sb = new StringBuilder();
 		sb.append("select\n count(*)\nfrom ");
@@ -644,7 +646,7 @@ public class SQLCodeGenerator {
 		return sb.toString();
 	}
 
-	public SQLStatement buildPSCountSQLStatement(SQLTable table, boolean fullName) {
+	public SQLStatement buildCountSQLStatement(SQLTable table, boolean fullName) {
     	setupEnclosureChar(table);
 		final StringBuilder sb = new StringBuilder();
 		final SQLStatement sqlPs = new SQLStatement();
@@ -685,7 +687,7 @@ public class SQLCodeGenerator {
 		return sqlPs;
 	}
 
-	public String buildPSUpdateStatement(SQLTable table, boolean fullName) {
+	public String buildUpdatePreparedStatement(SQLTable table, boolean fullName) {
     	setupEnclosureChar(table);
 		final StringBuilder sb = new StringBuilder();
 		sb.append("update ");
@@ -727,7 +729,7 @@ public class SQLCodeGenerator {
 		return sb.toString();
 	}
 
-	public String buildPSDeleteStatement(SQLTable table, boolean fullName) {
+	public String buildDeletePreparedStatement(SQLTable table, boolean fullName) {
     	setupEnclosureChar(table);
 		final StringBuilder sb = new StringBuilder();
 		sb.append("delete from ");
@@ -756,7 +758,7 @@ public class SQLCodeGenerator {
 		return sb.toString();
 	}
 
-	public SQLStatement buildPSUpdateSQLStatement(SQLTable table, boolean fullName) {
+	public SQLStatement buildUpdateSQLStatement(SQLTable table, boolean fullName) {
     	setupEnclosureChar(table);
 		final SQLStatement sqlPs = new SQLStatement();
 		sqlPs.setPrepared(true);

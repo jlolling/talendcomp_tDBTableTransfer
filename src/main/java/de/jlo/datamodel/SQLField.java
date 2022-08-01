@@ -23,7 +23,11 @@ public final class SQLField extends SQLObject implements Comparable<SQLField>, F
 	private String defaultValue;
 	private boolean isSerial = false;
 	private Class<?> javaClass;
-
+	public static final int USAGE_INS_UPD = 0;
+	public static final int USAGE_INS_ONLY = 1;
+	public static final int USAGE_UPD_ONLY = 2;
+	private int usageType = USAGE_INS_UPD;
+	private boolean isFixedValue = false;
 	static public final int ORACLE_ROWID = -100;
 //	static public final int BASICTYPE_CHAR = 0;
 //	static public final int BASICTYPE_DATE = 1;
@@ -309,6 +313,26 @@ public final class SQLField extends SQLObject implements Comparable<SQLField>, F
 	@Override
 	public Class<?> getJavaClass() {
 		return javaClass;
+	}
+
+	public int getUsageType() {
+		return usageType;
+	}
+
+	public void setUsageType(int usageType) {
+		if (usageType == USAGE_INS_UPD || usageType == USAGE_INS_ONLY || usageType == USAGE_UPD_ONLY) {
+			this.usageType = usageType;
+		} else {
+			throw new IllegalArgumentException("Invalid usageType: " + usageType + " for column: " + getName() + " in table: " + getTableName());
+		}
+	}
+
+	public boolean isFixedValue() {
+		return isFixedValue;
+	}
+
+	public void setIsFixedValue(boolean isFixedValue) {
+		this.isFixedValue = isFixedValue;
 	}
 	
 }

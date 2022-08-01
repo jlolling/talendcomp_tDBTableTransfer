@@ -15,10 +15,13 @@
  */
 package de.jlo.talendcomp.tabletransfer;
 
+import de.jlo.datamodel.SQLField;
+
 public class ColumnValue {
 
 	private String columnName;
 	private Object value;
+	private int usageType = 0;
 	
 	public ColumnValue(String name) {
 		if (name == null || name.trim().isEmpty()) {
@@ -38,5 +41,26 @@ public class ColumnValue {
 	public void setValue(Object value) {
 		this.value = value;
 	}
-	
+
+	public int getUsageType() {
+		return usageType;
+	}
+
+	/**
+	 * set the usage of this value
+	 * 0 = insert+update
+	 * 1 = insert only
+	 * 2 = update only
+	 * @param usageType
+	 */
+	public void setUsageType(Integer usageType) {
+		if (usageType == null) {
+			throw new IllegalArgumentException("usageType of column: " + columnName + " cannot be null and must be 0 or 1 or 2");
+		}
+		if (usageType == SQLField.USAGE_INS_UPD || usageType == SQLField.USAGE_INS_ONLY || usageType == SQLField.USAGE_UPD_ONLY) {
+			this.usageType = usageType;
+		} else {
+			throw new IllegalArgumentException("Invalid usageType: " + usageType + " for column: " + columnName);
+		}
+	}	
 }

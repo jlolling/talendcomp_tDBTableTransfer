@@ -18,7 +18,6 @@ package de.jlo.talendcomp.tabletransfer;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-import de.jlo.datamodel.SQLTable;
 import de.jlo.datamodel.generator.PostgresqlSQLCodeGenerator;
 
 public class PostgresqlTableTransfer extends TableTransfer {
@@ -37,17 +36,17 @@ public class PostgresqlTableTransfer extends TableTransfer {
 	}
 
 	@Override
-	protected PreparedStatement createTargetInsertStatement() throws Exception {
-		SQLTable table = getTargetSQLTable();
-		if (table.isFieldsLoaded() == false) {
-			table.loadColumns(true);
+	protected PreparedStatement createTargetStatement() throws Exception {
+		if (isRunOnlyUpdates()) {
+			targetSQLStatement = getTargetCodeGenerator().buildUpdateSQLStatement(getTargetSQLTable(), true);
+		} else {
+			targetSQLStatement = getTargetCodeGenerator().buildInsertSQLStatement(getTargetSQLTable(), true, onConflictIgnore, onConflictUpdate);
 		}
-		targetInsertStatement = getTargetCodeGenerator().buildPSInsertSQLStatement(table, true, onConflictIgnore, onConflictUpdate);
 		if (isDebugEnabled()) {
-			debug("createTargetInsertStatement SQL:" + targetInsertStatement.getSQL());
+			debug("createTargetStatement SQL:" + targetSQLStatement.getSQL());
 		}
-		targetPSInsert = getTargetConnection().prepareStatement(targetInsertStatement.getSQL());
-		return targetPSInsert;
+		targetPreparedStatement = getTargetConnection().prepareStatement(targetSQLStatement.getSQL());
+		return targetPreparedStatement;
 	}
 
 	public boolean isOnConflictIgnore() {

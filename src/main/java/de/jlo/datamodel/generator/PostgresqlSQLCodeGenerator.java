@@ -22,11 +22,10 @@ import de.jlo.datamodel.SQLTable;
 
 public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 	
-	public SQLStatement buildPSInsertSQLStatement(SQLTable table, boolean fullName, boolean onConflictIgnore, boolean onConflictUpdate) {
+	public SQLStatement buildInsertSQLStatement(SQLTable table, boolean fullName, boolean onConflictIgnore, boolean onConflictUpdate) {
     	setupEnclosureChar(table);
 		final SQLStatement sqlPs = new SQLStatement();
 		sqlPs.setPrepared(true);
-		int paramIndex = 0;
 		final StringBuilder sb = new StringBuilder();
 		sb.append("insert into ");
 		if (fullName) {
@@ -38,9 +37,15 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 		SQLField field = null;
 		boolean hasPrimaryKey = false;
 		boolean hasFieldsNotPartOfPK = false;
+		boolean firstLoop = true;
 		for (int i = 0; i < table.getFieldCount(); i++) {
 			field = table.getFieldAt(i);
-			if (i > 0) {
+			if (field.getUsageType() == SQLField.USAGE_UPD_ONLY) {
+				continue;
+			}
+			if (firstLoop) {
+				firstLoop = false;
+			} else {
 				sb.append(',');
 			}
 			sb.append(getEncapsulatedName(field.getName()));
@@ -50,11 +55,18 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 				hasFieldsNotPartOfPK = true;
 			}
 		}
-		sb.append(")\n values("); 
+		sb.append(")\n values ("); 
+		int paramIndex = 0;
 		SQLPSParam psParam = null;
+		firstLoop = true;
 		for (int i = 0; i < table.getFieldCount(); i++) {
 			field = table.getFieldAt(i);
-			if (i > 0) {
+			if (field.getUsageType() != SQLField.USAGE_UPD_ONLY) {
+				continue;
+			}
+			if (firstLoop) {
+				firstLoop = false;
+			} else {
 				sb.append(',');
 			}
 			sb.append("?"); 
@@ -64,11 +76,11 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 			psParam.setBasicType(field.getBasicType());
 			sqlPs.addParam(psParam);
 		}
-		sb.append(")"); 
+		sb.append(")");
 		if (onConflictIgnore || onConflictUpdate) {
 			if (hasPrimaryKey) {
 				sb.append("\n on conflict (");
-				boolean firstLoop = true;
+				firstLoop = true;
 				for (int i = 0; i < table.getFieldCount(); i++) {
 					field = table.getFieldAt(i);
 					if (field.isPrimaryKey()) {
@@ -90,6 +102,9 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 					firstLoop = true;
 					for (int i = 0; i < table.getFieldCount(); i++) {
 						field = table.getFieldAt(i);
+						if (field.getUsageType() == SQLField.USAGE_INS_ONLY) {
+							continue;
+						}
 						if (field.isPrimaryKey() == false) {
 							if (firstLoop) {
 								firstLoop = false;
@@ -97,9 +112,20 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 								sb.append(',');
 							}
 							sb.append("\n\t");
-							sb.append(getEncapsulatedName(field.getName()));
-							sb.append(" = excluded.");
-							sb.append(getEncapsulatedName(field.getName()));
+							sb.append(getEncapsulatedName(getEncapsulatedName(field.getName())));
+							sb.append(" = ");
+							if (field.isFixedValue()) {
+								sb.append("?");
+								psParam = new SQLPSParam();
+								psParam.setName(field.getName());
+								psParam.setIndex(++paramIndex);
+								psParam.setBasicType(field.getBasicType());
+								sqlPs.addParam(psParam);
+							} else {
+								// if the field comes from the normal read fields
+								sb.append("excluded.");
+								sb.append(getEncapsulatedName(getEncapsulatedName(field.getName())));
+							}
 						}
 					}
 				}

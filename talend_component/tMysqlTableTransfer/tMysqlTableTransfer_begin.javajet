@@ -29,8 +29,8 @@
 	String logoutInsert = ElementParameterParser.getValue(node, "__LOG_INSERT_SQL__");
  	String sourceConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_SOURCE__");
     String targetConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_TARGET__");
-    String truncateTarget = ElementParameterParser.getValue(node, "__TARGET_TRUNCATE__");
-    String disableKeys = ElementParameterParser.getValue(node, "__TARGET_DISABLE_KEYS__");
+    boolean truncateTarget = "true".equals(ElementParameterParser.getValue(node, "__TARGET_TRUNCATE__"));
+    boolean disableKeys = "true".equals(ElementParameterParser.getValue(node, "__TARGET_DISABLE_KEYS__"));
     boolean allowExcludeColumns = "true".equals(ElementParameterParser.getValue(node, "__ALLOW_EXCLUDE_COLUMNS__"));
     List<Map<String, String>> excludeFieldList = null;
     if (allowExcludeColumns) {
@@ -63,6 +63,7 @@
 	if (valueRangeColumn == null || valueRangeColumn.trim().isEmpty()) {
 		valueRangeColumn = "null";
 	}
+    boolean onlyUpdate = "true".equals(ElementParameterParser.getValue(node, "__ONLY_UPDATE_NO_INSERT__"));
 	String onConflict = ElementParameterParser.getValue(node, "__ON_CONFLICT__");
     boolean log4jEnabled = "true".equals(org.talend.core.model.process.ElementParameterParser.getValue(node.getProcess(), "__LOG4J_ACTIVATE__")) && 
    							"JOBLET".equals(node.getComponent().getComponentType().toString()) == false;
@@ -73,13 +74,16 @@
 	<%=cid%>.setLogger(log);
 <%  } %>
 	<%=cid%>.setDoCommit(<%=doCommit%>);
-<%	if ("IGNORE".equals(onConflict)) { %>
+	<%=cid%>.setRunOnlyUpdates(<%=onlyUpdate%>);
+<%	if (onlyUpdate == false) {
+		if ("IGNORE".equals(onConflict)) { %>
 	<%=cid%>.setOnConflictIgnore(true);
-<%	} else if ("UPDATE".equals(onConflict)) { %>
+<%		} else if ("UPDATE".equals(onConflict)) { %>
 	<%=cid%>.setOnConflictUpdate(true);
-<%  } else { %>
+<%  	} else { %>
 	<%=cid%>.setOnConflictIgnore(false);
 	<%=cid%>.setOnConflictUpdate(false);
+<%  	} %>
 <%  } %>
 <%  if (typeMap != null) {
 		for (Map<String, String> map : typeMap) {
@@ -169,10 +173,14 @@
 				columnValue = "null";
 			}
 			String usageType = entry.get("USAGE_TYPE");
+			if (onlyUpdate) {
+				usageType = "2";
+			}
 			if (columnName != null && columnName.trim().isEmpty() == false) { %>
+	// third parameter usageType: 0=insert+update, 1=insert, 2=update
 	<%=cid%>.setFixedColumnValue(<%=columnName.trim()%>, <%=columnValue.trim()%>, <%=usageType%>);
-<%       } %>	      
-<%    } %>
+<%          } %>	      
+<%      } %>
 <%  } %>		
 <%	 if (backupData && backupFile.trim().isEmpty() == false) { %>
 	// setup backup
@@ -198,13 +206,13 @@
 <%  } %>
 <%	 if (outputToTable && "true".equalsIgnoreCase(logoutInsert)) { %>
     // log target statement
-	<%=cid%>.info("Target insert statement:\n" + <%=cid%>.getTargetInsertStatement());
+	<%=cid%>.info("Target statement:\n" + <%=cid%>.getTargetStatement());
 <%	 } %>
-<%  if (outputToTable && "true".equalsIgnoreCase(truncateTarget)) { %>
+<%  if (outputToTable && truncateTarget &&  onlyUpdate == false) { %>
     <%=cid%>.info("truncate target table...");
 	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
 <%	 } %>
-<%  if (outputToTable && "true".equalsIgnoreCase(disableKeys)) { %>
+<%  if (outputToTable && disableKeys && onlyUpdate == false) { %>
     <%=cid%>.info("disable keys on target table...");
 	<%=cid%>.executeSQLOnTarget("alter table " + <%=cid%>.getTargetTable() + " disable keys");
 <%	 } %>

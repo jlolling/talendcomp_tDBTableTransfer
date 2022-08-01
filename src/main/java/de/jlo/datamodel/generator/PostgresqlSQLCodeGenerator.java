@@ -22,7 +22,7 @@ import de.jlo.datamodel.SQLTable;
 
 public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 	
-	public SQLStatement buildPSInsertSQLStatement(SQLTable table, boolean fullName, boolean onConflictIgnore, boolean onConflictUpdate) {
+	public SQLStatement buildInsertSQLStatement(SQLTable table, boolean fullName, boolean onConflictIgnore, boolean onConflictUpdate) {
     	setupEnclosureChar(table);
 		final SQLStatement sqlPs = new SQLStatement();
 		sqlPs.setPrepared(true);
@@ -56,7 +56,7 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 				hasFieldsNotPartOfPK = true;
 			}
 		}
-		sb.append(")\n values("); 
+		sb.append(")\n values ("); 
 		SQLPSParam psParam = null;
 		firstLoop = true;
 		for (int i = 0; i < table.getFieldCount(); i++) {
@@ -83,9 +83,6 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 				firstLoop = true;
 				for (int i = 0; i < table.getFieldCount(); i++) {
 					field = table.getFieldAt(i);
-					if (field.getUsageType() == SQLField.USAGE_UPD_ONLY) {
-						continue;
-					}
 					if (field.isPrimaryKey()) {
 						if (firstLoop) {
 							firstLoop = false;

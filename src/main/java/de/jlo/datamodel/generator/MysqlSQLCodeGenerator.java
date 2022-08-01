@@ -22,7 +22,7 @@ import de.jlo.datamodel.SQLTable;
 
 public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 	
-	public SQLStatement buildPSInsertSQLStatement(SQLTable table, boolean fullName, boolean onConflictIgnore, boolean onConflictUpdate) {
+	public SQLStatement buildInsertSQLStatement(SQLTable table, boolean fullName, boolean onConflictIgnore, boolean onConflictUpdate) {
     	setupEnclosureChar(table);
 		final SQLStatement sqlPs = new SQLStatement();
 		sqlPs.setPrepared(true);

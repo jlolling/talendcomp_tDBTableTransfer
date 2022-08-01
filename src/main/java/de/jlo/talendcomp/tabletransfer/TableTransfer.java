@@ -64,9 +64,9 @@ public class TableTransfer {
 	private Properties properties = new Properties();
 	private Connection sourceConnection;
 	private Connection targetConnection;
-	protected SQLStatement targetInsertStatement;
+	protected SQLStatement targetSQLStatement;
 	private Statement sourceSelectStatement;
-	protected PreparedStatement targetPSInsert;
+	protected PreparedStatement targetPreparedStatement;
 	private SQLDataModel sourceModel;
 	private static final Map<String, SQLDataModel> sqlModelCache = new HashMap<String, SQLDataModel>();
 	private SQLDataModel targetModel;
@@ -143,6 +143,7 @@ public class TableTransfer {
 	private boolean trimFields = false;
 	private String checkConnectionStatement = "select 1";
 	private boolean withinWriteAction = false;
+	private boolean runOnlyUpdates = false;
 	
 	public void addDbJavaTypeMapping(String dbType, String javaType) {
 		if (dbType != null && dbType.trim().isEmpty() == false) {
@@ -574,12 +575,12 @@ public class TableTransfer {
 						} else {
 							withinWriteAction = true;
 							prepareInsertStatement((Object[]) item);
-							targetPSInsert.addBatch();
+							targetPreparedStatement.addBatch();
 							countInsertsAdded++;
 							currentBatchCount++;
 							if (currentBatchCount == batchSize) {
 								debug("Write execute insert batch ends with recno: " + countInsertsAdded);
-								targetPSInsert.executeBatch();
+								targetPreparedStatement.executeBatch();
 								countInsertsInDB = countInsertsAdded;
 								if (doCommit) {
 									if (autocommit == false) {
@@ -647,7 +648,7 @@ public class TableTransfer {
 					if (isDebugEnabled()) {
 						debug("write execute final insert batch");
 					}
-					targetPSInsert.executeBatch();
+					targetPreparedStatement.executeBatch();
 					countInsertsInDB = countInsertsInDB + currentBatchCount;
 					if (doCommit) {
 						if (autocommit == false) {
@@ -685,7 +686,7 @@ public class TableTransfer {
 			}
 		} finally {
 			try {
-				targetPSInsert.close();
+				targetPreparedStatement.close();
 			} catch (SQLException e) {}
 			runningDb = false;
 			if (isDebugEnabled()) {
@@ -713,7 +714,7 @@ public class TableTransfer {
 				StringBuilder sb = new StringBuilder();
 				sb.append("Following target columns does not have a matching column in the source query: ");
 				boolean firstLoop = true;
-				for (SQLPSParam p : targetInsertStatement.getParams()) {
+				for (SQLPSParam p : targetSQLStatement.getParams()) {
 					String targetColumnName = p.getName().toLowerCase();
 					if (listSourceFieldNames.contains(targetColumnName) == false) {
 						if (firstLoop) {
@@ -745,7 +746,7 @@ public class TableTransfer {
 	
 	
 	protected final void prepareInsertStatement(final Object[] row) throws Exception {
-		for (SQLPSParam p : targetInsertStatement.getParams()) {
+		for (SQLPSParam p : targetSQLStatement.getParams()) {
 			final Object value = getRowValue(p.getName(), row);
 			if (value != null) {
 				String className = outputClassMap.get(p.getIndex());
@@ -757,40 +758,40 @@ public class TableTransfer {
 					}
 				}
 				if ("BigDecimal".equals(className)) {
-					targetPSInsert.setBigDecimal(p.getIndex(), (BigDecimal) value);
+					targetPreparedStatement.setBigDecimal(p.getIndex(), (BigDecimal) value);
 				} else if ("BigInteger".equals(className)) {
-					targetPSInsert.setLong(p.getIndex(), ((BigInteger) value).longValue());
+					targetPreparedStatement.setLong(p.getIndex(), ((BigInteger) value).longValue());
 				} else if ("Double".equals(className)) {
-					targetPSInsert.setDouble(p.getIndex(), (Double) value);
+					targetPreparedStatement.setDouble(p.getIndex(), (Double) value);
 				} else if ("Float".equals(className)) {
-					targetPSInsert.setFloat(p.getIndex(), (Float) value);
+					targetPreparedStatement.setFloat(p.getIndex(), (Float) value);
 				} else if ("Long".equals(className)) {
-					targetPSInsert.setLong(p.getIndex(), (Long) value);
+					targetPreparedStatement.setLong(p.getIndex(), (Long) value);
 				} else if ("Integer".equals(className)) {
-					targetPSInsert.setInt(p.getIndex(), (Integer) value);
+					targetPreparedStatement.setInt(p.getIndex(), (Integer) value);
 				} else if ("Short".equals(className)) {
-					targetPSInsert.setShort(p.getIndex(), (Short) value);
+					targetPreparedStatement.setShort(p.getIndex(), (Short) value);
 				} else if ("String".equals(className)) {
-					targetPSInsert.setString(p.getIndex(), (String) value);
+					targetPreparedStatement.setString(p.getIndex(), (String) value);
 				} else if ("Date".equals(className)) {
 					if (value instanceof java.util.Date) {
-						targetPSInsert.setDate(p.getIndex(), new java.sql.Date(((java.util.Date) value).getTime()));
+						targetPreparedStatement.setDate(p.getIndex(), new java.sql.Date(((java.util.Date) value).getTime()));
 					} else {
-						targetPSInsert.setDate(p.getIndex(), (java.sql.Date) value);
+						targetPreparedStatement.setDate(p.getIndex(), (java.sql.Date) value);
 					}
 				} else if ("Timestamp".equals(className)) {
-					targetPSInsert.setTimestamp(p.getIndex(), (Timestamp) value);
+					targetPreparedStatement.setTimestamp(p.getIndex(), (Timestamp) value);
 				} else if ("Time".equals(className)) {
-					targetPSInsert.setTime(p.getIndex(), (Time) value);
+					targetPreparedStatement.setTime(p.getIndex(), (Time) value);
 				} else if ("Boolean".equals(className)) {
-					targetPSInsert.setBoolean(p.getIndex(), (Boolean) value);
+					targetPreparedStatement.setBoolean(p.getIndex(), (Boolean) value);
 				} else if ("String".equals(className)) {
-					targetPSInsert.setString(p.getIndex(), (String) value);
+					targetPreparedStatement.setString(p.getIndex(), (String) value);
 				} else {
-					targetPSInsert.setObject(p.getIndex(), value);
+					targetPreparedStatement.setObject(p.getIndex(), value);
 				}
 			} else {
-				targetPSInsert.setNull(p.getIndex(), targetTable.getField(p.getName()).getType());
+				targetPreparedStatement.setNull(p.getIndex(), targetTable.getField(p.getName()).getType());
 			}
 		}
 	}
@@ -830,7 +831,7 @@ public class TableTransfer {
 	public final void setup() throws Exception {
 		createSourceSelectStatement();
 		if (outputToTable) {
-			createTargetInsertStatement();
+			createTargetStatement();
 		}
 		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1000"));
 		final int fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "1000"));
@@ -924,6 +925,9 @@ public class TableTransfer {
 			if (targetTable == null) {
 				throw new Exception("Get information about target table: " + schemaName + "." + tableName + " not available");
 			}
+			if (targetTable.isFieldsLoaded() == false) {
+				targetTable.loadColumns(true);
+			}
 			// remove SQLFields which should be excluded
 			for (String exclFieldName : excludeFieldList) {
 				boolean exclude = true;
@@ -991,17 +995,18 @@ public class TableTransfer {
 		return fetchSize;
 	}
 	
-	protected PreparedStatement createTargetInsertStatement() throws Exception {
+	protected PreparedStatement createTargetStatement() throws Exception {
 		SQLTable table = getTargetSQLTable();
-		if (table.isFieldsLoaded() == false) {
-			table.loadColumns(true);
+		if (runOnlyUpdates) {
+			targetSQLStatement = getTargetCodeGenerator().buildUpdateSQLStatement(table, true);
+		} else {
+			targetSQLStatement = getTargetCodeGenerator().buildInsertSQLStatement(table, true);
 		}
-		targetInsertStatement = getTargetCodeGenerator().buildPSInsertSQLStatement(table, true);
 		if (isDebugEnabled()) {
-			debug("createTargetInsertStatement SQL:" + targetInsertStatement.getSQL());
+			debug("createTargetInsertStatement SQL:" + targetSQLStatement.getSQL());
 		}
-		targetPSInsert = targetConnection.prepareStatement(targetInsertStatement.getSQL());
-		return targetPSInsert;
+		targetPreparedStatement = targetConnection.prepareStatement(targetSQLStatement.getSQL());
+		return targetPreparedStatement;
 	}
 	
 	protected final String buildSourceWhereSQL() {
@@ -1130,8 +1135,8 @@ public class TableTransfer {
     	}
     }
     
-    public String getTargetInsertStatement() {
-    	return targetInsertStatement.getSQL();
+    public String getTargetStatement() {
+    	return targetSQLStatement.getSQL();
     }
     
 	public String getSourceQuery() {
@@ -1987,6 +1992,14 @@ public class TableTransfer {
 
 	public void setCheckConnectionStatement(String checkConnectionStatement) {
 		this.checkConnectionStatement = checkConnectionStatement;
+	}
+
+	public boolean isRunOnlyUpdates() {
+		return runOnlyUpdates;
+	}
+
+	public void setRunOnlyUpdates(boolean runOnlyUpdates) {
+		this.runOnlyUpdates = runOnlyUpdates;
 	}
 
 }

@@ -29,7 +29,7 @@
 	String logoutInsert = ElementParameterParser.getValue(node, "__LOG_INSERT_SQL__");
  	String sourceConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_SOURCE__");
     String targetConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_TARGET__");
-    String truncateTarget = ElementParameterParser.getValue(node, "__TARGET_TRUNCATE__");
+    boolean truncateTarget = "true".equals(ElementParameterParser.getValue(node, "__TARGET_TRUNCATE__"));
     boolean allowExcludeColumns = "true".equals(ElementParameterParser.getValue(node, "__ALLOW_EXCLUDE_COLUMNS__"));
     List<Map<String, String>> excludeFieldList = null;
     if (allowExcludeColumns) {
@@ -62,6 +62,7 @@
 	if (valueRangeColumn == null || valueRangeColumn.trim().isEmpty()) {
 		valueRangeColumn = "null";
 	}
+    boolean onlyUpdate = "true".equals(ElementParameterParser.getValue(node, "__ONLY_UPDATE_NO_INSERT__"));
 	String onConflict = ElementParameterParser.getValue(node, "__ON_CONFLICT__");
     boolean log4jEnabled = "true".equals(org.talend.core.model.process.ElementParameterParser.getValue(node.getProcess(), "__LOG4J_ACTIVATE__")) && 
    							"JOBLET".equals(node.getComponent().getComponentType().toString()) == false;
@@ -72,13 +73,16 @@
 	<%=cid%>.setLogger(log);
 <%  } %>
 	<%=cid%>.setDoCommit(<%=doCommit%>);
-<%	if ("IGNORE".equals(onConflict)) { %>
+	<%=cid%>.setRunOnlyUpdates(<%=onlyUpdate%>);
+<%	if (onlyUpdate == false) {
+		if ("IGNORE".equals(onConflict)) { %>
 	<%=cid%>.setOnConflictIgnore(true);
-<%	} else if ("UPDATE".equals(onConflict)) { %>
+<%		} else if ("UPDATE".equals(onConflict)) { %>
 	<%=cid%>.setOnConflictUpdate(true);
-<%  } else { %>
+<%  	} else { %>
 	<%=cid%>.setOnConflictIgnore(false);
 	<%=cid%>.setOnConflictUpdate(false);
+<%  	} %>
 <%  } %>
 <%  if (typeMap != null) {
 		for (Map<String, String> map : typeMap) {
@@ -165,7 +169,11 @@
 			String columnName = entry.get("COLUMN_NAME");
 			String columnValue = entry.get("COLUMN_VALUE");
 			String usageType = entry.get("USAGE_TYPE");
+			if (onlyUpdate) {
+				usageType = "2";
+			}
 			if (columnName != null && columnName.trim().isEmpty() == false) { %>
+	// third parameter usageType: 0=insert+update, 1=insert, 2=update
 	<%=cid%>.setFixedColumnValue(<%=columnName.trim()%>, <%=columnValue.trim()%>, <%=usageType%>);
 <%          } %>	      
 <%      } %>
@@ -194,8 +202,8 @@
 <%  } %>
 <%	 if (outputToTable && "true".equalsIgnoreCase(logoutInsert)) { %>
 	// log target statement
-	<%=cid%>.info("Target insert statement:" + <%=cid%>.getTargetInsertStatement());
+	<%=cid%>.info("Target statement:" + <%=cid%>.getTargetStatement());
 <%	} %>
-<%  if (outputToTable && "true".equalsIgnoreCase(truncateTarget)) { %>
+<%  if (outputToTable && truncateTarget && onlyUpdate == false) { %>
 	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
 <%	} %>

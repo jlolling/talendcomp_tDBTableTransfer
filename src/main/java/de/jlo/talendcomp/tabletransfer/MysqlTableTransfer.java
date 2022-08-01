@@ -36,13 +36,17 @@ public class MysqlTableTransfer extends TableTransfer {
 	}
 
 	@Override
-	protected PreparedStatement createTargetInsertStatement() throws Exception {
-		targetInsertStatement = getTargetCodeGenerator().buildPSInsertSQLStatement(getTargetSQLTable(), true, onConflictIgnore, onConflictUpdate);
-		if (isDebugEnabled()) {
-			debug("createTargetInsertStatement SQL:" + targetInsertStatement.getSQL());
+	protected PreparedStatement createTargetStatement() throws Exception {
+		if (isRunOnlyUpdates()) {
+			targetSQLStatement = getTargetCodeGenerator().buildUpdateSQLStatement(getTargetSQLTable(), true);
+		} else {
+			targetSQLStatement = getTargetCodeGenerator().buildInsertSQLStatement(getTargetSQLTable(), true, onConflictIgnore, onConflictUpdate);
 		}
-		targetPSInsert = getTargetConnection().prepareStatement(targetInsertStatement.getSQL());
-		return targetPSInsert;
+		if (isDebugEnabled()) {
+			debug("createTargetStatement SQL:" + targetSQLStatement.getSQL());
+		}
+		targetPreparedStatement = getTargetConnection().prepareStatement(targetSQLStatement.getSQL());
+		return targetPreparedStatement;
 	}
 
 	public boolean isOnConflictIgnore() {

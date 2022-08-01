@@ -775,9 +775,9 @@ public class TableTransfer {
 					targetPreparedStatement.setString(p.getIndex(), (String) value);
 				} else if ("Date".equals(className)) {
 					if (value instanceof java.util.Date) {
-						targetPreparedStatement.setDate(p.getIndex(), new java.sql.Date(((java.util.Date) value).getTime()));
+						targetPreparedStatement.setTimestamp(p.getIndex(), new java.sql.Timestamp(((java.util.Date) value).getTime()));
 					} else {
-						targetPreparedStatement.setDate(p.getIndex(), (java.sql.Date) value);
+						targetPreparedStatement.setTimestamp(p.getIndex(), new java.sql.Timestamp(((java.sql.Date) value).getTime()));
 					}
 				} else if ("Timestamp".equals(className)) {
 					targetPreparedStatement.setTimestamp(p.getIndex(), (Timestamp) value);

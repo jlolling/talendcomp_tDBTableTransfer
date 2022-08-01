@@ -66,6 +66,8 @@ public class SQLCodeGenerator {
 		keywordList.add("table");
 		keywordList.add("view");
 		keywordList.add("date");
+		keywordList.add("time");
+		keywordList.add("datetime");
 		keywordList.add("timestamp");
 		keywordList.add("key");
 		keywordList.add("value");

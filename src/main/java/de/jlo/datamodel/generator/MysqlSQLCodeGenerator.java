@@ -22,6 +22,10 @@ import de.jlo.datamodel.SQLTable;
 
 public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 	
+	public MysqlSQLCodeGenerator() {
+		setEnclosureChar("`");
+	}
+	
 	public SQLStatement buildInsertSQLStatement(SQLTable table, boolean fullName, boolean onConflictIgnore, boolean onConflictUpdate) {
     	setupEnclosureChar(table);
 		final SQLStatement sqlPs = new SQLStatement();
@@ -94,9 +98,9 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 						sb.append(',');
 					}
 					sb.append("\n\t");
-					sb.append(field.getName());
+					sb.append(getEncapsulatedName(field.getName()));
 					sb.append(" = values(");
-					sb.append(field.getName());
+					sb.append(getEncapsulatedName(field.getName()));
 					sb.append(")");
 				}
 			}

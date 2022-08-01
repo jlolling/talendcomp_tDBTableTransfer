@@ -30,7 +30,6 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
     	setupEnclosureChar(table);
 		final SQLStatement sqlPs = new SQLStatement();
 		sqlPs.setPrepared(true);
-		int paramIndex = 0;
 		final StringBuilder sb = new StringBuilder();
 		if (onConflictIgnore) {
 			sb.append("insert ignore into ");
@@ -62,6 +61,7 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 			}
 		}
 		sb.append(")\n values("); 
+		int paramIndex = 0;
 		SQLPSParam psParam = null;
 		firstLoop = true;
 		for (int i = 0; i < table.getFieldCount(); i++) {
@@ -99,9 +99,20 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 					}
 					sb.append("\n\t");
 					sb.append(getEncapsulatedName(field.getName()));
-					sb.append(" = values(");
-					sb.append(getEncapsulatedName(field.getName()));
-					sb.append(")");
+					sb.append(" = ");
+					if (field.isFixedValue()) {
+						sb.append("?");
+						psParam = new SQLPSParam();
+						psParam.setName(field.getName());
+						psParam.setIndex(++paramIndex);
+						psParam.setBasicType(field.getBasicType());
+						sqlPs.addParam(psParam);
+					} else {
+						// if the field comes from the normal read fields
+						sb.append("values(");
+						sb.append(getEncapsulatedName(field.getName()));
+						sb.append(")");
+					}
 				}
 			}
 		}

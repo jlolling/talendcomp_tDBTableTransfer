@@ -952,6 +952,7 @@ public class TableTransfer {
 				SQLField field = targetTable.getField(cv.getColumnName());
 				if (field != null) {
 					field.setUsageType(cv.getUsageType());
+					field.setIsFixedValue(true);
 				}
 			}
 		}

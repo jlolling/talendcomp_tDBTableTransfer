@@ -42,7 +42,7 @@ public class MysqlTableTransfer extends TableTransfer {
 		} else {
 			targetSQLStatement = getTargetCodeGenerator().buildInsertSQLStatement(getTargetSQLTable(), true, onConflictIgnore, onConflictUpdate);
 		}
-		info("MySQL Target statement:" + targetSQLStatement.getSQL());
+		info("MySQL Target statement:\n" + targetSQLStatement.getSQL());
 		if (targetSQLStatement.getCountParameters() == 0) {
 			throw new Exception("Target statement has no parameters!");
 		}

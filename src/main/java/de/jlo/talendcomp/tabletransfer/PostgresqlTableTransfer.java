@@ -42,7 +42,7 @@ public class PostgresqlTableTransfer extends TableTransfer {
 		} else {
 			targetSQLStatement = getTargetCodeGenerator().buildInsertSQLStatement(getTargetSQLTable(), true, onConflictIgnore, onConflictUpdate);
 		}
-		info("PG Target statement:" + targetSQLStatement.getSQL());
+		info("PG Target statement:\n" + targetSQLStatement.getSQL());
 		if (targetSQLStatement.getCountParameters() == 0) {
 			throw new Exception("Target statement has no parameters!");
 		}

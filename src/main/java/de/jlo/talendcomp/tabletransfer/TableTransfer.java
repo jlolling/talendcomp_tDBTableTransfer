@@ -573,7 +573,7 @@ public class TableTransfer {
 						} else {
 							withinWriteAction = true;
 							if (targetSQLStatement == null) {
-								createTargetStatement();
+								targetPreparedStatement = createTargetStatement();
 							}
 							prepareInsertStatement((Object[]) item);
 							targetPreparedStatement.addBatch();
@@ -689,7 +689,9 @@ public class TableTransfer {
 			}
 		} finally {
 			try {
-				targetPreparedStatement.close();
+				if (targetPreparedStatement != null) {
+					targetPreparedStatement.close();
+				}
 			} catch (SQLException e) {}
 			runningDb = false;
 			if (isDebugEnabled()) {
@@ -1071,7 +1073,7 @@ public class TableTransfer {
 			sourceQuery = getSourceCodeGenerator().buildSelectStatement(table, true) + buildSourceWhereSQL();
 			properties.put(SOURCE_QUERY, sourceQuery);
 		}
-		info("Source select: " + sourceQuery);
+		info("Source select:\n" + sourceQuery);
 		sourceSelectStatement = sourceConnection.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
 		int fetchSize = getFetchSize();
 		if (fetchSize > 0) {
@@ -1103,7 +1105,7 @@ public class TableTransfer {
 		} else {
 			targetSQLStatement = getTargetCodeGenerator().buildInsertSQLStatement(table, true);
 		}
-		info("Target statement:" + targetSQLStatement.getSQL());
+		info("Target statement:\n" + targetSQLStatement.getSQL());
 		if (targetSQLStatement.getCountParameters() == 0) {
 			throw new Exception("Target statement has no parameters!");
 		}

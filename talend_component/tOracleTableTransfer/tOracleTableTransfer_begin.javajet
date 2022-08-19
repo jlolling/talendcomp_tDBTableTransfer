@@ -18,6 +18,7 @@
 	boolean useQuery = Boolean.parseBoolean(sourceUseQuery);
 	String targetTable = ElementParameterParser.getValue(node, "__TARGET_TABLE__");
 	boolean strictMode = "true".equals(ElementParameterParser.getValue(node, "__STRICT_FIELD_MAPPING__"));
+	boolean strictModeForInput = "true".equals(ElementParameterParser.getValue(node, "__STRICT_SOURCE_FIELD_MAPPING__"));
 	boolean trim = "true".equals(ElementParameterParser.getValue(node, "__TRIM_TEXT_VALUES__"));
 	boolean removeNoneUTF8 = "true".equals(ElementParameterParser.getValue(node, "__REMOVE_NONE_UTF8_CHARACTERS__"));
 	String sourceQuery = ElementParameterParser.getValue(node, "__SOURCE_QUERY__");
@@ -86,6 +87,7 @@
 	<%=cid%>.setExportBooleanAsNumber(<%=exportBooleanAsNumber%>);
 	<%=cid%>.setOutputToTable(<%=outputToTable%>);
 	<%=cid%>.setStrictFieldMatching(<%=strictMode%>);
+	<%=cid%>.setStrictSourceFieldMatching(<%=strictModeForInput%>);
 	<%=cid%>.setTrimFields(<%=trim%>);
 	<%=cid%>.setStripNoneUTF8Characters(<%=removeNoneUTF8%>);
 <%  if (measureTimeRange) { %>
@@ -185,14 +187,6 @@
 <%  if (outputToTable) { %>
    globalMap.put("<%=cid%>_TARGET_TABLE", <%=targetTable%>);
 <%  } %>
-<%  if ("true".equalsIgnoreCase(logoutQuery)) { %>
-   // log source query
-	<%=cid%>.info("Source query statement:" + <%=cid%>.getSourceQuery());
-<%  } %>
-<%	 if (outputToTable && "true".equalsIgnoreCase(logoutInsert)) { %>
-   // log target statement
-	<%=cid%>.info("Target statement:" + <%=cid%>.getTargetStatement());
-<%	 } %>
 <%  if (outputToTable && truncateTarget && onlyUpdate == false) { %>
 	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
 <%	 } %>

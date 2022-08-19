@@ -369,6 +369,10 @@ public class SQLStatement implements Serializable {
     public List<SQLPSParam> getParams() {
         return paramList;
     }
+    
+    public int getCountParameters() {
+    	return paramList.size();
+    }
 
     public void setParams(List<SQLPSParam> params) {
         this.paramList = params;

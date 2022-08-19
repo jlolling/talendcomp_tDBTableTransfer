@@ -13,7 +13,7 @@ public class PlayPostgresTableTransfer extends TalendTest {
 	
 	public void setupSourceConnection() throws Exception {
 		System.out.println("setupSourceConnection...");
-		String url_tPostgresqlConnection_4 = "jdbc:postgresql://debiandb.local:5432/postgres";
+		String url_tPostgresqlConnection_4 = "jdbc:postgresql://ubuntuserver.local:5432/postgres";
 
 		String dbUser_tPostgresqlConnection_4 = "postgres";
 
@@ -37,7 +37,7 @@ public class PlayPostgresTableTransfer extends TalendTest {
 		}
 
 		globalMap.put("schema_" + "tPostgresqlConnection_4",
-				"dwh_manage");
+				"deploymentmanager");
 
 		globalMap.put("conn_" + "tPostgresqlConnection_4",
 				conn_tPostgresqlConnection_4);
@@ -46,7 +46,7 @@ public class PlayPostgresTableTransfer extends TalendTest {
 	
 	public void setupTargetConnection() throws Exception {
 		System.out.println("setupTargetConnection...");
-		String url_tPostgresqlConnection_4 = "jdbc:postgresql://debiandb.local:5432/postgres";
+		String url_tPostgresqlConnection_4 = "jdbc:postgresql://ubuntuserver.local:5432/postgres";
 
 		String dbUser_tPostgresqlConnection_4 = "postgres";
 
@@ -70,7 +70,7 @@ public class PlayPostgresTableTransfer extends TalendTest {
 		}
 
 		globalMap.put("schema_" + "tPostgresqlConnection_3",
-				"dwh_manage");
+				"deploymentmanager");
 
 		globalMap.put("conn_" + "tPostgresqlConnection_3",
 				conn_tPostgresqlConnection_4);
@@ -122,10 +122,10 @@ public class PlayPostgresTableTransfer extends TalendTest {
 			}
 			if (schemaName != null) {
 				tPostgresqlTableTransfer_1.setSourceTable(schemaName
-						+ "." + "job_instance_status");
+						+ "." + "job_tasks");
 			} else {
 				tPostgresqlTableTransfer_1
-						.setSourceTable("job_instance_status");
+						.setSourceTable("job_tasks");
 			}
 		}
 		// configure target table
@@ -133,10 +133,7 @@ public class PlayPostgresTableTransfer extends TalendTest {
 		tPostgresqlTableTransfer_1.setTargetTable(((String) globalMap
 				.get("schema_" + "tPostgresqlConnection_3"))
 				+ "."
-				+ "job_instance_status_1");
-		tPostgresqlTableTransfer_1.setFixedColumnValue("job_instance_id",
-				(globalMap
-						.get("tJobInstanceStart_1_JOB_INSTANCE_ID")));
+				+ "job_tasks_copy");
 		// initialize statements
 		tPostgresqlTableTransfer_1.setup();
 		// memorize query
@@ -146,14 +143,6 @@ public class PlayPostgresTableTransfer extends TalendTest {
 				"job_instance_status");
 		globalMap.put("tPostgresqlTableTransfer_1_TARGET_TABLE",
 				"job_instance_status_1");
-		// log source query
-		System.out.println("Source query statement:"
-				+ tPostgresqlTableTransfer_1.getSourceQuery());
-		// log target statement
-		System.out
-				.println("Target insert statement:"
-						+ tPostgresqlTableTransfer_1
-								.getTargetInsertStatement());
 		tPostgresqlTableTransfer_1.executeSQLOnTarget("truncate table "
 				+ tPostgresqlTableTransfer_1.getTargetTable());
 		// log interval

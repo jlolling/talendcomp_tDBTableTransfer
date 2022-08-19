@@ -140,6 +140,7 @@ public class TableTransfer {
 	private String valueRangeEnd = null;
 	private boolean doCommit = true;
 	private boolean strictFieldMatching = false;
+	private boolean strictSourceFieldMatching = false;
 	private boolean trimFields = false;
 	private String checkConnectionStatement = "select 1";
 	private boolean withinWriteAction = false;
@@ -413,15 +414,11 @@ public class TableTransfer {
 		} finally {
 			try {
 				if (outputToTable) {
-					if (isDebugEnabled()) {
-						debug("Stopping write table thread...");
-					}
+					info("Stopping write table thread...");
 					tableQueue.put(closeFlag);
 				}
 				if (outputToFile) {
-					if (isDebugEnabled()) {
-						debug("Stopping write file thread...");
-					}
+					info("Stopping write file thread...");
 					fileQueue.put(closeFlag);
 				}
 			} catch (InterruptedException e) {
@@ -570,13 +567,14 @@ public class TableTransfer {
 //					debug("Got " + queueObjects.size() + " records from queue.");
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {
-							if (isDebugEnabled()) {
-								debug("Write table thread: Stop flag received.");
-							}
+							info("Write table thread: Stop flag received.");
 							endFlagReceived = true;
 							break;
 						} else {
 							withinWriteAction = true;
+							if (targetSQLStatement == null) {
+								createTargetStatement();
+							}
 							prepareInsertStatement((Object[]) item);
 							targetPreparedStatement.addBatch();
 							countInsertsAdded++;
@@ -602,6 +600,7 @@ public class TableTransfer {
 					returnCode = RETURN_CODE_ERROR_OUPUT;
 					break;
 				} catch (SQLException sqle) {
+					runningDb = false;
 					if (sqle instanceof BatchUpdateException) {
 						BatchUpdateException be = (BatchUpdateException) sqle;
 						debug("Write execute insert batch ends with recno: " + countInsertsAdded);
@@ -641,8 +640,9 @@ public class TableTransfer {
 						}
 					}
 				} catch (Exception e1) {
+					runningDb = false;
 					returnCode = RETURN_CODE_ERROR_OUPUT;
-					error("Write failed:" + e1.getMessage(), e1);
+					error("Transfer failed: " + e1.getMessage(), e1);
 					break;
 				}
 			}
@@ -669,9 +669,9 @@ public class TableTransfer {
 							batchIndex = batchIndex + c;
 						}
 						batchIndex = (countInsertsAdded - batchSize) + batchIndex; // set the batchIndex to the absolute over all index
-						error("Write failed in line number " + batchIndex + " message:" + sqle.getMessage(), sqle);
+						error("Write failed in line number " + batchIndex + " message: " + sqle.getMessage(), sqle);
 					} else {
-						error("Write failed in line number " + countInsertsAdded + " message:" + sqle.getMessage(), sqle);
+						error("Write failed in line number " + countInsertsAdded + " message: " + sqle.getMessage(), sqle);
 					}
 					SQLException ne = sqle.getNextException();					
 					if (ne != null) {
@@ -693,12 +693,11 @@ public class TableTransfer {
 			} catch (SQLException e) {}
 			runningDb = false;
 			if (isDebugEnabled()) {
-				debug("Finished write data into target table " + targetTable.getAbsoluteName() + ", count inserts:" + countInsertsInDB);
+				debug("Finished write data into target table " + targetTable.getAbsoluteName() + ", count inserts: " + countInsertsInDB);
 			}
 		}
-		if (isDebugEnabled()) {
-			debug("Write table finished.");
-		}
+		runningDb = false;
+		info("Write table finished.");
 	}
 	
 	protected final Object getRowValue(final String columnName, final Object[] row) throws Exception {
@@ -738,8 +737,36 @@ public class TableTransfer {
 					}
 					sb.append(sourceColumn);
 				}
-				throw new Exception("Transfer into table: " + targetTable.getAbsoluteName() + " in strict mode failed: " + sb.toString());
+				throw new Exception("Transfer into table: " + targetTable.getAbsoluteName() + " in all-strict-mode failed: " + sb.toString());
 			} else {
+				if (strictSourceFieldMatching) {
+					boolean inputFieldsWithoutTarget = false;
+					StringBuilder sb = new StringBuilder();
+					sb.append("Following source query columns does not have a matching field in the targe table: ");
+					boolean firstLoop = true;
+					for (String sourceColumn : listSourceFieldNames) {
+						boolean found = false;
+						for (SQLPSParam p : targetSQLStatement.getParams()) {
+							String targetColumnName = p.getName().toLowerCase();
+							if (sourceColumn.equalsIgnoreCase(targetColumnName)) {
+								found = true;
+								break;
+							}
+						}
+						if (found == false) {
+							inputFieldsWithoutTarget = true;
+							if (firstLoop) {
+								firstLoop = false;
+							} else {
+								sb.append(",");
+							}
+							sb.append(sourceColumn);
+						}
+					}
+					if (inputFieldsWithoutTarget) {
+						throw new Exception("Transfer into table: " + targetTable.getAbsoluteName() + " in input-strict-mode failed: " + sb.toString());
+					}
+				}
 				// otherwise simply use null
 				return null;
 			}
@@ -807,9 +834,9 @@ public class TableTransfer {
 			final Statement stat = targetConnection.createStatement();
 			stat.execute(sqlStatement);
 			stat.close();
-			info("On target: " + targetTable.getAbsoluteName() + ": Execute statement finished successfully.");
+			info("On target: " + getTargetTable() + ": Execute statement finished successfully.");
 		} catch (SQLException sqle) {
-			String message = "On target: " + targetTable.getAbsoluteName() + ": Execute statement failed sql=" + sqlStatement + " message: " + sqle.getMessage();
+			String message = "On target: " + getTargetTable() + ": Execute statement failed sql=" + sqlStatement + " message: " + sqle.getMessage();
 			throw new Exception(message, sqle);
 		}
 	}
@@ -831,9 +858,6 @@ public class TableTransfer {
 	 */
 	public final void setup() throws Exception {
 		createSourceSelectStatement();
-		if (outputToTable) {
-			createTargetStatement();
-		}
 		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1000"));
 		final int fetchSize = Integer.parseInt(properties.getProperty(SOURCE_FETCHSIZE, "1000"));
 		final int queueSize = Math.max(batchSize, fetchSize);
@@ -956,6 +980,83 @@ public class TableTransfer {
 					field.setIsFixedValue(true);
 				}
 			}
+			// check the list of source fields
+			if (strictFieldMatching == false) {
+				// if not strict mode remove all target fields not exists in the source
+				for (String p : targetTable.getFieldNames()) {
+					String targetColumnName = p.toLowerCase();
+					if (listSourceFieldNames.contains(targetColumnName) == false) {
+						// found target column without source
+						// remove target column
+						SQLField field = targetTable.getField(targetColumnName);
+						// remove this field from table because
+						// the code generators takes the SQLTable for build sql code
+						targetTable.removeSQLField(field);
+					}
+				}
+				if (targetTable.getFieldCount() == 0) {
+					throw new Exception("No fields from target matching to a source field!");
+				}
+				if (strictSourceFieldMatching) {
+					// now check if we have source fields which does not have target fields
+					StringBuilder sb = new StringBuilder();
+					for (String sourceField : listSourceFieldNames) {
+						SQLField targetField = targetTable.getField(sourceField);
+						if (targetField == null) {
+							if (sb.length() == 0) {
+								sb.append("In strict-source-field-mapping mode: Following source fields does not have a matching target table field: ");
+							} else {
+								sb.append(",");
+							}
+							sb.append(sourceField);
+						}
+					}
+					if (sb.length() > 0) {
+						throw new Exception(sb.toString());
+					}
+				}
+			} else {
+				// check if the matching is complete for target to source
+				StringBuilder sb1 = new StringBuilder();
+				for (String p : targetTable.getFieldNames()) {
+					String targetColumnName = p.toLowerCase();
+					if (listSourceFieldNames.contains(targetColumnName) == false) {
+						// found target column without source
+						if (sb1.length() == 0) {
+							sb1.append("Following Target fields does not have a matching source field: ");
+						} else {
+							sb1.append(",");
+						}
+						sb1.append(targetColumnName);
+					}
+				}
+				StringBuilder sb2 = new StringBuilder();
+				for (String sourceField : listSourceFieldNames) {
+					SQLField targetField = targetTable.getField(sourceField);
+					if (targetField == null) {
+						if (sb2.length() == 0) {
+							sb2.append("Following source fields does not have a matching target table field: ");
+						} else {
+							sb2.append(",");
+						}
+						sb2.append(sourceField);
+					}
+				}
+				String message = null;
+				if (sb1.length() > 0 || sb2.length() > 0) {
+					message = sb1.toString() + "\n" + sb2.toString();
+				} else if (sb1.length() > 0) {
+					message = sb1.toString();
+				} else if (sb2.length() > 0) {
+					message = sb2.toString();
+				}
+				if (message != null) {
+					throw new Exception(message);
+				}
+			}
+		}
+		if (targetTable.getFieldCount() == 0) {
+			throw new Exception("Target table has NO fields!");
 		}
 		return targetTable;
 	}
@@ -970,9 +1071,7 @@ public class TableTransfer {
 			sourceQuery = getSourceCodeGenerator().buildSelectStatement(table, true) + buildSourceWhereSQL();
 			properties.put(SOURCE_QUERY, sourceQuery);
 		}
-		if (isDebugEnabled()) {
-			debug("createSourceSelectStatement SQL:" + sourceQuery);
-		}
+		info("Source select: " + sourceQuery);
 		sourceSelectStatement = sourceConnection.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
 		int fetchSize = getFetchSize();
 		if (fetchSize > 0) {
@@ -1004,8 +1103,9 @@ public class TableTransfer {
 		} else {
 			targetSQLStatement = getTargetCodeGenerator().buildInsertSQLStatement(table, true);
 		}
-		if (isDebugEnabled()) {
-			debug("createTargetInsertStatement SQL:" + targetSQLStatement.getSQL());
+		info("Target statement:" + targetSQLStatement.getSQL());
+		if (targetSQLStatement.getCountParameters() == 0) {
+			throw new Exception("Target statement has no parameters!");
 		}
 		targetPreparedStatement = targetConnection.prepareStatement(targetSQLStatement.getSQL());
 		return targetPreparedStatement;
@@ -1072,6 +1172,7 @@ public class TableTransfer {
 	}
 	
 	public void setupDataModels() throws Exception {
+		info("Setup data models");
 		if (keepDataModels) {
 			synchronized (sqlModelCache) {
 				sourceModel = sqlModelCache.get("source_" + modelKey);
@@ -1302,10 +1403,6 @@ public class TableTransfer {
 		return sourceConnection;
 	}
 	
-	public Statement getSourceStatement() {
-		return sourceSelectStatement;
-	}
-
 	private boolean isClosed(Connection connection) {
 		try {
 			return connection.isClosed();
@@ -2010,6 +2107,10 @@ public class TableTransfer {
 
 	public void setStripNoneUTF8Characters(boolean stripNoneUTF8Characters) {
 		this.stripNoneUTF8Characters = stripNoneUTF8Characters;
+	}
+
+	public void setStrictSourceFieldMatching(boolean strictSourceFieldMatching) {
+		this.strictSourceFieldMatching = strictSourceFieldMatching;
 	}
 
 }

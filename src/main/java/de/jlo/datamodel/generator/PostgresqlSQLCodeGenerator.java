@@ -15,12 +15,17 @@
  */
 package de.jlo.datamodel.generator;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import de.jlo.datamodel.SQLField;
 import de.jlo.datamodel.SQLPSParam;
 import de.jlo.datamodel.SQLStatement;
 import de.jlo.datamodel.SQLTable;
 
 public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
+
+	private Logger logger = LogManager.getLogger(PostgresqlSQLCodeGenerator.class);
 	
 	public SQLStatement buildInsertSQLStatement(SQLTable table, boolean fullName, boolean onConflictIgnore, boolean onConflictUpdate) {
     	setupEnclosureChar(table);
@@ -61,7 +66,7 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 		firstLoop = true;
 		for (int i = 0; i < table.getFieldCount(); i++) {
 			field = table.getFieldAt(i);
-			if (field.getUsageType() != SQLField.USAGE_UPD_ONLY) {
+			if (field.getUsageType() == SQLField.USAGE_UPD_ONLY) {
 				continue;
 			}
 			if (firstLoop) {
@@ -129,6 +134,8 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 						}
 					}
 				}
+			} else if (onConflictUpdate) {
+				logger.warn("Table: " + table.getAbsoluteName() + " does not have a primary key. On conflict clause cannot be done.");
 			}
 		}
 		sqlPs.setSQL(sb.toString());

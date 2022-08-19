@@ -83,7 +83,6 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 		}
 		sb.append(")"); 
 		if (onConflictUpdate && hasNonePrimaryKeyFields) {
-			sb.append("\n on duplicate key update ");
 			// build assignment for the none-key fields
 			firstLoop = true;
 			for (int i = 0; i < table.getFieldCount(); i++) {
@@ -93,6 +92,7 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 				}
 				if (field.isPrimaryKey() == false) {
 					if (firstLoop) {
+						sb.append("\n on duplicate key update ");
 						firstLoop = false;
 					} else {
 						sb.append(',');

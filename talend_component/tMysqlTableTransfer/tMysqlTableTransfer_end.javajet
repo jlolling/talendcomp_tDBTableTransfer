@@ -12,6 +12,15 @@
 	String cid = node.getUniqueName();
 	boolean useDataSource = "true".equals(ElementParameterParser.getValue(node, "__USE_DATA_SOURCE__"));
 	boolean closeConnections = "true".equals(ElementParameterParser.getValue(node, "__CLOSE_CONNECTIONS__"));
+    boolean disableKeys = "true".equals(ElementParameterParser.getValue(node, "__TARGET_DISABLE_KEYS__"));
+    boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
+    boolean onlyUpdate = "true".equals(ElementParameterParser.getValue(node, "__ONLY_UPDATE_NO_INSERT__"));
+	String onConflict = ElementParameterParser.getValue(node, "__ON_CONFLICT__");
+
+<%  if (outputToTable && disableKeys && onlyUpdate == false && "UPDATE".equals(onConflict) == false && "IGNORE".equals(onConflict) == false) { %>
+    <%=cid%>.info("Enable keys on target table...");
+	<%=cid%>.executeSQLOnTarget("SET UNIQUE_CHECKS = 1");
+<%	 } %>
 
    if (useDataSource || closeConnections) { %>
 	// disconnect in case of we use data sources means we put back the connection into the pool

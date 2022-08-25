@@ -43,9 +43,9 @@
 				globalMap.put("<%=cid%>_NB_LINE", <%=cid%>.getCurrentCountReads());
 				globalMap.put("<%=cid%>_NB_INSERTS", <%=cid%>.getCurrentCountInserts());
 <%  if (outputToTable) { %>
-				<%=cid%>.info("<%=cid%> [" + <%=cid%>.getTargetTable() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts() + " rate inserts:" + insertsPerSecond_<%=cid%> + " rows/s");
+				<%=cid%>.info("<%=cid%> [" + <%=cid%>.getTargetTable() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts() + " rate:" + insertsPerSecond_<%=cid%> + " rows/s");
 <%	} else { %>
-				<%=cid%>.info("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts() + " rate writes:" + insertsPerSecond_<%=cid%> + " rows/s");
+				<%=cid%>.info("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts() + " rate:" + insertsPerSecond_<%=cid%> + " rows/s");
 <%	} %>
 			} else {
 <%	if (outputToTable) { %>

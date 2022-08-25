@@ -206,8 +206,8 @@
     <%=cid%>.info("truncate target table...");
 	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
 <%	 } %>
-<%  if (outputToTable && disableKeys && onlyUpdate == false) { %>
-    <%=cid%>.info("disable keys on target table...");
-	<%=cid%>.executeSQLOnTarget("alter table " + <%=cid%>.getTargetTable() + " disable keys");
+<%  if (outputToTable && disableKeys && onlyUpdate == false && "UPDATE".equals(onConflict) == false && "IGNORE".equals(onConflict) == false) { %>
+    <%=cid%>.info("Disable keys on target table...");
+	<%=cid%>.executeSQLOnTarget("SET UNIQUE_CHECKS = 0");
 <%	 } %>
 		

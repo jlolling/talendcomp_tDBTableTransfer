@@ -991,6 +991,9 @@ public class TableTransfer {
 						// found target column without source
 						// remove target column
 						SQLField field = targetTable.getField(targetColumnName);
+						if (runOnlyUpdates && field.isPrimaryKey()) {
+							throw new Exception("Update mode can only be used when all primary key fields are part of the source query. PK-Field: " + field.getName() + " is missing in the source!");
+						}
 						// remove this field from table because
 						// the code generators takes the SQLTable for build sql code
 						targetTable.removeSQLField(field);

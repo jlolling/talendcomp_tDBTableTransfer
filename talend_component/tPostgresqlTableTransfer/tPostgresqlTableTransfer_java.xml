@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <COMPONENT> 
-  <HEADER PLATEFORM="ALL" SERIAL="" VERSION="12.1" STATUS="ALPHA" COMPATIBILITY="ALL" AUTHOR="Jan Lolling" RELEASE_DATE="20220822" STARTABLE="true" HAS_CONDITIONAL_OUTPUTS="false"> 
+  <HEADER PLATEFORM="ALL" SERIAL="" VERSION="13.0" STATUS="ALPHA" COMPATIBILITY="ALL" AUTHOR="Jan Lolling" RELEASE_DATE="20221128" STARTABLE="true" HAS_CONDITIONAL_OUTPUTS="false"> 
     <SIGNATURE/> 
   </HEADER>  
   <FAMILIES> 
@@ -159,16 +159,17 @@
         </ITEM> 
       </ITEMS> 
     </PARAMETER>  
+    <PARAMETER NAME="ADDITIONAL_KEYWORDS" FIELD="TEXT" NUM_ROW="65"/>  
     <PARAMETER NAME="REUSE_DATA_MODEL" FIELD="CHECK" NUM_ROW="70"> 
       <DEFAULT>false</DEFAULT> 
     </PARAMETER>  
-    <PARAMETER NAME="RELEASE_LABEL_20220822" FIELD="LABEL" COLOR="0;0;0" NUM_ROW="900">
-      <DEFAULT>Release: 12.1 build at: 20220822</DEFAULT>
+    <PARAMETER NAME="RELEASE_LABEL_20221128" FIELD="LABEL" COLOR="0;0;0" NUM_ROW="900">
+      <DEFAULT>Release: 13.0 build at: 20221128</DEFAULT>
     </PARAMETER>
   </ADVANCED_PARAMETERS>  
   <CODEGENERATION> 
     <IMPORTS> 
-      <IMPORT NAME="jlo-talendcomp-tabletransfer" MODULE="jlo-talendcomp-tabletransfer-12.1.jar" MVN="mvn:org.talend.libraries/jlo-talendcomp-tabletransfer-12.1/6.0.0-SNAPSHOT" REQUIRED="true"/>
+      <IMPORT NAME="jlo-talendcomp-tabletransfer" MODULE="jlo-talendcomp-tabletransfer-13.0.jar" MVN="mvn:org.talend.libraries/jlo-talendcomp-tabletransfer-13.0/6.0.0-SNAPSHOT" REQUIRED="true"/>
     </IMPORTS> 
   </CODEGENERATION>  
   <RETURNS> 

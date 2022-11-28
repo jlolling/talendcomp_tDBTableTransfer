@@ -74,11 +74,26 @@ public class SQLCodeGenerator {
 		keywordList.add("database");
 		keywordList.add("table");
 		keywordList.add("schema");
+		keywordList.add("order");
+		keywordList.add("limit");
+		keywordList.add("length");
+		keywordList.add("from");
+		keywordList.add("where");
+		keywordList.add("insert");
+		keywordList.add("update");
+		keywordList.add("delete");
+		keywordList.add("having");
+		keywordList.add("group");
+		keywordList.add("with");
+		keywordList.add("column");
 	}
 
 	public void addKeyword(String word) {
-		if (keywordList.contains(word) == false) {
-			keywordList.add(word);
+		if (word != null && word.trim().isEmpty() == false) {
+			word = word.trim();
+			if (keywordList.contains(word) == false) {
+				keywordList.add(word);
+			}
 		}
 	}
 	

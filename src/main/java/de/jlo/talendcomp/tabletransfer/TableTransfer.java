@@ -1994,21 +1994,31 @@ public class TableTransfer {
 		if (numKeyWords != null && numKeyWords.trim().isEmpty() == false) {
 			String[] words =  numKeyWords.split(",");
 			for (String w : words) {
-				codeGen.addKeyword(w.trim());
+				codeGen.addKeyword(w);
 			}
 		}
 		String sqlKeyWords = dbmd.getSQLKeywords();
 		if (sqlKeyWords != null && sqlKeyWords.trim().isEmpty() == false) {
 			String[] words =  sqlKeyWords.split(",");
 			for (String w : words) {
-				codeGen.addKeyword(w.trim());
+				codeGen.addKeyword(w);
 			}
 		}
 		String stringKeyWords = dbmd.getStringFunctions();
 		if (stringKeyWords != null && stringKeyWords.trim().isEmpty() == false) {
 			String[] words =  sqlKeyWords.split(",");
 			for (String w : words) {
-				codeGen.addKeyword(w.trim());
+				codeGen.addKeyword(w);
+			}
+		}
+	}
+	
+	public void setKeywords(String keywords) throws SQLException {
+		if (keywords != null && keywords.trim().isEmpty() == false) {
+			String[] array = keywords.split(",;|");
+			for (String keyword : array) {
+				getTargetCodeGenerator().addKeyword(keyword);
+				getSourceCodeGenerator().addKeyword(keyword);
 			}
 		}
 	}

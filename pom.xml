@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.jlo.talendcomp</groupId>
 	<artifactId>jlo-talendcomp-tabletransfer</artifactId>
-	<version>12.1</version>
+	<version>13.0</version>
 	<name>Table Transfer Components</name>
 	<organization>
 		<name>Jan Lolling</name>
@@ -25,7 +25,7 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<version>42.4.2</version>
+			<version>42.5.1</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

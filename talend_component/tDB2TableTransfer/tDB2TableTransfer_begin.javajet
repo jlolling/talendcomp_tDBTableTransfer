@@ -74,14 +74,13 @@
 		valueRangeColumn = "null";
 	}
     boolean onlyUpdate = "true".equals(ElementParameterParser.getValue(node, "__ONLY_UPDATE_NO_INSERT__"));
-    boolean log4jEnabled = "true".equals(org.talend.core.model.process.ElementParameterParser.getValue(node.getProcess(), "__LOG4J_ACTIVATE__")) && 
-   							"JOBLET".equals(node.getComponent().getComponentType().toString()) == false;
+    String keywordList = ElementParameterParser.getObjectValue(node, "__ADDITIONAL_KEYWORDS__");
+    if (keywordList == null && keywordList.trim().isEmpty()) {
+    	keywordList = "null";
+    }
 %>
 
 	de.jlo.talendcomp.tabletransfer.TableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
-<%  if (log4jEnabled) { %>
-	<%=cid%>.setLogger(log);
-<%  } %>
 	<%=cid%>.setDoCommit(<%=doCommit%>);
 	<%=cid%>.setRunOnlyUpdates(<%=onlyUpdate%>);
 <%  if (typeMap != null) {
@@ -114,6 +113,7 @@
 <% } %>
 	<%=cid%>.setKeepDataModels(<%=reuseModel%>, jobName + "_" + <%=cid%>);
 	<%=cid%>.setupDataModels();
+	<%=cid%>.setKeywords(<%=keywordList%>);
 <% if (useQuery) { %>
    // use our own query as source
    String <%=cid%>_query = <%=sourceQuery%>;

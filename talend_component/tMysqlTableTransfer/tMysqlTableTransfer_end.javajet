@@ -17,15 +17,15 @@
     boolean onlyUpdate = "true".equals(ElementParameterParser.getValue(node, "__ONLY_UPDATE_NO_INSERT__"));
 	String onConflict = ElementParameterParser.getValue(node, "__ON_CONFLICT__");
 
-<%  if (outputToTable && disableKeys && onlyUpdate == false && "UPDATE".equals(onConflict) == false && "IGNORE".equals(onConflict) == false) { %>
+    if (outputToTable && disableKeys && onlyUpdate == false && "UPDATE".equals(onConflict) == false && "IGNORE".equals(onConflict) == false) { %>
     <%=cid%>.info("Enable keys on target table...");
 	<%=cid%>.executeSQLOnTarget("SET UNIQUE_CHECKS = 1");
 <%	 } %>
 
-   if (useDataSource || closeConnections) { %>
+<%  if (useDataSource || closeConnections) { %>
 	// disconnect in case of we use data sources means we put back the connection into the pool
 	<%=cid%>.disconnect();
-<% } %>
+<%  } %>
 	globalMap.put("<%=cid%>_TIME_RANGE_START", <%=cid%>.getTimeRangeStart());
 	globalMap.put("<%=cid%>_TIME_RANGE_END", <%=cid%>.getTimeRangeEnd());
 	globalMap.put("<%=cid%>_VALUE_RANGE_START", <%=cid%>.getValueRangeStart());

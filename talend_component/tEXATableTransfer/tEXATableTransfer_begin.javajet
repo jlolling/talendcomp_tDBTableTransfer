@@ -66,7 +66,7 @@
 	}
     boolean onlyUpdate = "true".equals(ElementParameterParser.getValue(node, "__ONLY_UPDATE_NO_INSERT__"));
     String keywordList = ElementParameterParser.getValue(node, "__ADDITIONAL_KEYWORDS__");
-    if (keywordList == null && keywordList.trim().isEmpty()) {
+    if (keywordList == null || keywordList.trim().isEmpty()) {
     	keywordList = "null";
     }
 %>

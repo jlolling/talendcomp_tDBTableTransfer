@@ -603,16 +603,15 @@ public class TableTransfer {
 					runningDb = false;
 					if (sqle instanceof BatchUpdateException) {
 						BatchUpdateException be = (BatchUpdateException) sqle;
-						debug("Write execute insert batch ends with recno: " + countInsertsAdded);
 						int[] counts = be.getUpdateCounts();
 						int batchIndex = 0;
 						for (int c : counts) {
 							batchIndex = batchIndex + c;
 						}
 						batchIndex = (countInsertsAdded - batchSize) + batchIndex; // set the batchIndex as the absolute over all index
-						error("Write failed in line number " + batchIndex + " message:" + sqle.getMessage(), sqle);
+						error("Write into table: " + targetTable.getAbsoluteName() + " failed in line number " + batchIndex + " message:" + sqle.getMessage(), sqle);
 					} else {
-						error("Write failed in line number " + countInsertsAdded + " message:" + sqle.getMessage(), sqle);
+						error("Write into table: " + targetTable.getAbsoluteName() + " failed in line number " + countInsertsAdded + " message:" + sqle.getMessage(), sqle);
 					}
 					SQLException ne = sqle.getNextException();					
 					if (ne != null) {
@@ -635,14 +634,14 @@ public class TableTransfer {
 									targetConnection.commit();
 								}
 							} catch (SQLException e) {
-								error("Write commit failed: " + e.getMessage(), e);
+								error("Write into table: " + targetTable.getAbsoluteName() + " commit failed: " + e.getMessage(), e);
 							}
 						}
 					}
 				} catch (Exception e1) {
 					runningDb = false;
 					returnCode = RETURN_CODE_ERROR_OUPUT;
-					error("Transfer failed: " + e1.getMessage(), e1);
+					error("Write into table: " + targetTable.getAbsoluteName() + " failed: " + e1.getMessage(), e1);
 					break;
 				}
 			}
@@ -669,9 +668,9 @@ public class TableTransfer {
 							batchIndex = batchIndex + c;
 						}
 						batchIndex = (countInsertsAdded - batchSize) + batchIndex; // set the batchIndex to the absolute over all index
-						error("Write failed in line number " + batchIndex + " message: " + sqle.getMessage(), sqle);
+						error("Write into table: " + targetTable.getAbsoluteName() + " failed in line number " + batchIndex + " message: " + sqle.getMessage(), sqle);
 					} else {
-						error("Write failed in line number " + countInsertsAdded + " message: " + sqle.getMessage(), sqle);
+						error("Write into table: " + targetTable.getAbsoluteName() + " failed in line number " + countInsertsAdded + " message: " + sqle.getMessage(), sqle);
 					}
 					SQLException ne = sqle.getNextException();					
 					if (ne != null) {
@@ -680,12 +679,12 @@ public class TableTransfer {
 					try {
 						targetConnection.rollback();
 					} catch (SQLException e) {
-						error("write rollback failed:" + e.getMessage(), e);
+						error("Write into table: " + targetTable.getAbsoluteName() + " rollback failed:" + e.getMessage(), e);
 					}
 				}
 			}
 			if (returnCode == RETURN_CODE_ERROR_INPUT) {
-				error("Read has been failed. Stop write in table.", null);
+				error("Read has been failed. Stop write into table: " + targetTable.getAbsoluteName(), null);
 			}
 		} finally {
 			try {
@@ -699,7 +698,7 @@ public class TableTransfer {
 			}
 		}
 		runningDb = false;
-		info("Write table finished.");
+		info("Write into table: " + targetTable.getAbsoluteName() + " finished.");
 	}
 	
 	protected final Object getRowValue(final String columnName, final Object[] row) throws Exception {

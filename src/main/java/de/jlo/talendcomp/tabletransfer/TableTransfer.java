@@ -461,13 +461,13 @@ public class TableTransfer {
 					} else {
 						row[columnIndex] = rs.getObject(columnIndex + 1);
 					}
-				} else if ("date".equals(javaType)) {
+				} else if ("date".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getDate(columnIndex + 1);
-				} else if ("time".equals(javaType)) {
+				} else if ("time".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getTime(columnIndex + 1);
-				} else if ("timestamp".equals(javaType)) {
+				} else if ("timestamp".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getTimestamp(columnIndex + 1);
-				} else if ("string".equals(javaType)) {
+				} else if ("string".equalsIgnoreCase(javaType)) {
 					String s = rs.getString(columnIndex + 1);
 					if (trimFields && s != null) {
 						s = s.trim();
@@ -476,23 +476,23 @@ public class TableTransfer {
 						s = DBHelper.stripNoneUTF8(s);
 					}
 					row[columnIndex] = s;
-				} else if ("boolean".equals(javaType)) {
+				} else if ("boolean".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getBoolean(columnIndex + 1);
-				} else if ("short".equals(javaType)) {
+				} else if ("short".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getShort(columnIndex + 1);
-				} else if ("byte".equals(javaType)) {
+				} else if ("byte".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getByte(columnIndex + 1);
-				} else if ("integer".equals(javaType)) {
+				} else if ("integer".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getInt(columnIndex + 1);
-				} else if ("long".equals(javaType)) {
+				} else if ("long".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getLong(columnIndex + 1);
-				} else if ("bigdecimal".equals(javaType)) {
+				} else if ("bigdecimal".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getBigDecimal(columnIndex + 1);
-				} else if ("biginteger".equals(javaType)) {
+				} else if ("biginteger".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = new BigInteger(rs.getString(columnIndex + 1));
-				} else if ("double".equals(javaType)) {
+				} else if ("double".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getDouble(columnIndex + 1);
-				} else if ("float".equals(javaType)) {
+				} else if ("float".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getFloat(columnIndex + 1);
 				} else {
 					row[columnIndex] = rs.getObject(columnIndex + 1);
@@ -564,7 +564,6 @@ public class TableTransfer {
 					// drain never waits! Thats why we have to use poll before!
 					// here we get the rest of all objects from the queue
 					tableQueue.drainTo(queueObjects, batchSize); // pull elements from queue to this given list
-//					debug("Got " + queueObjects.size() + " records from queue.");
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {
 							info("Write table thread: Stop flag received.");
@@ -580,7 +579,9 @@ public class TableTransfer {
 							countInsertsAdded++;
 							currentBatchCount++;
 							if (currentBatchCount == batchSize) {
-								debug("Write execute insert batch ends with recno: " + countInsertsAdded);
+								if (isDebugEnabled()) {
+									debug("Write execute insert batch ends with recno: " + countInsertsAdded);
+								}
 								targetPreparedStatement.executeBatch();
 								countInsertsInDB = countInsertsAdded;
 								if (doCommit) {
@@ -641,7 +642,7 @@ public class TableTransfer {
 				} catch (Exception e1) {
 					runningDb = false;
 					returnCode = RETURN_CODE_ERROR_OUPUT;
-					error("Write into table: " + targetTable.getAbsoluteName() + " failed: " + e1.getMessage(), e1);
+					error("Write into table: " + targetTable.getAbsoluteName() + " latest line number before batch-execute: " + countInsertsAdded + " failed: " + e1.getMessage(), e1);
 					break;
 				}
 			}
@@ -786,35 +787,35 @@ public class TableTransfer {
 						debug("Output class mapping: #" + p.getIndex() + " (" + p.getName() + ") use: " + className);
 					}
 				}
-				if ("BigDecimal".equals(className)) {
+				if ("BigDecimal".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setBigDecimal(p.getIndex(), (BigDecimal) value);
-				} else if ("BigInteger".equals(className)) {
+				} else if ("BigInteger".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setLong(p.getIndex(), ((BigInteger) value).longValue());
-				} else if ("Double".equals(className)) {
+				} else if ("Double".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setDouble(p.getIndex(), (Double) value);
-				} else if ("Float".equals(className)) {
+				} else if ("Float".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setFloat(p.getIndex(), (Float) value);
-				} else if ("Long".equals(className)) {
+				} else if ("Long".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setLong(p.getIndex(), (Long) value);
-				} else if ("Integer".equals(className)) {
+				} else if ("Integer".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setInt(p.getIndex(), (Integer) value);
-				} else if ("Short".equals(className)) {
+				} else if ("Short".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setShort(p.getIndex(), (Short) value);
-				} else if ("String".equals(className)) {
+				} else if ("String".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setString(p.getIndex(), (String) value);
-				} else if ("Date".equals(className)) {
+				} else if ("Date".equalsIgnoreCase(className)) {
 					if (value instanceof java.util.Date) {
 						targetPreparedStatement.setTimestamp(p.getIndex(), new java.sql.Timestamp(((java.util.Date) value).getTime()));
 					} else {
 						targetPreparedStatement.setTimestamp(p.getIndex(), new java.sql.Timestamp(((java.sql.Date) value).getTime()));
 					}
-				} else if ("Timestamp".equals(className)) {
+				} else if ("Timestamp".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setTimestamp(p.getIndex(), (Timestamp) value);
-				} else if ("Time".equals(className)) {
+				} else if ("Time".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setTime(p.getIndex(), (Time) value);
-				} else if ("Boolean".equals(className)) {
+				} else if ("Boolean".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setBoolean(p.getIndex(), (Boolean) value);
-				} else if ("String".equals(className)) {
+				} else if ("String".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setString(p.getIndex(), (String) value);
 				} else {
 					targetPreparedStatement.setObject(p.getIndex(), value);

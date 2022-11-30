@@ -1,14 +1,27 @@
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+import org.apache.logging.log4j.core.config.LoggerConfig;
 
 public class PlayPostgresTableTransfer extends TalendTest {
 
 	public static void main(String[] args) {
 		try {
+			setupLogging();
 			new PlayPostgresTableTransfer().testTransfer();
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
+	}
+	
+	private static void setupLogging() {
+		LoggerContext context = (LoggerContext) LogManager.getContext(false);
+		Configuration config = context.getConfiguration();
+		LoggerConfig rootConfig = config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME);
+		rootConfig.setLevel(Level.DEBUG);
 	}
 	
 	public void setupSourceConnection() throws Exception {
@@ -93,11 +106,11 @@ public class PlayPostgresTableTransfer extends TalendTest {
 		tPostgresqlTableTransfer_1
 				.setSourceConnection((java.sql.Connection) globalMap
 						.get("conn_" + "tPostgresqlConnection_4"));
-		tPostgresqlTableTransfer_1.setSourceFetchSize("10000");
+		tPostgresqlTableTransfer_1.setSourceFetchSize("100");
 		tPostgresqlTableTransfer_1
 				.setTargetConnection((java.sql.Connection) globalMap
 						.get("conn_" + "tPostgresqlConnection_3"));
-		tPostgresqlTableTransfer_1.setTargetBatchSize("10000");
+		tPostgresqlTableTransfer_1.setTargetBatchSize("100");
 		tPostgresqlTableTransfer_1.setKeepDataModels(false, null);
 		tPostgresqlTableTransfer_1.setupDataModels();
 		// use this table as source (query will be generated)
@@ -146,7 +159,7 @@ public class PlayPostgresTableTransfer extends TalendTest {
 		tPostgresqlTableTransfer_1.executeSQLOnTarget("truncate table "
 				+ tPostgresqlTableTransfer_1.getTargetTable());
 		// log interval
-		long logInterval_tPostgresqlTableTransfer_1 = (5) * 1000;
+		long logInterval_tPostgresqlTableTransfer_1 = 500l;
 
 		/**
 		 * [tPostgresqlTableTransfer_1 begin ] stop
@@ -185,8 +198,7 @@ public class PlayPostgresTableTransfer extends TalendTest {
 							"tPostgresqlTableTransfer_1_NB_INSERTS",
 							tPostgresqlTableTransfer_1
 									.getCurrentCountInserts());
-					tPostgresqlTableTransfer_1
-							.info("tPostgresqlTableTransfer_1 ["
+					System.out.println("tPostgresqlTableTransfer_1 ["
 									+ tPostgresqlTableTransfer_1
 											.getTargetTable()
 									+ "] read:"
@@ -199,8 +211,7 @@ public class PlayPostgresTableTransfer extends TalendTest {
 									+ insertsPerSecond_tPostgresqlTableTransfer_1
 									+ " rows/s");
 				} else {
-					tPostgresqlTableTransfer_1
-							.info("tPostgresqlTableTransfer_1: ["
+					System.out.println("tPostgresqlTableTransfer_1: ["
 									+ tPostgresqlTableTransfer_1
 											.getTargetTable()
 									+ "] Execute query...");
@@ -221,7 +232,7 @@ public class PlayPostgresTableTransfer extends TalendTest {
 				tPostgresqlTableTransfer_1.getCurrentCountReads());
 		globalMap.put("tPostgresqlTableTransfer_1_NB_INSERTS",
 				tPostgresqlTableTransfer_1.getCurrentCountInserts());
-		tPostgresqlTableTransfer_1.info("tPostgresqlTableTransfer_1 ["
+		System.out.println("tPostgresqlTableTransfer_1 ["
 				+ tPostgresqlTableTransfer_1.getTargetTable()
 				+ "] read:"
 				+ tPostgresqlTableTransfer_1.getCurrentCountReads()

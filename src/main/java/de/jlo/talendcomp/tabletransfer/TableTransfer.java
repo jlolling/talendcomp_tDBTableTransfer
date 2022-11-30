@@ -529,7 +529,7 @@ public class TableTransfer {
 	
 	private final void writeTable() {
 		if (isDebugEnabled()) {
-			debug("Start writing data into target table " + targetTable.getAbsoluteName());
+			debug("Start writing data into target table " + getTargetTableAsGiven());
 		}
 		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
 		int currentBatchCount = 0;
@@ -537,10 +537,10 @@ public class TableTransfer {
 			boolean autocommitTemp = false;
 			try {
 				if (targetConnection == null) {
-					throw new Exception("Write into table: " + targetTable.getAbsoluteName() + " failed because target connection is null");
+					throw new Exception("Write into table: " + getTargetTableAsGiven() + " failed because target connection is null");
 				}
 				if (targetConnection.isClosed()) {
-					throw new Exception("Write into table: " + targetTable.getAbsoluteName() + " failed because target connection is closed");
+					throw new Exception("Write into table: " + getTargetTableAsGiven() + " failed because target connection is closed");
 				}
 				autocommitTemp = targetConnection.getAutoCommit();
 			} catch (Exception e2) {
@@ -610,9 +610,9 @@ public class TableTransfer {
 							batchIndex = batchIndex + c;
 						}
 						batchIndex = (countInsertsAdded - batchSize) + batchIndex; // set the batchIndex as the absolute over all index
-						error("Write into table: " + targetTable.getAbsoluteName() + " failed in line number " + batchIndex + " message:" + sqle.getMessage(), sqle);
+						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + batchIndex + " message:" + sqle.getMessage(), sqle);
 					} else {
-						error("Write into table: " + targetTable.getAbsoluteName() + " failed in line number " + countInsertsAdded + " message:" + sqle.getMessage(), sqle);
+						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + countInsertsAdded + " message:" + sqle.getMessage(), sqle);
 					}
 					SQLException ne = sqle.getNextException();					
 					if (ne != null) {
@@ -635,14 +635,14 @@ public class TableTransfer {
 									targetConnection.commit();
 								}
 							} catch (SQLException e) {
-								error("Write into table: " + targetTable.getAbsoluteName() + " commit failed: " + e.getMessage(), e);
+								error("Write into table: " + getTargetTableAsGiven() + " commit failed: " + e.getMessage(), e);
 							}
 						}
 					}
 				} catch (Exception e1) {
 					runningDb = false;
 					returnCode = RETURN_CODE_ERROR_OUPUT;
-					error("Write into table: " + targetTable.getAbsoluteName() + " latest line number before batch-execute: " + countInsertsAdded + " failed: " + e1.getMessage(), e1);
+					error("Write into table: " + getTargetTableAsGiven() + " latest line number before batch-execute: " + countInsertsAdded + " failed: " + e1.getMessage(), e1);
 					break;
 				}
 			}
@@ -669,9 +669,9 @@ public class TableTransfer {
 							batchIndex = batchIndex + c;
 						}
 						batchIndex = (countInsertsAdded - batchSize) + batchIndex; // set the batchIndex to the absolute over all index
-						error("Write into table: " + targetTable.getAbsoluteName() + " failed in line number " + batchIndex + " message: " + sqle.getMessage(), sqle);
+						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + batchIndex + " message: " + sqle.getMessage(), sqle);
 					} else {
-						error("Write into table: " + targetTable.getAbsoluteName() + " failed in line number " + countInsertsAdded + " message: " + sqle.getMessage(), sqle);
+						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + countInsertsAdded + " message: " + sqle.getMessage(), sqle);
 					}
 					SQLException ne = sqle.getNextException();					
 					if (ne != null) {
@@ -680,12 +680,12 @@ public class TableTransfer {
 					try {
 						targetConnection.rollback();
 					} catch (SQLException e) {
-						error("Write into table: " + targetTable.getAbsoluteName() + " rollback failed:" + e.getMessage(), e);
+						error("Write into table: " + getTargetTableAsGiven() + " rollback failed:" + e.getMessage(), e);
 					}
 				}
 			}
 			if (returnCode == RETURN_CODE_ERROR_INPUT) {
-				error("Read has been failed. Stop write into table: " + targetTable.getAbsoluteName(), null);
+				error("Read has been failed. Stop write into table: " + getTargetTableAsGiven(), null);
 			}
 		} finally {
 			try {
@@ -695,11 +695,11 @@ public class TableTransfer {
 			} catch (SQLException e) {}
 			runningDb = false;
 			if (isDebugEnabled()) {
-				debug("Finished write data into target table " + targetTable.getAbsoluteName() + ", count inserts: " + countInsertsInDB);
+				debug("Finished write data into target table " + getTargetTableAsGiven() + ", count inserts: " + countInsertsInDB);
 			}
 		}
 		runningDb = false;
-		info("Write into table: " + targetTable.getAbsoluteName() + " finished.");
+		info("Write into table: " + getTargetTableAsGiven() + " finished.");
 	}
 	
 	protected final Object getRowValue(final String columnName, final Object[] row) throws Exception {
@@ -739,7 +739,7 @@ public class TableTransfer {
 					}
 					sb.append(sourceColumn);
 				}
-				throw new Exception("Transfer into table: " + targetTable.getAbsoluteName() + " in all-strict-mode failed: " + sb.toString());
+				throw new Exception("Transfer into table: " + getTargetTableAsGiven() + " in all-strict-mode failed: " + sb.toString());
 			} else {
 				if (strictSourceFieldMatching) {
 					boolean inputFieldsWithoutTarget = false;
@@ -766,7 +766,7 @@ public class TableTransfer {
 						}
 					}
 					if (inputFieldsWithoutTarget) {
-						throw new Exception("Transfer into table: " + targetTable.getAbsoluteName() + " in input-strict-mode failed: " + sb.toString());
+						throw new Exception("Transfer into table: " + getTargetTableAsGiven() + " in input-strict-mode failed: " + sb.toString());
 					}
 				}
 				// otherwise simply use null
@@ -830,7 +830,7 @@ public class TableTransfer {
 		info("On target: Execute statement: " + sqlStatement);
 		if (targetConnection == null || targetConnection.isClosed()) {
 			error("Execute statement on target failed because connection is null or closed", null);
-			throw new Exception("Write into table: " + targetTable.getAbsoluteName() + " failed. Execute statement on target failed because connection is null or closed");
+			throw new Exception("Write into table: " + getTargetTableAsGiven() + " failed. Execute statement on target failed because connection is null or closed");
 		}
 		try {
 			final Statement stat = targetConnection.createStatement();
@@ -838,7 +838,7 @@ public class TableTransfer {
 			stat.close();
 			info("On target: " + getTargetTable() + ": Execute statement finished successfully.");
 		} catch (SQLException sqle) {
-			String message = "On target: " + getTargetTable() + ": Execute statement failed sql=" + sqlStatement + " message: " + sqle.getMessage();
+			String message = "On target: " + getTargetTableAsGiven() + ": Execute statement failed sql=" + sqlStatement + " message: " + sqle.getMessage();
 			throw new Exception(message, sqle);
 		}
 	}
@@ -1301,6 +1301,10 @@ public class TableTransfer {
     
     public String getTargetTable() throws SQLException {
     	return getTargetCodeGenerator().getEncapsulatedName(properties.getProperty(TARGET_TABLE));
+    }
+    
+    public String getTargetTableAsGiven() {
+    	return properties.getProperty(TARGET_TABLE);
     }
     
     public void setTargetTable(String tableAndSchema) {

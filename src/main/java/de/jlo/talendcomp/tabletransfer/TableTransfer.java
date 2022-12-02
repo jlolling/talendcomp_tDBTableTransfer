@@ -463,8 +463,6 @@ public class TableTransfer {
 					}
 				} else if ("date".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getDate(columnIndex + 1);
-				} else if ("time".equalsIgnoreCase(javaType)) {
-					row[columnIndex] = rs.getTime(columnIndex + 1);
 				} else if ("timestamp".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getTimestamp(columnIndex + 1);
 				} else if ("string".equalsIgnoreCase(javaType)) {
@@ -478,22 +476,24 @@ public class TableTransfer {
 					row[columnIndex] = s;
 				} else if ("boolean".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getBoolean(columnIndex + 1);
-				} else if ("short".equalsIgnoreCase(javaType)) {
-					row[columnIndex] = rs.getShort(columnIndex + 1);
-				} else if ("byte".equalsIgnoreCase(javaType)) {
-					row[columnIndex] = rs.getByte(columnIndex + 1);
 				} else if ("integer".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getInt(columnIndex + 1);
 				} else if ("long".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getLong(columnIndex + 1);
 				} else if ("bigdecimal".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getBigDecimal(columnIndex + 1);
-				} else if ("biginteger".equalsIgnoreCase(javaType)) {
-					row[columnIndex] = new BigInteger(rs.getString(columnIndex + 1));
 				} else if ("double".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getDouble(columnIndex + 1);
+				} else if ("short".equalsIgnoreCase(javaType)) {
+					row[columnIndex] = rs.getShort(columnIndex + 1);
+				} else if ("biginteger".equalsIgnoreCase(javaType)) {
+					row[columnIndex] = new BigInteger(rs.getString(columnIndex + 1));
 				} else if ("float".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getFloat(columnIndex + 1);
+				} else if ("time".equalsIgnoreCase(javaType)) {
+					row[columnIndex] = rs.getTime(columnIndex + 1);
+				} else if ("byte".equalsIgnoreCase(javaType)) {
+					row[columnIndex] = rs.getByte(columnIndex + 1);
 				} else {
 					row[columnIndex] = rs.getObject(columnIndex + 1);
 				}
@@ -815,8 +815,6 @@ public class TableTransfer {
 					targetPreparedStatement.setTime(p.getIndex(), (Time) value);
 				} else if ("Boolean".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setBoolean(p.getIndex(), (Boolean) value);
-				} else if ("String".equalsIgnoreCase(className)) {
-					targetPreparedStatement.setString(p.getIndex(), (String) value);
 				} else {
 					targetPreparedStatement.setObject(p.getIndex(), value);
 				}

@@ -44,15 +44,16 @@ import de.jlo.datamodel.ext.DatabaseExtension;
  */
 public class SQLCodeGenerator {
 	
-	private List<String> keywordList = new ArrayList<String>();
+	private final List<String> keywordList = new ArrayList<String>();
 	private String ec = "\"";
 	private static SQLCodeGenerator instance;
+	private Object lock = new Object();
 	
 	public void setEnclosureChar(String c) {
 		ec = c;
 	}
 	
-	public static SQLCodeGenerator getInstance() {
+	public synchronized static SQLCodeGenerator getInstance() {
 		if (instance == null) {
 			instance = new SQLCodeGenerator();
 		}
@@ -89,21 +90,25 @@ public class SQLCodeGenerator {
 	}
 
 	public void addKeyword(String word) {
-		if (word != null && word.trim().isEmpty() == false) {
-			word = word.trim();
-			if (keywordList.contains(word) == false) {
-				keywordList.add(word);
+		synchronized(lock) {
+			if (word != null && word.trim().isEmpty() == false) {
+				word = word.trim();
+				if (keywordList.contains(word) == false) {
+					keywordList.add(word);
+				}
 			}
 		}
 	}
 	
 	public boolean containsKeyword(String identifier) {
-		if (identifier != null) {
-			String[] names = identifier.split("\\.");
-			for (String name : names) {
-				for (String w : keywordList) {
-					if (w.equalsIgnoreCase(name)) {
-						return true;
+		synchronized(lock) {
+			if (identifier != null) {
+				String[] names = identifier.split("\\.");
+				for (String name : names) {
+					for (String w : keywordList) {
+						if (w.equalsIgnoreCase(name)) {
+							return true;
+						}
 					}
 				}
 			}

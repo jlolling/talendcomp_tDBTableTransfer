@@ -1177,7 +1177,7 @@ public class TableTransfer {
 	public void setupDataModels() throws Exception {
 		info("Setup data models");
 		if (keepDataModels) {
-			synchronized (sqlModelCache) {
+			synchronized(sqlModelCache) {
 				sourceModel = sqlModelCache.get("source_" + modelKey);
 				if (sourceModel == null) {
 					sourceModel = new SQLDataModel(sourceConnection);
@@ -1196,7 +1196,7 @@ public class TableTransfer {
 		}
 		if (outputToTable) {
 			if (keepDataModels) {
-				synchronized (sqlModelCache) {
+				synchronized(sqlModelCache) {
 					targetModel = sqlModelCache.get("target_" + modelKey);
 					if (targetModel == null) {
 						targetModel = new SQLDataModel(targetConnection);

@@ -261,6 +261,19 @@ public final class SQLTable extends SQLObject {
     	return names;
     }
     
+    public List<String> getNonPrimaryKeyFieldNames() {
+        if (fieldsLoaded == false) {
+            loadColumns();
+        }
+    	List<String> names = new ArrayList<>();
+    	for (SQLField field : listColumns) {
+    		if (field.isPrimaryKey() == false) {
+        		names.add(field.getName());
+    		}
+    	}
+    	return names;
+    }
+
     public List<String> getFieldNames() {
         if (fieldsLoaded == false) {
             loadColumns();
@@ -300,6 +313,35 @@ public final class SQLTable extends SQLObject {
     	return referencedTables;
     }
 
+    public void setupPrimaryKeyFieldsByUniqueIndex() {
+    	if (hasPrimaryKeyFields() == false) {
+    		// we do not have primary key fields
+    		// let us check if we have an unique index and use it to mark primary keys
+    		if (indexesLoaded == false) {
+    			throw new IllegalStateException("Cannot check unique key indices because indices are not loaded.");
+    		} else {
+    			SQLIndex uniqueIndex = null;
+    			for (SQLIndex index : listIndexes) {
+    				if (index.isUnique()) {
+    					uniqueIndex = index;
+    					break;
+    				}
+    			}
+    			if (uniqueIndex != null) {
+    				for (int i = 0; i < uniqueIndex.getCountFields(); i++) {
+    					String indexFieldName = uniqueIndex.getFieldAt(i).getName();
+    					SQLField tableField = getField(indexFieldName);
+    					if (tableField == null) {
+    						throw new IllegalStateException("Found a field name: " + indexFieldName + " in unique index: " + uniqueIndex.getName() + " which is not known as field of the table!");
+    					} else {
+    						tableField.setPrimaryKey(true);
+    					}
+    				}
+    			}
+    		}
+    	}
+    }
+    
     /**
      * Check if a table is referencing a given table
      * @param table table for testing

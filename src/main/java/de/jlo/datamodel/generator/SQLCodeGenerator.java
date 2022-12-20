@@ -117,7 +117,7 @@ public class SQLCodeGenerator {
 	}
 	
 	public String getEncapsulatedName(String name) {
-		if (containsKeyword(name) || name.indexOf('-') != -1 || name.indexOf(' ') != -1 || name.indexOf("$") != -1) {
+		if (containsKeyword(name) || name.indexOf('-') != -1 || name.indexOf('/') != -1 || name.indexOf(' ') != -1 || name.indexOf("$") != -1) {
 			// we need encapsulation
 			StringBuilder sb = new StringBuilder();
 			StringTokenizer st = new StringTokenizer(name, ".");
@@ -130,7 +130,7 @@ public class SQLCodeGenerator {
 					sb.append(".");
 				}
 				s = st.nextToken();
-				if (containsKeyword(s) || s.contains("-") || s.contains(" ") || s.contains("$")) {
+				if (containsKeyword(s) || s.contains("-") || s.contains("/") || s.contains(" ") || s.contains("$")) {
 					if (s.contains(ec) == false) {
 						s = ec + s + ec;
 					}
@@ -142,7 +142,7 @@ public class SQLCodeGenerator {
 			return name;
 		}
 	}
-	
+		
 	public String buildSelectStatement(SQLTable table, boolean withSchemaName) {
 		return buildSelectStatement(table, withSchemaName, false);
 	}

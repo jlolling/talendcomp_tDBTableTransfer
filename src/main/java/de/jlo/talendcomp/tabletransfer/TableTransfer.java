@@ -953,6 +953,11 @@ public class TableTransfer {
 			if (targetTable.isFieldsLoaded() == false) {
 				targetTable.loadColumns(true);
 			}
+			if (targetTable.getFieldCount() == 0) {
+				throw new Exception("Target table: " + schemaName + "." + tableName + " does not have any fields!");
+			}
+			// if there is no primary key, try to set them by unique index
+			targetTable.setupPrimaryKeyFieldsByUniqueIndex();
 			// remove SQLFields which should be excluded
 			for (String exclFieldName : excludeFieldList) {
 				boolean exclude = true;

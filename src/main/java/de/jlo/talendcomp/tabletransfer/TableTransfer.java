@@ -1265,7 +1265,7 @@ public class TableTransfer {
 	}
 
     public String getSourceTable() throws SQLException {
-    	return getSourceCodeGenerator().getEncapsulatedName(properties.getProperty(SOURCE_TABLE));
+    	return getSourceCodeGenerator().getEncapsulatedName(properties.getProperty(SOURCE_TABLE), true);
     }
     
     public void setSourceTable(String tableAndSchema) {
@@ -1303,7 +1303,7 @@ public class TableTransfer {
     }
     
     public String getTargetTable() throws SQLException {
-    	return getTargetCodeGenerator().getEncapsulatedName(properties.getProperty(TARGET_TABLE));
+    	return getTargetCodeGenerator().getEncapsulatedName(properties.getProperty(TARGET_TABLE), true);
     }
     
     public String getTargetTableAsGiven() {

@@ -37,9 +37,9 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 			sb.append("insert into ");
 		}
 		if (fullName) {
-			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		sb.append(" ("); 
 		SQLField field = null;
@@ -55,7 +55,7 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 			} else {
 				sb.append(',');
 			}
-			sb.append(getEncapsulatedName(field.getName()));
+			sb.append(getEncapsulatedName(field.getName(), false));
 			if (field.isPrimaryKey() == false) {
 				hasNonePrimaryKeyFields = true;
 			}
@@ -98,7 +98,7 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 						sb.append(',');
 					}
 					sb.append("\n\t");
-					sb.append(getEncapsulatedName(field.getName()));
+					sb.append(getEncapsulatedName(field.getName(), false));
 					sb.append(" = ");
 					if (field.isFixedValue()) {
 						sb.append("?");
@@ -110,7 +110,7 @@ public class MysqlSQLCodeGenerator extends SQLCodeGenerator {
 					} else {
 						// if the field comes from the normal read fields
 						sb.append("values(");
-						sb.append(getEncapsulatedName(field.getName()));
+						sb.append(getEncapsulatedName(field.getName(), false));
 						sb.append(")");
 					}
 				}

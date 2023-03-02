@@ -116,28 +116,32 @@ public class SQLCodeGenerator {
 		return false;
 	}
 	
-	public String getEncapsulatedName(String name) {
+	public String getEncapsulatedName(String name, boolean containsAbsolutName) {
 		if (containsKeyword(name) || name.indexOf('-') != -1 || name.indexOf('/') != -1 || name.indexOf(' ') != -1 || name.indexOf("$") != -1) {
-			// we need encapsulation
-			StringBuilder sb = new StringBuilder();
-			StringTokenizer st = new StringTokenizer(name, ".");
-			String s = null;
-			boolean firstLoop = true;
-			while (st.hasMoreTokens()) {
-				if (firstLoop) {
-					firstLoop = false;
-				} else {
-					sb.append(".");
-				}
-				s = st.nextToken();
-				if (containsKeyword(s) || s.contains("-") || s.contains("/") || s.contains(" ") || s.contains("$")) {
-					if (s.contains(ec) == false) {
-						s = ec + s + ec;
+			if (containsAbsolutName == false) {
+				return ec + name + ec;
+			} else {
+				// we need encapsulation
+				StringBuilder sb = new StringBuilder();
+				StringTokenizer st = new StringTokenizer(name, ".");
+				String s = null;
+				boolean firstLoop = true;
+				while (st.hasMoreTokens()) {
+					if (firstLoop) {
+						firstLoop = false;
+					} else {
+						sb.append(".");
 					}
+					s = st.nextToken();
+					if (containsKeyword(s) || s.contains("-") || s.contains("/") || s.contains(" ") || s.contains("$")) {
+						if (s.contains(ec) == false) {
+							s = ec + s + ec;
+						}
+					}
+					sb.append(s);
 				}
-				sb.append(s);
+				return sb.toString();
 			}
-			return sb.toString();
 		} else {
 			return name;
 		}
@@ -165,26 +169,26 @@ public class SQLCodeGenerator {
                     if (coalesce) {
                     	if (field.getBasicType() == BasicDataType.CHARACTER.getId()) {
                         	sb.append("coalesce(");
-                        	sb.append(getEncapsulatedName(field.getName()));
+                        	sb.append(getEncapsulatedName(field.getName(), false));
                         	sb.append(", '') as ");
-                        	sb.append(getEncapsulatedName(field.getName()));
+                        	sb.append(getEncapsulatedName(field.getName(), false));
                     	} else if (BasicDataType.isNumberType(field.getBasicType())) {
                         	sb.append("coalesce(");
-                        	sb.append(getEncapsulatedName(field.getName()));
+                        	sb.append(getEncapsulatedName(field.getName(), false));
                         	sb.append(", 0) as ");
-                        	sb.append(getEncapsulatedName(field.getName()));
+                        	sb.append(getEncapsulatedName(field.getName(), false));
                     	} else {
-                        	sb.append(getEncapsulatedName(field.getName()));
+                        	sb.append(getEncapsulatedName(field.getName(), false));
                     	}
                     } else {
-                        sb.append(getEncapsulatedName(field.getName()));
+                        sb.append(getEncapsulatedName(field.getName(), false));
                     }
                 }
                 sb.append("\nfrom ");
                 if (withSchemaName) {
-                    sb.append(getEncapsulatedName(table.getAbsoluteName()));
+                    sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
                 } else {
-                    sb.append(getEncapsulatedName(table.getName()));
+                    sb.append(getEncapsulatedName(table.getName(), false));
                 }
                 return sb.toString();
             } else {
@@ -202,9 +206,9 @@ public class SQLCodeGenerator {
             if (table.getFieldCount() > 0) {
                 sb.append("insert into "); 
                 if (withSchemaName) {
-                    sb.append(getEncapsulatedName(table.getAbsoluteName()));
+                    sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
                 } else {
-                    sb.append(getEncapsulatedName(table.getName()));
+                    sb.append(getEncapsulatedName(table.getName(), false));
                 }
                 sb.append("\n ("); 
                 SQLField field;
@@ -217,7 +221,7 @@ public class SQLCodeGenerator {
                         sb.append(",\n  "); 
                     }
                     field = table.getFieldAt(i);
-                    sb.append(getEncapsulatedName(field.getName()));
+                    sb.append(getEncapsulatedName(field.getName(), false));
                 }
                 sb.append(")\nvalues\n (\n )"); 
                 return sb.toString();
@@ -375,12 +379,12 @@ public class SQLCodeGenerator {
         	String tableName = null;
         	if (fullName) {
             	if (alternativeSchemaName != null) {
-            		tableName = alternativeSchemaName + '.' + getEncapsulatedName(table.getName());
+            		tableName = alternativeSchemaName + '.' + getEncapsulatedName(table.getName(), false);
             	} else {
-            		tableName = getEncapsulatedName(table.getAbsoluteName());
+            		tableName = getEncapsulatedName(table.getAbsoluteName(), true);
             	}
             } else {
-            	tableName = getEncapsulatedName(table.getName());
+            	tableName = getEncapsulatedName(table.getName(), true);
             }
             if (table.isFieldsLoaded() == false) {
                 table.loadColumns();
@@ -497,12 +501,12 @@ public class SQLCodeGenerator {
                     	if (alternativeSchemaName != null) {
                     		sb.append(alternativeSchemaName);
                     		sb.append('.');
-                            sb.append(getEncapsulatedName(table.getName()));
+                            sb.append(getEncapsulatedName(table.getName(), false));
                     	} else {
-                            sb.append(getEncapsulatedName(table.getAbsoluteName()));
+                            sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
                     	}
                     } else {
-                        sb.append(getEncapsulatedName(table.getName()));
+                        sb.append(getEncapsulatedName(table.getName(), true));
                     }
                     sb.append("\n-- source code not available");
             	}
@@ -516,7 +520,7 @@ public class SQLCodeGenerator {
 	public String buildFieldDeclaration(SQLField field) {
     	setupEnclosureChar(field);
 		StringBuilder sb = new StringBuilder(32);
-        sb.append(getEncapsulatedName(field.getName()));
+        sb.append(getEncapsulatedName(field.getName(), false));
         sb.append(' ');
         sb.append(getFieldType(field));
         return sb.toString();
@@ -562,9 +566,9 @@ public class SQLCodeGenerator {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("insert into ");
 		if (fullName) {
-			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		sb.append("\n ("); 
 		SQLField field = null;
@@ -573,7 +577,7 @@ public class SQLCodeGenerator {
 			if (i > 0) {
 				sb.append(",\n  "); 
 			}
-			sb.append(getEncapsulatedName(field.getName()));
+			sb.append(getEncapsulatedName(field.getName(), false));
 		}
 		sb.append(")\nvalues\n ("); 
 		for (int i = 0; i < table.getFieldCount(); i++) {
@@ -595,9 +599,9 @@ public class SQLCodeGenerator {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("insert into ");
 		if (fullName) {
-			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		sb.append(" ("); 
 		SQLField field = null;
@@ -606,7 +610,7 @@ public class SQLCodeGenerator {
 			if (i > 0) {
 				sb.append(',');
 			}
-			sb.append(getEncapsulatedName(field.getName()));
+			sb.append(getEncapsulatedName(field.getName(), false));
 		}
 		sb.append(")\n values("); 
 		SQLPSParam psParam = null;
@@ -632,9 +636,9 @@ public class SQLCodeGenerator {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("select count(*) from ");
 		if (fullName) {
-			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		return sb.toString();
 	}
@@ -644,9 +648,9 @@ public class SQLCodeGenerator {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("select\n count(*)\nfrom ");
 		if (fullName) {
-			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		sb.append("\nwhere\n "); 
 		SQLField field = null;
@@ -659,7 +663,7 @@ public class SQLCodeGenerator {
 				} else {
 					firstLoop = false;
 				}
-				sb.append(getEncapsulatedName(field.getName()));
+				sb.append(getEncapsulatedName(field.getName(), false));
 				sb.append("=?"); 
 			}
 		}
@@ -673,9 +677,9 @@ public class SQLCodeGenerator {
 		sqlPs.setPrepared(true);
 		sb.append("select\n count(*) \nfrom ");
 		if (fullName) {
-			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		sb.append(" where\n ");
 		SQLField field = null;
@@ -692,7 +696,7 @@ public class SQLCodeGenerator {
 					firstLoop = false;
 				}
 				paramIndex++;
-				sb.append(getEncapsulatedName(field.getName()));
+				sb.append(getEncapsulatedName(field.getName(), false));
 				sb.append("=?"); 
 				psParam = new SQLPSParam();
 				psParam.setName(field.getName());
@@ -712,9 +716,9 @@ public class SQLCodeGenerator {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("update ");
 		if (fullName) {
-			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		sb.append("\nset "); 
 		SQLField field = null;
@@ -728,7 +732,7 @@ public class SQLCodeGenerator {
 				} else {
 					firstLoop = false;
 				}
-				sb.append(getEncapsulatedName(field.getName()));
+				sb.append(getEncapsulatedName(field.getName(), false));
 				sb.append("=?");
 			}
 		}
@@ -742,7 +746,7 @@ public class SQLCodeGenerator {
 				} else {
 					sb.append("\n and ");
 				}
-				sb.append(getEncapsulatedName(field.getName()));
+				sb.append(getEncapsulatedName(field.getName(), false));
 				sb.append("=?");
 			}
 		}
@@ -754,9 +758,9 @@ public class SQLCodeGenerator {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("delete from ");
 		if (fullName) {
-			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		SQLField field = null;
 		// build set clauses
@@ -771,7 +775,7 @@ public class SQLCodeGenerator {
 				} else {
 					sb.append("\n and "); 
 				}
-				sb.append(getEncapsulatedName(field.getName()));
+				sb.append(getEncapsulatedName(field.getName(), false));
 				sb.append("=?"); 
 			}
 		}
@@ -786,9 +790,9 @@ public class SQLCodeGenerator {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("update ");
 		if (fullName) {
-			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		sb.append("\nset "); 
 		SQLField field = null;
@@ -805,7 +809,7 @@ public class SQLCodeGenerator {
 					sb.append(",\n    "); 
 				}
 				paramIndex++;
-				sb.append(getEncapsulatedName(field.getName()));
+				sb.append(getEncapsulatedName(field.getName(), false));
 				sb.append("=?"); 
 				psParam = new SQLPSParam();
 				psParam.setName(field.getName());
@@ -826,7 +830,7 @@ public class SQLCodeGenerator {
 					sb.append(" and \n      "); 
 				}
 				paramIndex++;
-				sb.append(getEncapsulatedName(field.getName()));
+				sb.append(getEncapsulatedName(field.getName(), false));
 				sb.append("=?"); 
 				psParam = new SQLPSParam();
 				psParam.setName(field.getName());
@@ -919,32 +923,32 @@ public class SQLCodeGenerator {
         if (table.isTable()) {
             if (withSchemaName) {
             	if (alternativeSchemaName != null) {
-                    return "drop table " + getEncapsulatedName(alternativeSchemaName + "." + table.getName());
+                    return "drop table " + getEncapsulatedName(alternativeSchemaName + "." + table.getName(), true);
             	} else {
-                    return "drop table " + getEncapsulatedName(table.getAbsoluteName());
+                    return "drop table " + getEncapsulatedName(table.getAbsoluteName(), true);
             	}
             } else {
-                return "drop table " + getEncapsulatedName(table.getName());
+                return "drop table " + getEncapsulatedName(table.getName(), true);
             }
         } else if (table.isMaterializedView()) {
             if (withSchemaName) {
             	if (alternativeSchemaName != null) {
-                    return "drop materialized view " + getEncapsulatedName(alternativeSchemaName + "." + table.getName());
+                    return "drop materialized view " + getEncapsulatedName(alternativeSchemaName + "." + table.getName(), true);
             	} else {
-                    return "drop materialized view " + getEncapsulatedName(table.getAbsoluteName());
+                    return "drop materialized view " + getEncapsulatedName(table.getAbsoluteName(), true);
             	}
             } else {
-                return "drop materialized view " + getEncapsulatedName(table.getName());
+                return "drop materialized view " + getEncapsulatedName(table.getName(), true);
             }
         } else if (table.isView()) {
             if (withSchemaName) {
             	if (alternativeSchemaName != null) {
-                    return "drop view " + getEncapsulatedName(alternativeSchemaName + "." + table.getName());
+                    return "drop view " + getEncapsulatedName(alternativeSchemaName + "." + table.getName(), true);
             	} else {
-                    return "drop view " + getEncapsulatedName(table.getAbsoluteName());
+                    return "drop view " + getEncapsulatedName(table.getAbsoluteName(), true);
             	}
             } else {
-                return "drop view " + getEncapsulatedName(table.getName());
+                return "drop view " + getEncapsulatedName(table.getName(), true);
             }
         } else {
             return null;
@@ -963,17 +967,17 @@ public class SQLCodeGenerator {
     		sb.append("alter table ");
     		if (withSchemaName) {
     			if (alternativeSchemaName != null) {
-    				sb.append(getEncapsulatedName(alternativeSchemaName));
+    				sb.append(getEncapsulatedName(alternativeSchemaName, false));
     				sb.append(".");
-        			sb.append(getEncapsulatedName(table.getName()));
+        			sb.append(getEncapsulatedName(table.getName(), false));
     			} else {
-        			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+        			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
     			}
     		} else {
-    			sb.append(getEncapsulatedName(table.getName()));
+    			sb.append(getEncapsulatedName(table.getName(), true));
     		}
     		sb.append(" drop column ");
-    		sb.append(getEncapsulatedName(field.getName()));
+    		sb.append(getEncapsulatedName(field.getName(), false));
     		return sb.toString();
     	} else {
     		return "";
@@ -992,14 +996,14 @@ public class SQLCodeGenerator {
     		sb.append("alter table ");
     		if (withSchemaName) {
     			if (alternativeSchemaName != null) {
-    				sb.append(getEncapsulatedName(alternativeSchemaName));
+    				sb.append(getEncapsulatedName(alternativeSchemaName, false));
     				sb.append(".");
-        			sb.append(getEncapsulatedName(table.getName()));
+        			sb.append(getEncapsulatedName(table.getName(), false));
     			} else {
-        			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+        			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
     			}
     		} else {
-    			sb.append(getEncapsulatedName(table.getName()));
+    			sb.append(getEncapsulatedName(table.getName(), true));
     		}
     		sb.append(" add ");
     		sb.append(buildFieldDeclaration(field));
@@ -1020,18 +1024,18 @@ public class SQLCodeGenerator {
     		sb.append("alter table ");
     		if (withSchemaName) {
     			if (alternativeSchemaName != null) {
-    				sb.append(getEncapsulatedName(alternativeSchemaName));
+    				sb.append(getEncapsulatedName(alternativeSchemaName, false));
     				sb.append(".");
-        			sb.append(getEncapsulatedName(table.getName()));
+        			sb.append(getEncapsulatedName(table.getName(), false));
     			} else {
-        			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+        			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
     			}
     		} else {
-    			sb.append(getEncapsulatedName(table.getName()));
+    			sb.append(getEncapsulatedName(table.getName(), true));
     		}
     		sb.append(" alter column ");
         	setupEnclosureChar(field);
-            sb.append(getEncapsulatedName(field.getName()));
+            sb.append(getEncapsulatedName(field.getName(), false));
             sb.append(" type ");
             sb.append(getFieldType(field));
             if (!field.isNullValueAllowed()) {
@@ -1054,11 +1058,11 @@ public class SQLCodeGenerator {
 		SQLTable table = constraint.getTable();
 		if (withSchemaName) {
 			if (alternativeSchemaName != null) {
-				sb.append(getEncapsulatedName(alternativeSchemaName));
+				sb.append(getEncapsulatedName(alternativeSchemaName, false));
 				sb.append(".");
-				sb.append(getEncapsulatedName(table.getName()));
+				sb.append(getEncapsulatedName(table.getName(), false));
 			} else {
-				sb.append(getEncapsulatedName(table.getAbsoluteName()));
+				sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 			}
 		} else {
 			sb.append(table.getName());
@@ -1074,7 +1078,7 @@ public class SQLCodeGenerator {
             StringBuilder sb = new StringBuilder();
             if (constraint.getName().equalsIgnoreCase("primary") == false) {
                 sb.append("constraint ");
-                sb.append(getEncapsulatedName(constraint.getName()));
+                sb.append(getEncapsulatedName(constraint.getName(), false));
                 sb.append(" ");
             }
             sb.append("primary key (");
@@ -1082,52 +1086,52 @@ public class SQLCodeGenerator {
                 if (i > 0) {
                     sb.append(',');
                 }
-                sb.append(getEncapsulatedName(constraint.getPkColumnList().get(i).getPkColumnName()));
+                sb.append(getEncapsulatedName(constraint.getPkColumnList().get(i).getPkColumnName(), false));
             }
             sb.append(')');
             return sb.toString();
         } else if (constraint.getType() == SQLConstraint.FOREIGN_KEY && constraint.getReferencedTable() != null) {
             StringBuilder sb = new StringBuilder();
             sb.append("constraint ");
-            sb.append(getEncapsulatedName(constraint.getName()));
+            sb.append(getEncapsulatedName(constraint.getName(), false));
             sb.append(" foreign key (");
             for (int i = 0; i < constraint.getFkColumnPairList().size(); i++) {
                 if (i > 0) {
                     sb.append(',');
                 }
-                sb.append(getEncapsulatedName(constraint.getFkColumnPairList().get(i).getFkColumnName()));
+                sb.append(getEncapsulatedName(constraint.getFkColumnPairList().get(i).getFkColumnName(), false));
             }
             sb.append(") references ");
             if (withSchemaName) {
             	if (alternativeSchemaName != null) {
             		sb.append(alternativeSchemaName);
             		sb.append(".");
-            		sb.append(getEncapsulatedName(constraint.getReferencedTable().getName()));
+            		sb.append(getEncapsulatedName(constraint.getReferencedTable().getName(), true));
             	} else {
-                    sb.append(getEncapsulatedName(constraint.getReferencedTable().getAbsoluteName()));
+                    sb.append(getEncapsulatedName(constraint.getReferencedTable().getAbsoluteName(), true));
             	}
             } else {
-                sb.append(getEncapsulatedName(constraint.getReferencedTable().getName()));
+                sb.append(getEncapsulatedName(constraint.getReferencedTable().getName(), true));
             }
             sb.append("(");
             for (int i = 0; i < constraint.getFkColumnPairList().size(); i++) {
                 if (i > 0) {
                     sb.append(',');
                 }
-                sb.append(getEncapsulatedName(constraint.getFkColumnPairList().get(i).getPkColumnName()));
+                sb.append(getEncapsulatedName(constraint.getFkColumnPairList().get(i).getPkColumnName(), false));
             }
             sb.append(")");
             return sb.toString();
         } else if (constraint.getType() == SQLConstraint.UNIQUE_KEY) {
             StringBuilder sb = new StringBuilder();
             sb.append("constraint ");
-            sb.append(getEncapsulatedName(constraint.getName()));
+            sb.append(getEncapsulatedName(constraint.getName(), false));
             sb.append(" unique (");
             for (int i = 0; i < constraint.getPkColumnList().size(); i++) {
                 if (i > 0) {
                     sb.append(',');
                 }
-                sb.append(getEncapsulatedName(constraint.getPkColumnList().get(i).getPkColumnName()));
+                sb.append(getEncapsulatedName(constraint.getPkColumnList().get(i).getPkColumnName(), false));
             }
             sb.append(')');
             return sb.toString();
@@ -1147,17 +1151,17 @@ public class SQLCodeGenerator {
 		SQLTable table = field.getSQLTable();
 		if (withSchemaName) {
 			if (alternativeSchemaName != null) {
-				sb.append(getEncapsulatedName(alternativeSchemaName));
+				sb.append(getEncapsulatedName(alternativeSchemaName, false));
 				sb.append(".");
-				sb.append(getEncapsulatedName(table.getName()));
+				sb.append(getEncapsulatedName(table.getName(), false));
 			} else {
-				sb.append(getEncapsulatedName(table.getAbsoluteName()));
+				sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 			}
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		sb.append(" alter column ");
-		sb.append(getEncapsulatedName(field.getName()));
+		sb.append(getEncapsulatedName(field.getName(), false));
 		sb.append(" set not null");
 		return sb.toString();
     }
@@ -1173,17 +1177,17 @@ public class SQLCodeGenerator {
 		SQLTable table = field.getSQLTable();
 		if (withSchemaName) {
 			if (alternativeSchemaName != null) {
-				sb.append(getEncapsulatedName(alternativeSchemaName));
+				sb.append(getEncapsulatedName(alternativeSchemaName, false));
 				sb.append(".");
-				sb.append(getEncapsulatedName(table.getName()));
+				sb.append(getEncapsulatedName(table.getName(), false));
 			} else {
-				sb.append(getEncapsulatedName(table.getAbsoluteName()));
+				sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 			}
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		sb.append(" alter column ");
-		sb.append(getEncapsulatedName(field.getName()));
+		sb.append(getEncapsulatedName(field.getName(), false));
 		sb.append(" drop not null");
 		return sb.toString();
     }
@@ -1199,17 +1203,17 @@ public class SQLCodeGenerator {
 		SQLTable table = constraint.getTable();
 		if (withSchemaName) {
 			if (alternativeSchemaName != null) {
-				sb.append(getEncapsulatedName(alternativeSchemaName));
+				sb.append(getEncapsulatedName(alternativeSchemaName, false));
 				sb.append(".");
-				sb.append(getEncapsulatedName(table.getName()));
+				sb.append(getEncapsulatedName(table.getName(), false));
 			} else {
-				sb.append(getEncapsulatedName(table.getAbsoluteName()));
+				sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 			}
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		sb.append(" drop constraint ");
-		sb.append(getEncapsulatedName(constraint.getName()));
+		sb.append(getEncapsulatedName(constraint.getName(), false));
 		return sb.toString();
     }
 
@@ -1217,9 +1221,9 @@ public class SQLCodeGenerator {
     	setupEnclosureChar(table);
         if (table.isTable()) {
             if (withSchemaName) {
-                return "delete from " + getEncapsulatedName(table.getAbsoluteName());
+                return "delete from " + getEncapsulatedName(table.getAbsoluteName(), true);
             } else {
-                return "delete from " + getEncapsulatedName(table.getName());
+                return "delete from " + getEncapsulatedName(table.getName(), true);
             }
         } else {
             return null;

@@ -34,9 +34,9 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("insert into ");
 		if (fullName) {
-			sb.append(getEncapsulatedName(table.getAbsoluteName()));
+			sb.append(getEncapsulatedName(table.getAbsoluteName(), true));
 		} else {
-			sb.append(getEncapsulatedName(table.getName()));
+			sb.append(getEncapsulatedName(table.getName(), true));
 		}
 		sb.append(" ("); 
 		SQLField field = null;
@@ -53,7 +53,7 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 			} else {
 				sb.append(',');
 			}
-			sb.append(getEncapsulatedName(field.getName()));
+			sb.append(getEncapsulatedName(field.getName(), false));
 			if (field.isPrimaryKey()) {
 				hasPrimaryKey = true;
 			} else {
@@ -94,7 +94,7 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 						} else {
 							sb.append(',');
 						}
-						sb.append(getEncapsulatedName(field.getName()));
+						sb.append(getEncapsulatedName(field.getName(), false));
 					}
 				}
 				sb.append(") ");
@@ -117,7 +117,7 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 								sb.append(',');
 							}
 							sb.append("\n\t");
-							sb.append(getEncapsulatedName(getEncapsulatedName(field.getName())));
+							sb.append(getEncapsulatedName(field.getName(), false));
 							sb.append(" = ");
 							if (field.isFixedValue()) {
 								sb.append("?");
@@ -129,7 +129,7 @@ public class PostgresqlSQLCodeGenerator extends SQLCodeGenerator {
 							} else {
 								// if the field comes from the normal read fields
 								sb.append("excluded.");
-								sb.append(getEncapsulatedName(getEncapsulatedName(field.getName())));
+								sb.append(getEncapsulatedName(field.getName(), false));
 							}
 						}
 					}

@@ -42,14 +42,14 @@ public class SQLPSParam implements Serializable {
     }
 
     /**
-     * @return zugehÃ¶riges Prepared Statement
+     * @return zugehöriges Prepared Statement
      */
     public SQLStatement getSqlPs() {
         return sqlPs;
     }
 
     /**
-     * @return Wert der fÃ¼r den Parameter gesetzt wird
+     * @return Wert der für den Parameter gesetzt wird
      */
     public String getValue() {
         return value;
@@ -74,43 +74,7 @@ public class SQLPSParam implements Serializable {
      */
     public void setName(String string) {
         if (string != null && string.length() > 0) {
-            string = string.trim();
-            // wenn der Name Leerzeichen enthÃ¤lt, dann diesen Namen parsen
-            // als erstes kommt der Parameterindex gefolgt von einer Raute,
-            // dann kommt entweder der Name selbst oder erst mit Leerzeichen gefolgt der Datentyp
-            int firstSpaceIndex = string.indexOf(" ");
-            int lastSpaceIndex = string.lastIndexOf(" ");
-            // zwischen der Raute und dem letzten Leerzeichen sollte der Datentyp liegen und
-            // ab dem letzten Leerzeichen kommt der eigentliche Name
-            if (firstSpaceIndex != -1) {
-                // das bedeutet 2 Leerzeichen.
-                // OK ab dem ersten bis zum zweiten ist der Datentyp und ab dem zweiten der Name
-                if (lastSpaceIndex == firstSpaceIndex) {
-                    if (string.indexOf("#") == -1) {
-                        // ein Parameterindex ist nicht vorhanden
-                        firstSpaceIndex = 0; // wenn nur ein Leerzeichen
-                    }
-                }
-                String dataType = string.substring(firstSpaceIndex, lastSpaceIndex);
-                if (dataType.length() > 0) {
-                    dataType = dataType.toLowerCase().trim();
-                    if (dataType.equals("string") || dataType.indexOf("char") != -1 || dataType.equals("rowid")) {
-                        // Textinhalt gefunden
-                        basicType = BasicDataType.CHARACTER.getId();
-                    } else if (dataType.indexOf("num") != -1) {
-                        basicType = BasicDataType.DOUBLE.getId();
-                    } else if (dataType.indexOf("int") != -1) {
-                        basicType = BasicDataType.INTEGER.getId();
-                    } else if (dataType.indexOf("long") != -1) {
-                        basicType = BasicDataType.LONG.getId();
-                    } else if (dataType.indexOf("date") != -1 || dataType.indexOf("time") != -1) {
-                        basicType = BasicDataType.DATE.getId();
-                    }
-                }
-                name = string.substring(lastSpaceIndex).trim();
-            } else {
-                name = string.trim();
-            }
+            name = string.trim();
         }
     }
 

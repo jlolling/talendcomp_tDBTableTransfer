@@ -951,7 +951,7 @@ public class TableTransfer {
 				throw new Exception("Get information about target table: " + schemaName + "." + tableName + " not available");
 			}
 			if (targetTable.isFieldsLoaded() == false) {
-				targetTable.loadColumns(true);
+				targetTable.loadColumns(false);
 			}
 			if (targetTable.getFieldCount() == 0) {
 				throw new Exception("Target table: " + schemaName + "." + tableName + " does not have any fields!");

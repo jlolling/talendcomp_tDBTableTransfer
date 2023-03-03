@@ -116,8 +116,32 @@ public class SQLCodeGenerator {
 		return false;
 	}
 	
+	private boolean needEncapsulation(String identifier) {
+		if (containsKeyword(identifier) 
+				|| identifier.indexOf('-') != -1 
+				|| identifier.indexOf('/') != -1 
+				|| identifier.indexOf('\\') != -1 
+				|| identifier.indexOf('#') != -1 
+				|| identifier.indexOf(' ') != -1 
+				|| identifier.indexOf("$") != -1
+				|| identifier.startsWith("0") 
+				|| identifier.startsWith("1") 
+				|| identifier.startsWith("2") 
+				|| identifier.startsWith("3") 
+				|| identifier.startsWith("4") 
+				|| identifier.startsWith("5") 
+				|| identifier.startsWith("6") 
+				|| identifier.startsWith("7") 
+				|| identifier.startsWith("8") 
+				|| identifier.startsWith("9") 
+				) {
+			return true;
+		}
+		return false;
+	}
+	
 	public String getEncapsulatedName(String name, boolean containsAbsolutName) {
-		if (containsKeyword(name) || name.indexOf('-') != -1 || name.indexOf('/') != -1 || name.indexOf(' ') != -1 || name.indexOf("$") != -1) {
+		if (needEncapsulation(name)) {
 			if (containsAbsolutName == false) {
 				return ec + name + ec;
 			} else {
@@ -133,7 +157,7 @@ public class SQLCodeGenerator {
 						sb.append(".");
 					}
 					s = st.nextToken();
-					if (containsKeyword(s) || s.contains("-") || s.contains("/") || s.contains(" ") || s.contains("$")) {
+					if (needEncapsulation(s)) {
 						if (s.contains(ec) == false) {
 							s = ec + s + ec;
 						}

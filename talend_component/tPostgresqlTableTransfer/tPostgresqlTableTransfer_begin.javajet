@@ -68,10 +68,16 @@
     if (keywordList == null || keywordList.trim().isEmpty()) {
     	keywordList = "null";
     }
+    boolean addApplicationNameAsComment = "true".equals(ElementParameterParser.getValue(node, "__ADD_APPLICATION_NAME_AS_COMMENT__"));
+    String applicationName = ElementParameterParser.getValue(node, "__APPLICATION_NAME__");
+    if (addApplicationNameAsComment == false || applicationName == null || applicationName.trim().isEmpty()) {
+    	applicationName = "null";
+    }
 %>
 
 	de.jlo.talendcomp.tabletransfer.PostgresqlTableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.PostgresqlTableTransfer();
 	<%=cid%>.setDoCommit(<%=doCommit%>);
+	<%=cid%>.setApplicationName(<%=applicationName%>);
 	<%=cid%>.setRunOnlyUpdates(<%=onlyUpdate%>);
 <%	if (onlyUpdate == false) {
 		if ("IGNORE".equals(onConflict)) { %>

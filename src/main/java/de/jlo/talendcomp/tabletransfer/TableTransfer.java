@@ -146,6 +146,7 @@ public class TableTransfer {
 	private boolean withinWriteAction = false;
 	private boolean runOnlyUpdates = false;
 	private boolean stripNoneUTF8Characters = false;
+	private String application = null;
 	
 	public void addDbJavaTypeMapping(String dbType, String javaType) {
 		if (dbType != null && dbType.trim().isEmpty() == false) {
@@ -1079,6 +1080,9 @@ public class TableTransfer {
 			sourceQuery = getSourceCodeGenerator().buildSelectStatement(table, true) + buildSourceWhereSQL();
 			properties.put(SOURCE_QUERY, sourceQuery);
 		}
+		if (application != null) {
+			sourceQuery = "/* ApplicationName=" + application + "*/\n" + sourceQuery;
+		}
 		info("Source select:\n" + sourceQuery);
 		sourceSelectStatement = sourceConnection.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
 		int fetchSize = getFetchSize();
@@ -1115,7 +1119,11 @@ public class TableTransfer {
 		if (targetSQLStatement.getCountParameters() == 0) {
 			throw new Exception("Target statement has no parameters!");
 		}
-		targetPreparedStatement = targetConnection.prepareStatement(targetSQLStatement.getSQL());
+		String sql = targetSQLStatement.getSQL();
+		if (getApplicationName() != null) {
+			sql = "/* ApplicationName=" + getApplicationName() + " */\n" + sql;
+		}
+		targetPreparedStatement = getTargetConnection().prepareStatement(sql);
 		return targetPreparedStatement;
 	}
 	
@@ -2133,6 +2141,16 @@ public class TableTransfer {
 
 	public void setStrictSourceFieldMatching(boolean strictSourceFieldMatching) {
 		this.strictSourceFieldMatching = strictSourceFieldMatching;
+	}
+
+	public String getApplicationName() {
+		return application;
+	}
+
+	public void setApplicationName(String application) {
+		if (application != null && application.trim().isEmpty() == false) {
+			this.application = application;
+		}
 	}
 
 }

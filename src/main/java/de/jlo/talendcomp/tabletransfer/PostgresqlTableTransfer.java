@@ -46,7 +46,11 @@ public class PostgresqlTableTransfer extends TableTransfer {
 		if (targetSQLStatement.getCountParameters() == 0) {
 			throw new Exception("Target statement has no parameters!");
 		}
-		targetPreparedStatement = getTargetConnection().prepareStatement(targetSQLStatement.getSQL());
+		String sql = targetSQLStatement.getSQL();
+		if (getApplicationName() != null) {
+			sql = "/* ApplicationName=" + getApplicationName() + " */\n" + sql;
+		}
+		targetPreparedStatement = getTargetConnection().prepareStatement(sql);
 		return targetPreparedStatement;
 	}
 

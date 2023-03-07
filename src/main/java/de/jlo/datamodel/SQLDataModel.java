@@ -44,7 +44,7 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 	private SQLSchema currentSQLSchema = null;
 	private DatabaseExtension databaseExtension;
 	private Connection connection;
-	private boolean commitAfterReading = false;
+	private boolean commitAfterReading = true;
 	
 	public boolean isUseLowerCaeIdentifiers() {
 		return useLowerCaseIdentifiers;

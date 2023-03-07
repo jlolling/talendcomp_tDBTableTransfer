@@ -42,7 +42,6 @@ public class MysqlTableTransfer extends TableTransfer {
 		} else {
 			targetSQLStatement = getTargetCodeGenerator().buildInsertSQLStatement(getTargetSQLTable(), true, onConflictIgnore, onConflictUpdate);
 		}
-		info("MySQL Target statement:\n" + targetSQLStatement.getSQL());
 		if (targetSQLStatement.getCountParameters() == 0) {
 			throw new Exception("Target statement has no parameters!");
 		}
@@ -50,6 +49,7 @@ public class MysqlTableTransfer extends TableTransfer {
 		if (getApplicationName() != null) {
 			sql = "/* ApplicationName=" + getApplicationName() + " */\n" + sql;
 		}
+		info("MySQL Target statement:\n" + sql);
 		targetPreparedStatement = getTargetConnection().prepareStatement(sql);
 		return targetPreparedStatement;
 	}

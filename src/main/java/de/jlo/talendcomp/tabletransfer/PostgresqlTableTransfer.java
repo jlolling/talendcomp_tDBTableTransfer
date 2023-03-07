@@ -50,6 +50,7 @@ public class PostgresqlTableTransfer extends TableTransfer {
 		if (getApplicationName() != null) {
 			sql = "/* ApplicationName=" + getApplicationName() + " */\n" + sql;
 		}
+		info("PG Target statement:\n" + sql);
 		targetPreparedStatement = getTargetConnection().prepareStatement(sql);
 		return targetPreparedStatement;
 	}

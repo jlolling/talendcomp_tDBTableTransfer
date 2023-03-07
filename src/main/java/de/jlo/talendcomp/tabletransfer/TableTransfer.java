@@ -1081,7 +1081,7 @@ public class TableTransfer {
 			properties.put(SOURCE_QUERY, sourceQuery);
 		}
 		if (application != null) {
-			sourceQuery = "/* ApplicationName=" + application + "*/\n" + sourceQuery;
+			sourceQuery = "/* ApplicationName=" + application + " */\n" + sourceQuery;
 		}
 		info("Source select:\n" + sourceQuery);
 		sourceSelectStatement = sourceConnection.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY, java.sql.ResultSet.CONCUR_READ_ONLY);
@@ -1115,7 +1115,6 @@ public class TableTransfer {
 		} else {
 			targetSQLStatement = getTargetCodeGenerator().buildInsertSQLStatement(table, true);
 		}
-		info("Target statement:\n" + targetSQLStatement.getSQL());
 		if (targetSQLStatement.getCountParameters() == 0) {
 			throw new Exception("Target statement has no parameters!");
 		}
@@ -1123,6 +1122,7 @@ public class TableTransfer {
 		if (getApplicationName() != null) {
 			sql = "/* ApplicationName=" + getApplicationName() + " */\n" + sql;
 		}
+		info("Target statement:\n" + sql);
 		targetPreparedStatement = getTargetConnection().prepareStatement(sql);
 		return targetPreparedStatement;
 	}

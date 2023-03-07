@@ -44,6 +44,7 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 	private SQLSchema currentSQLSchema = null;
 	private DatabaseExtension databaseExtension;
 	private Connection connection;
+	private boolean commitAfterReading = false;
 	
 	public boolean isUseLowerCaeIdentifiers() {
 		return useLowerCaseIdentifiers;
@@ -121,6 +122,9 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 					catalogs.add(new DefaultCatalog(this));
 				}
 				catalogsLoaded = true;
+				if (commitAfterReading && conn.getAutoCommit() == false) {
+					conn.commit();
+				}
 			}
 		} catch (SQLException sqle) {
 			try {
@@ -180,6 +184,9 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 				}
 				ok = true;
 				schemasLoaded = true;
+				if (commitAfterReading && conn.getAutoCommit() == false) {
+					conn.commit();
+				}
 			}
 		} catch (Exception e) {
 			try {
@@ -358,6 +365,13 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 		} finally {
 			schema.setLoadingTables(false);
 		}
+		try {
+			if (commitAfterReading && conn.getAutoCommit() == false) {
+				conn.commit();
+			}
+		} catch (SQLException e) {
+			// ignore
+		}
 		return ok;
 	}
 	
@@ -377,6 +391,13 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 				return false;
 			}
 			databaseExtension.listSequences(conn, schema);
+			try {
+				if (commitAfterReading && conn.getAutoCommit() == false) {
+					conn.commit();
+				}
+			} catch (SQLException e) {
+				// ignore it
+			}
 			return true;
 		} else {
 			return false;
@@ -411,6 +432,9 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 				databaseExtension.setupProcedureSQLCode(conn, p);
 			}
 			ok = true;
+			if (commitAfterReading && conn.getAutoCommit() == false) {
+				conn.commit();
+			}
 		} catch (SQLException sqle) {
 			try {
 				if (conn.getAutoCommit() == false) {
@@ -483,6 +507,9 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 							}
 						}
 						rs.close();
+						if (commitAfterReading && conn.getAutoCommit() == false) {
+							conn.commit();
+						}
 					} else {
 						logger.error("No ResultSet received for getColumns(" + table.getSchema().getCatalog().getKey() + "," + table.getSchema().getKey() + "," + table.getName());
 					}
@@ -581,6 +608,9 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 							}
 						}
 						rs.close();
+						if (commitAfterReading && conn.getAutoCommit() == false) {
+							conn.commit();
+						}
 					}
 				} catch (SQLException sqle) {
 					try {
@@ -724,6 +754,9 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 					}
 					table.setIndexesLoaded();
 					rs.close();
+					if (commitAfterReading && conn.getAutoCommit() == false) {
+						conn.commit();
+					}
 					return true;
 				}
 			}
@@ -796,6 +829,14 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 	@Override
 	public int compareTo(SQLDataModel o) {
 		return 0;
+	}
+
+	public boolean isCommitAfterReading() {
+		return commitAfterReading;
+	}
+
+	public void setCommitAfterReading(boolean commitAfterReading) {
+		this.commitAfterReading = commitAfterReading;
 	}
 	
 }

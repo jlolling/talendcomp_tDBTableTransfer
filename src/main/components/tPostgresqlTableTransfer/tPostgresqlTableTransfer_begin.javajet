@@ -30,7 +30,6 @@
  	String sourceConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_SOURCE__");
     String targetConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_TARGET__");
     boolean truncateTarget = "true".equals(ElementParameterParser.getValue(node, "__TARGET_TRUNCATE__"));
-    boolean disableKeys = "true".equals(ElementParameterParser.getValue(node, "__TARGET_DISABLE_KEYS__"));
     boolean allowExcludeColumns = "true".equals(ElementParameterParser.getValue(node, "__ALLOW_EXCLUDE_COLUMNS__"));
     List<Map<String, String>> excludeFieldList = null;
     if (allowExcludeColumns) {
@@ -76,7 +75,7 @@
     }
 %>
 
-	de.jlo.talendcomp.tabletransfer.MysqlTableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.MysqlTableTransfer();
+	de.jlo.talendcomp.tabletransfer.PostgresqlTableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.PostgresqlTableTransfer();
 	<%=cid%>.setDoCommit(<%=doCommit%>);
 	<%=cid%>.setApplicationName(<%=applicationName%>);
 	<%=cid%>.setRunOnlyUpdates(<%=onlyUpdate%>);
@@ -118,9 +117,6 @@
 	<%=cid%>.setTargetConnection((java.sql.Connection) globalMap.get("conn_" + "<%=targetConnCompName%>"));
 	<%=cid%>.setTargetBatchSize(<%=targetBatchSize%>);
 <% } %>
-	<%=cid%>.setKeepDataModels(<%=reuseModel%>, jobName + "." + currentComponent);
-	<%=cid%>.setupDataModels();
-	<%=cid%>.setKeywords(<%=keywordList%>);
 <% if (useQuery) { %>
    // use our own query as source
    String <%=cid%>_query = <%=sourceQuery%>;
@@ -160,7 +156,7 @@
 	// configure target table
 	{
     	String targetTableName = <%=targetTable%>;
-    	String schemaName = (String) globalMap.get("db_" + "<%=targetConnCompName%>");
+    	String schemaName = (String) globalMap.get("schema_" + "<%=targetConnCompName%>");
     	if (targetTableName.contains(".") == false && schemaName != null && schemaName.trim().isEmpty() == false) {
 			<%=cid%>.setTargetTable(schemaName + "." + targetTableName);
     	} else {
@@ -168,6 +164,9 @@
     	}
 	}
 <%  } %>
+	<%=cid%>.setKeepDataModels(<%=reuseModel%>);
+	<%=cid%>.setupDataModels();
+	<%=cid%>.setKeywords(<%=keywordList%>);
 <%  if (excludeFieldList != null) {
       for (Map<String, String> entry : excludeFieldList) { %>
 	<%=cid%>.addExcludeField(<%=entry.get("COLUMN")%>);
@@ -177,9 +176,6 @@
 		for (Map<String, String> entry : fixedColumnValueList) {
 			String columnName = entry.get("COLUMN_NAME");
 			String columnValue = entry.get("COLUMN_VALUE");
-			if (columnValue == null || columnValue.trim().isEmpty()) {
-				columnValue = "null";
-			}
 			String usageType = entry.get("USAGE_TYPE");
 			if (onlyUpdate) {
 				usageType = "2";
@@ -203,17 +199,11 @@
 	// memorize query
   	globalMap.put("<%=cid%>_SOURCE_QUERY", <%=cid%>.getSourceQuery());
 <%  if (sourceTable != null && sourceTable.isEmpty() == false) { %>
-   globalMap.put("<%=cid%>_SOURCE_TABLE", <%=sourceTable%>);
+    globalMap.put("<%=cid%>_SOURCE_TABLE", <%=sourceTable%>);
 <%  } %>
 <%  if (outputToTable) { %>
-   globalMap.put("<%=cid%>_TARGET_TABLE", <%=targetTable%>);
+    globalMap.put("<%=cid%>_TARGET_TABLE", <%=targetTable%>);
 <%  } %>
-<%  if (outputToTable && truncateTarget &&  onlyUpdate == false) { %>
-    <%=cid%>.info("truncate target table...");
+<%  if (outputToTable && truncateTarget && onlyUpdate == false) { %>
 	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
-<%	 } %>
-<%  if (outputToTable && disableKeys && onlyUpdate == false && "UPDATE".equals(onConflict) == false && "IGNORE".equals(onConflict) == false) { %>
-    <%=cid%>.info("Disable keys on target table...");
-	<%=cid%>.executeSQLOnTarget("SET UNIQUE_CHECKS = 0");
-<%	 } %>
-		
+<%	} %>

@@ -128,7 +128,6 @@ public class TableTransfer {
 	private Map<String, String> dbJavaTypeMap = new HashMap<String, String>();
 	private boolean debug = false;
 	private boolean keepDataModels = false;
-	private String modelKey = null;
 	private Map<Integer, String> outputClassMap = new HashMap<Integer, String>();
 	private String valueRangeColumn = null;
 	private String timeRangeColumn = null;
@@ -147,6 +146,8 @@ public class TableTransfer {
 	private boolean runOnlyUpdates = false;
 	private boolean stripNoneUTF8Characters = false;
 	private String application = null;
+	private String modelKeySource = null;
+	private String modelKeyTarget = null;
 	
 	public void addDbJavaTypeMapping(String dbType, String javaType) {
 		if (dbType != null && dbType.trim().isEmpty() == false) {
@@ -996,7 +997,7 @@ public class TableTransfer {
 						// remove target column
 						SQLField field = targetTable.getField(targetColumnName);
 						if (runOnlyUpdates && field.isPrimaryKey()) {
-							throw new Exception("Update mode can only be used when all primary key fields are part of the source query. PK-Field: " + field.getName() + " is missing in the source!");
+							throw new Exception("Configure metadata for target table: " + tableAndSchemaName + " failed: Update mode can only be used when all primary key fields are part of the source query. PK-Field: " + field.getName() + " is missing in the source!");
 						}
 						// remove this field from table because
 						// the code generators takes the SQLTable for build sql code
@@ -1004,7 +1005,7 @@ public class TableTransfer {
 					}
 				}
 				if (targetTable.getFieldCount() == 0) {
-					throw new Exception("No fields from target matching to a source field!");
+					throw new Exception("Configure metadata for target table: " + tableAndSchemaName + " failed: No fields from target matching to a source field!");
 				}
 				if (strictSourceFieldMatching) {
 					// now check if we have source fields which does not have target fields
@@ -1032,7 +1033,7 @@ public class TableTransfer {
 					if (listSourceFieldNames.contains(targetColumnName) == false) {
 						// found target column without source
 						if (sb1.length() == 0) {
-							sb1.append("Following Target fields does not have a matching source field: ");
+							sb1.append("Following target fields does not have a matching source field: ");
 						} else {
 							sb1.append(",");
 						}
@@ -1060,7 +1061,7 @@ public class TableTransfer {
 					message = sb2.toString();
 				}
 				if (message != null) {
-					throw new Exception(message);
+					throw new Exception("Configure metadata for target table: " + tableAndSchemaName + " failed: " + message);
 				}
 			}
 		}
@@ -1190,12 +1191,15 @@ public class TableTransfer {
 	public void setupDataModels() throws Exception {
 		info("Setup data models");
 		if (keepDataModels) {
+			if (modelKeySource == null) {
+				throw new IllegalStateException("No model key for source available. Please set source table or source query before calling setupDataModels()!");
+			}
 			synchronized(sqlModelCache) {
-				sourceModel = sqlModelCache.get("source_" + modelKey);
+				sourceModel = sqlModelCache.get("source_" + modelKeySource);
 				if (sourceModel == null) {
 					sourceModel = new SQLDataModel(sourceConnection);
 					sourceModel.loadCatalogs();
-					sqlModelCache.put("source_" + modelKey, sourceModel);
+					sqlModelCache.put("source_" + modelKeySource, sourceModel);
 				} else {
 					sourceModel.setConnection(sourceConnection);
 				}
@@ -1209,12 +1213,15 @@ public class TableTransfer {
 		}
 		if (outputToTable) {
 			if (keepDataModels) {
+				if (modelKeyTarget == null) {
+					throw new IllegalStateException("No model key for target available. Please set target table before calling setupDataModels()!");
+				}
 				synchronized(sqlModelCache) {
-					targetModel = sqlModelCache.get("target_" + modelKey);
+					targetModel = sqlModelCache.get("target_" + modelKeyTarget);
 					if (targetModel == null) {
 						targetModel = new SQLDataModel(targetConnection);
 						targetModel.loadCatalogs();
-						sqlModelCache.put("target_" + modelKey, targetModel);
+						sqlModelCache.put("target_" + modelKeyTarget, targetModel);
 					} else {
 						targetModel.setConnection(targetConnection);
 					}
@@ -1270,6 +1277,7 @@ public class TableTransfer {
 			sourceQuery = sourceQuery.substring(0, sourceQuery.length() - 1);
 		}
 		properties.setProperty(SOURCE_QUERY, sourceQuery);
+		modelKeySource = sourceQuery;
 	}
 
     public String getSourceTable() throws SQLException {
@@ -1286,6 +1294,7 @@ public class TableTransfer {
     	}
     	properties.setProperty(SOURCE_TABLE, tableAndSchema);
     	properties.remove(SOURCE_QUERY); // remove query from previous run
+    	modelKeySource = tableAndSchema;
     }
     
     public String getSourceWhereClause() {
@@ -1327,6 +1336,7 @@ public class TableTransfer {
     		throw new IllegalArgumentException("Target schema cannot be null or empty! (Got: " + tableAndSchema + ")");
     	}
     	properties.setProperty(TARGET_TABLE, tableAndSchema);
+    	modelKeyTarget = tableAndSchema;
     }
 
     public int getReturnCode() {
@@ -1682,12 +1692,8 @@ public class TableTransfer {
 		return keepDataModels;
 	}
 
-	public void setKeepDataModels(boolean keepDataModels, String key) {
+	public void setKeepDataModels(boolean keepDataModels) {
 		this.keepDataModels = keepDataModels;
-		if (keepDataModels && (key == null || key.trim().isEmpty())) {
-			throw new IllegalArgumentException("If the model should kept statically the key cannot be null or empty!");
-		}
-		this.modelKey = key;
 	}
 
 	public String getValueRangeColumn() {

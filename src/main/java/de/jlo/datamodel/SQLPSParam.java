@@ -11,7 +11,7 @@ public class SQLPSParam implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 	public static final String PARAM_DESC_DELIMITER = "\u0002";
-    private SQLStatement sqlPs;                          // das zugehÃ¶rige Prepared Statement
+    private SQLStatement sqlPs;                          // das zugehoerige Prepared Statement
     private int index;
     private String name;                           // sofern ein Name des Parameter ermittelbar ist
     private int basicType            = -1;      // der Basistyp des Statements
@@ -42,14 +42,14 @@ public class SQLPSParam implements Serializable {
     }
 
     /**
-     * @return zugehöriges Prepared Statement
+     * @return zugeoeriges Prepared Statement
      */
     public SQLStatement getSqlPs() {
         return sqlPs;
     }
 
     /**
-     * @return Wert der für den Parameter gesetzt wird
+     * @return Wert der fuer den Parameter gesetzt wird
      */
     public String getValue() {
         return value;

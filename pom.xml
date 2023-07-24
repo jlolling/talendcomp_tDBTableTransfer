@@ -4,11 +4,14 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.jlo.talendcomp</groupId>
 	<artifactId>jlo-talendcomp-tabletransfer</artifactId>
-	<version>13.4</version>
+	<version>13.6</version>
 	<name>Table Transfer Components</name>
 	<organization>
 		<name>Jan Lolling</name>
 	</organization>
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
@@ -51,8 +54,6 @@
 				<artifactId>cimt-talendcomp-maven-plugin</artifactId>
 				<version>3.1</version>
 				<configuration>
-					<copyFromSourceBaseDir>${project.basedir}/talend_component</copyFromSourceBaseDir>
-					<componentBaseDir>${project.basedir}/talend_component</componentBaseDir>
 					<studioUserComponentFolder>${custom_component_folder}</studioUserComponentFolder>
 					<useTalendLibrariesMavenLocation>false</useTalendLibrariesMavenLocation>
 				</configuration>

@@ -323,14 +323,26 @@ public class GenericDatabaseExtension implements DatabaseExtension {
 	public boolean loadTables(Connection conn, SQLSchema schema) throws SQLException {
 		DatabaseMetaData dbmd = conn.getMetaData();
 		if (dbmd != null) {
-			SQLTable table;
+			loadTables(conn, schema, null);
+			schema.setTablesLoaded();
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	@Override
+	public boolean loadTables(Connection conn, SQLSchema schema, String searchTableName) throws SQLException {
+		DatabaseMetaData dbmd = conn.getMetaData();
+		if (dbmd != null) {
 			schema.clearTables();
 			final ResultSet rs = dbmd.getTables(
 					schema.getCatalog().getKey(), 
 					schema.getKey(), 
-					null,
+					searchTableName,
 					null);
 			if (rs != null) {
+				SQLTable table;
 				while (rs.next()) {
 					if (Thread.currentThread().isInterrupted()) {
 						break;
@@ -345,7 +357,6 @@ public class GenericDatabaseExtension implements DatabaseExtension {
 				}
 				rs.close();
 			}
-			schema.setTablesLoaded();
 			return true;
 		} else {
 			return false;
@@ -454,7 +465,6 @@ public class GenericDatabaseExtension implements DatabaseExtension {
 		} else {
 			return false;
 		}
-	}
-	
+	}	
 	
 }

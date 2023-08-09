@@ -430,10 +430,64 @@ public class PostgresqlExtension extends GenericDatabaseExtension {
 		}
 		rs.close();
 		stat.close();
+		schema.setTablesLoaded();
 		return true;
 	}
 	
-/*
+	@Override
+	public boolean loadTables(Connection conn, SQLSchema schema, String tableName) throws SQLException {
+		if (logger.isDebugEnabled()) {
+			logger.debug("loadTables schema=" + schema.getName() + " and tableName=" + tableName);
+		}
+		if (tableName == null || tableName.trim().isEmpty()) {
+			tableName = "%";
+		}
+		StringBuilder sql = new StringBuilder();
+		sql.append("SELECT \n");
+		sql.append("    max(pn.nspname) AS schema_name, \n");
+		sql.append("    max(p.relname) AS table_name,\n");
+		sql.append("    (case when max(p.relkind) = 'v' then 'VIEW'\n");
+		sql.append("          when max(p.relkind) = 'm' then 'MATERIALIZED VIEW'\n");
+		sql.append("          when max(p.relkind) = 'r' then 'TABLE'\n");
+		sql.append("          else null end) as table_type,\n");
+		sql.append("    (case when max(ihc.inhparent) is not null then true else false end) as is_inherated,\n");
+		sql.append("    count(ihp.inhrelid) as count_partitions\n");
+		sql.append("FROM pg_class as p\n");
+		sql.append("JOIN pg_namespace pn ON pn.oid = p.relnamespace\n");
+		sql.append("left JOIN pg_inherits as ihp ON (ihp.inhparent=p.oid)\n");
+		sql.append("left JOIN pg_inherits as ihc ON (ihc.inhrelid=p.oid)\n");
+		sql.append("WHERE pn.nspname = '");
+		sql.append(schema.getKey());
+		sql.append("'\n");
+		sql.append("and lower(p.relname) like '");
+		sql.append(tableName.toLowerCase());
+		sql.append("'\n");
+		sql.append("and p.relkind in ('v','r','m')\n");
+		sql.append("group by p.oid\n");
+		sql.append("order by table_name");
+		Statement stat = conn.createStatement();
+		if (logger.isDebugEnabled()) {
+			logger.debug("loadTables SQL=" + sql.toString());
+		}
+		ResultSet rs = stat.executeQuery(sql.toString());
+		schema.clearTables();
+		while (rs.next()) {
+			String name = rs.getString("table_name");
+			String type = rs.getString("table_type");
+			boolean isInherated = rs.getBoolean("is_inherated");
+			int countPartitions = rs.getInt("count_partitions");
+			SQLTable table = new SQLTable(schema.getModel(), schema, name);
+			table.setType(type);
+			table.setInheritated(isInherated);
+			table.setCountPartitions(countPartitions);
+			schema.addTable(table);
+		}
+		rs.close();
+		stat.close();
+		return true;
+	}
+
+	/*
 	@Override
 	public String getSelectCountRows(SQLTable table) {
 		StringBuilder sb = new StringBuilder();

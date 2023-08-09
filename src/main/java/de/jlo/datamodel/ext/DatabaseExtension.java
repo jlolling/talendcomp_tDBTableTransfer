@@ -62,13 +62,21 @@ public interface DatabaseExtension {
 	public String getExplainSQL(String currentStatement);
 	
 	/**
-	 * load tables and add them to the schema
+	 * load tables and add them to the schema and set the flag tablesLoaded
 	 * @param connection
 	 * @param schema
 	 * @return true if successfully loaded
 	 */
 	public boolean loadTables(Connection conn, SQLSchema schema) throws SQLException;
 	
+	/**
+	 * load tables and add them to the schema and does NOT set the flag tables loaded
+	 * @param connection
+	 * @param schema
+	 * @return true if successfully loaded
+	 */
+	public boolean loadTables(Connection conn, SQLSchema schema, String tableNamePattern) throws SQLException;
+
 	/**
 	 * sets the code into the view
 	 * @param table (must be of type VIEW)

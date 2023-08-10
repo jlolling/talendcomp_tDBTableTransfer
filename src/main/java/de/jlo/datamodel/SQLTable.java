@@ -16,7 +16,7 @@ import java.util.Map;
 public final class SQLTable extends SQLObject {
 
 	private final List<SQLField> listColumns = new ArrayList<SQLField>();
-	private final List<SQLIndex> listIndexes = new ArrayList<SQLIndex>();
+	private List<SQLIndex> listIndexes = new ArrayList<SQLIndex>();
     private final Map<String, SQLField> fieldMap = new HashMap<String, SQLField>();
     private SQLSchema schema;
     private String type;
@@ -49,6 +49,25 @@ public final class SQLTable extends SQLObject {
     public SQLTable(SQLDataModel model, SQLSchema schema, String name) {
     	super(model, name);
     	this.schema = schema;
+    }
+    
+    public SQLTable clone() {
+    	SQLTable clone = new SQLTable(this.getModel(), this.schema, this.getName());
+    	clone.comment = this.comment;
+    	clone.constraintMap = this.constraintMap;
+    	clone.constraintsLoaded = this.constraintsLoaded;
+    	clone.countPartitions = this.countPartitions;
+    	// clone fields
+    	for (SQLField field : this.listColumns) {
+    		SQLField clonedField = field.clone();
+    		addField(clonedField);
+    	}
+    	clone.listIndexes = this.listIndexes; 
+    	clone.fieldsLoaded = this.fieldsLoaded;
+    	clone.primaryKeyConstraint = this.primaryKeyConstraint;
+    	clone.sourceCode = this.sourceCode;
+    	clone.type = this.type;
+    	return clone;
     }
     
     public void clear() {

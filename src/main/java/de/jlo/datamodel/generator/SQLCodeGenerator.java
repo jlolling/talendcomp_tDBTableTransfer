@@ -585,8 +585,11 @@ public class SQLCodeGenerator {
         return sb.toString();
 	}
 
-	public String buildInsertPreparedStatement(SQLTable table, boolean fullName) {
+	public String buildInsertPreparedStatement(SQLTable table, boolean fullName) throws Exception {
     	setupEnclosureChar(table);
+		if (table.getFieldCount() == 0) {
+			throw new Exception("No fields for insert statement for table: " + table.getAbsoluteName());
+		}
 		final StringBuilder sb = new StringBuilder();
 		sb.append("insert into ");
 		if (fullName) {
@@ -615,8 +618,11 @@ public class SQLCodeGenerator {
 		return sb.toString();
 	}
 
-	public SQLStatement buildInsertSQLStatement(SQLTable table, boolean fullName) {
+	public SQLStatement buildInsertSQLStatement(SQLTable table, boolean fullName) throws Exception {
     	setupEnclosureChar(table);
+		if (table.getFieldCount() == 0) {
+			throw new Exception("No fields for insert statement for table: " + table.getAbsoluteName());
+		}
 		final SQLStatement sqlPs = new SQLStatement();
 		sqlPs.setPrepared(true);
 		int paramIndex = 0;
@@ -735,7 +741,7 @@ public class SQLCodeGenerator {
 		return sqlPs;
 	}
 
-	public String buildUpdatePreparedStatement(SQLTable table, boolean fullName) {
+	public String buildUpdatePreparedStatement(SQLTable table, boolean fullName) throws Exception {
     	setupEnclosureChar(table);
 		final StringBuilder sb = new StringBuilder();
 		sb.append("update ");
@@ -759,6 +765,9 @@ public class SQLCodeGenerator {
 				sb.append(getEncapsulatedName(field.getName(), false));
 				sb.append("=?");
 			}
+		}
+		if (firstLoop) {
+			throw new Exception("No field for set part found! Target table: " + table.getAbsoluteName() + " field-count: " + table.getFieldCount());
 		}
 		firstLoop = true;
 		for (int i = 0; i < table.getFieldCount(); i++) {
@@ -806,7 +815,7 @@ public class SQLCodeGenerator {
 		return sb.toString();
 	}
 
-	public SQLStatement buildUpdateSQLStatement(SQLTable table, boolean fullName) {
+	public SQLStatement buildUpdateSQLStatement(SQLTable table, boolean fullName) throws Exception {
     	setupEnclosureChar(table);
 		final SQLStatement sqlPs = new SQLStatement();
 		sqlPs.setPrepared(true);
@@ -842,6 +851,9 @@ public class SQLCodeGenerator {
 				sqlPs.addParam(psParam);
 				hasSetField = true;
 			}
+		}
+		if (firstLoop) {
+			throw new Exception("No field for set part found! Target table: " + table.getAbsoluteName() + " field-count: " + table.getFieldCount());
 		}
 		firstLoop = true;
 		for (int i = 0; i < table.getFieldCount(); i++) {

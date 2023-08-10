@@ -29,23 +29,6 @@ public final class SQLField extends SQLObject implements Comparable<SQLField>, F
 	private int usageType = USAGE_INS_UPD;
 	private boolean isFixedValue = false;
 	static public final int ORACLE_ROWID = -100;
-//	static public final int BASICTYPE_CHAR = 0;
-//	static public final int BASICTYPE_DATE = 1;
-//	static public final int BASICTYPE_NUMERIC = 2;
-//	static public final int BASICTYPE_BINARY = 3;
-//	static public final int BASICTYPE_CLOB = 4;
-//	static public final int BASICTYPE_BLOB = 6;
-//	static public final int BASICTYPE_ROWID = -100;
-//	static public final int BASICTYPE_BOOLEAN = 8;
-//	static public final int ORACLE_ROWID = -8;
-//	static public final int BASICTYPE_CHAR = 1;
-//	static public final int BASICTYPE_DATE = 2;
-//	static public final int BASICTYPE_NUMERIC = 3;
-//	static public final int BASICTYPE_BINARY = 4;
-//	static public final int BASICTYPE_CLOB = 5;
-//	static public final int BASICTYPE_BLOB = 6;
-//	static public final int BASICTYPE_ROWID = 7;
-//	static public final int BASICTYPE_BOOLEAN = 8;
 	static final int[] arrayBasicTypes = new int [] {
 		BasicDataType.CHARACTER.getId(),
 		BasicDataType.DATE.getId(),
@@ -63,6 +46,28 @@ public final class SQLField extends SQLObject implements Comparable<SQLField>, F
 		this.ownSQLTable = sqlTable;
 	}
 
+	public SQLField clone() {
+		SQLField clone = new SQLField(getModel(), this.ownSQLTable, getName());
+		clone.basicType = this.basicType;
+		clone.comment = this.comment;
+		clone.dbTypeName = this.dbTypeName;
+		clone.decimalDigits = this.decimalDigits;
+		clone.defaultValue = this.defaultValue;
+		clone.isFixedValue = this.isFixedValue;
+		clone.isPrimaryKey = this.isPrimaryKey;
+		clone.isSerial = this.isSerial;
+		clone.javaClass = this.javaClass;
+		clone.length = this.length;
+		clone.nnc = this.nnc;
+		clone.nullEnabled = this.nullEnabled;
+		clone.ordinalPosition = this.ordinalPosition;
+		clone.type = this.type;
+		clone.typeSQLCode = this.typeSQLCode;
+		clone.usageType = this.usageType;
+		clone.usedInIndex = this.usedInIndex;
+		return clone;
+	}
+	
 	public String getTableName() {
 		return ownSQLTable.getName();
 	}

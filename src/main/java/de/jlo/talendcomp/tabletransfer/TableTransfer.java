@@ -948,7 +948,7 @@ public class TableTransfer {
 			if (tableName.startsWith("\"")) {
 				tableName = tableName.substring(1, tableName.length() - 1);
 			}
-			targetTable = schema.getTable(tableName);
+			targetTable = schema.getTable(tableName).clone();
 			if (targetTable == null) {
 				throw new Exception("Get information about target table: " + schemaName + "." + tableName + " not available");
 			}

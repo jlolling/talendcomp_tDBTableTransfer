@@ -51,7 +51,7 @@ public final class SQLTable extends SQLObject {
     	this.schema = schema;
     }
     
-    public SQLTable clone() {
+    public SQLTable clone() {  	
     	SQLTable clone = new SQLTable(this.getModel(), this.schema, this.getName());
     	clone.comment = this.comment;
     	clone.constraintMap = this.constraintMap;
@@ -60,7 +60,7 @@ public final class SQLTable extends SQLObject {
     	// clone fields
     	for (SQLField field : this.listColumns) {
     		SQLField clonedField = field.clone();
-    		addField(clonedField);
+    		clone.addField(clonedField);
     	}
     	clone.listIndexes = this.listIndexes; 
     	clone.fieldsLoaded = this.fieldsLoaded;

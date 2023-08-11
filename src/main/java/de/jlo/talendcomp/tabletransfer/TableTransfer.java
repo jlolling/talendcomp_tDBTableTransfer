@@ -903,6 +903,8 @@ public class TableTransfer {
 			if (sourceTable.isFieldsLoaded() == false) {
 				sourceTable.loadColumns(true);
 			}
+			// clone source table to make the original one immutable
+			sourceTable = sourceTable.clone();
 			// remove fields to be excluded
 			for (String exclFieldName : excludeFieldList) {
 				SQLField field = sourceTable.getField(exclFieldName);
@@ -948,7 +950,7 @@ public class TableTransfer {
 			if (tableName.startsWith("\"")) {
 				tableName = tableName.substring(1, tableName.length() - 1);
 			}
-			targetTable = schema.getTable(tableName).clone();
+			targetTable = schema.getTable(tableName);
 			if (targetTable == null) {
 				throw new Exception("Get information about target table: " + schemaName + "." + tableName + " not available");
 			}
@@ -960,6 +962,8 @@ public class TableTransfer {
 			}
 			// if there is no primary key, try to set them by unique index
 			targetTable.setupPrimaryKeyFieldsByUniqueIndex();
+			// clone the target table to prevent changes on the original table object
+			targetTable = targetTable.clone();
 			// remove SQLFields which should be excluded
 			for (String exclFieldName : excludeFieldList) {
 				boolean exclude = true;

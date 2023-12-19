@@ -74,8 +74,10 @@
 <%  } else { %>
 	<%=cid%>.info("<%=cid%> [" + <%=cid%>.getBackupFilePath() + "] read:" + <%=cid%>.getCurrentCountReads() + " written:" + <%=cid%>.getCurrentCountInserts());
 <%  } %>
+	globalMap.put("<%=cid%>_SUCCESSFUL", <%=cid%>.isSuccessful());
 	if (<%=cid%>.isSuccessful() == false) {
 	    globalMap.put("<%=cid%>_ERROR_MESSAGE", <%=cid%>.getErrorMessage());
+	    Thread.sleep(1000);
 <%  if (dieOnError) { %>
 	    if (<%=cid%>.getErrorException() != null) {
 			throw <%=cid%>.getErrorException();

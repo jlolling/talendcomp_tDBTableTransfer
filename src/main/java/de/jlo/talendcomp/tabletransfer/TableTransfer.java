@@ -75,7 +75,7 @@ public class TableTransfer {
 	private SQLTable targetTable;
 	private static final int RETURN_CODE_OK = 0;
 	private static final int RETURN_CODE_ERROR_INPUT = 1;
-	private static final int RETURN_CODE_ERROR_OUPUT = 1;
+	private static final int RETURN_CODE_ERROR_OUTPUT = 2;
 	private static final int RETURN_CODE_WARN = 5;
 	private int returnCode = RETURN_CODE_OK;
 	private String errorMessage;
@@ -307,15 +307,16 @@ public class TableTransfer {
 				debug("Start fetch data from the given source query");
 			}
 		}
+		ResultSet rs = null;
 		try {
 			if (isDebugEnabled()) {
 				debug("Execute source query: " + sourceQuery);
 				debug("Source select statement uses fetch size: " + sourceSelectStatement.getFetchSize());
 			}
-			final ResultSet rs = sourceSelectStatement.executeQuery(sourceQuery);
+			rs = sourceSelectStatement.executeQuery(sourceQuery);
 			rs.setFetchSize(getFetchSize());
 			if (isDebugEnabled()) {
-				debug("Analyse result set...");
+				debug("Analyse result set for ResultSet object: " + rs);
 			}
 			final ResultSetMetaData rsMeta = rs.getMetaData();
 			final int countColumns = rsMeta.getColumnCount();
@@ -387,6 +388,10 @@ public class TableTransfer {
 				if (Thread.currentThread().isInterrupted()) {
 					break;
 				}
+				if (returnCode == RETURN_CODE_ERROR_OUTPUT) {
+					info("Stop read thread because output error detected");
+					break;
+				}
 			}
 			rs.close();
 			if (isDebugEnabled()) {
@@ -406,7 +411,9 @@ public class TableTransfer {
 			returnCode = RETURN_CODE_ERROR_INPUT;
 		} catch (InterruptedException ie) {
 			error("Read interrupted (send data sets)", ie);
-			returnCode = RETURN_CODE_ERROR_INPUT;
+			if (returnCode == RETURN_CODE_OK) {
+				returnCode = RETURN_CODE_ERROR_INPUT; // it is most likely the interruption comes from the write part
+			}
 		} catch (Exception ie) {
 			error("Read failed: " + ie.getMessage(), ie);
 			returnCode = RETURN_CODE_ERROR_INPUT;
@@ -414,6 +421,13 @@ public class TableTransfer {
 			error("Read failed with Error: " + ie.getMessage(), ie);
 			returnCode = RETURN_CODE_ERROR_INPUT;
 		} finally {
+			if (rs != null) {
+				try {
+					rs.close();
+				} catch (Throwable t) {
+					// intentionally empty
+				}
+			}
 			try {
 				if (outputToTable) {
 					info("Stopping write table thread...");
@@ -600,19 +614,19 @@ public class TableTransfer {
 					}
 				} catch (InterruptedException e) {
 					error("Write interrupted in line " + countInsertsAdded, e);
-					returnCode = RETURN_CODE_ERROR_OUPUT;
+					returnCode = RETURN_CODE_ERROR_OUTPUT;
 					break;
 				} catch (SQLException sqle) {
 					runningDb = false;
 					if (sqle instanceof BatchUpdateException) {
 						BatchUpdateException be = (BatchUpdateException) sqle;
 						int[] counts = be.getUpdateCounts();
-						int batchIndex = 0;
+						int overallIndex = 0;
 						for (int c : counts) {
-							batchIndex = batchIndex + c;
+							overallIndex = overallIndex + c;
 						}
-						batchIndex = (countInsertsAdded - batchSize) + batchIndex; // set the batchIndex as the absolute over all index
-						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + batchIndex + " message:" + sqle.getMessage(), sqle);
+						overallIndex = (countInsertsAdded - batchSize) + overallIndex; // set the batchIndex as the absolute over all index
+						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + overallIndex + " message:" + sqle.getMessage(), sqle);
 					} else {
 						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + countInsertsAdded + " message:" + sqle.getMessage(), sqle);
 					}
@@ -620,8 +634,8 @@ public class TableTransfer {
 					if (ne != null) {
 						error("Next exception:" + ne.getMessage(), ne);
 					}
+					returnCode = RETURN_CODE_ERROR_OUTPUT;
 					if (dieOnError) {
-						returnCode = RETURN_CODE_ERROR_OUPUT;
 						try {
 							if (autocommit == false) {
 								targetConnection.rollback();
@@ -643,12 +657,14 @@ public class TableTransfer {
 					}
 				} catch (Exception e1) {
 					runningDb = false;
-					returnCode = RETURN_CODE_ERROR_OUPUT;
+					returnCode = RETURN_CODE_ERROR_OUTPUT;
 					error("Write into table: " + getTargetTableAsGiven() + " latest line number before batch-execute: " + countInsertsAdded + " failed: " + e1.getMessage(), e1);
 					break;
 				}
 			}
-			if (currentBatchCount > 0 && returnCode == RETURN_CODE_OK) {
+			if (currentBatchCount > 0 && returnCode != RETURN_CODE_ERROR_OUTPUT) {
+				// the batch has still some cached records and must send to the database
+				// and we do not have problems with the target database yet
 				try {
 					if (isDebugEnabled()) {
 						debug("write execute final insert batch");
@@ -662,16 +678,16 @@ public class TableTransfer {
 					}
 					currentBatchCount = 0;
 				} catch (SQLException sqle) {
-					returnCode = RETURN_CODE_ERROR_OUPUT;
+					returnCode = RETURN_CODE_ERROR_OUTPUT;
 					if (sqle instanceof BatchUpdateException) {
 						BatchUpdateException be = (BatchUpdateException) sqle;
 						int[] counts = be.getUpdateCounts();
-						int batchIndex = 0;
+						int overallIndex = 0;
 						for (int c : counts) {
-							batchIndex = batchIndex + c;
+							overallIndex = overallIndex + c;
 						}
-						batchIndex = (countInsertsAdded - batchSize) + batchIndex; // set the batchIndex to the absolute over all index
-						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + batchIndex + " message: " + sqle.getMessage(), sqle);
+						overallIndex = (countInsertsAdded - batchSize) + overallIndex;
+						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + overallIndex + " message: " + sqle.getMessage(), sqle);
 					} else {
 						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + countInsertsAdded + " message: " + sqle.getMessage(), sqle);
 					}
@@ -686,9 +702,6 @@ public class TableTransfer {
 					}
 				}
 			}
-			if (returnCode == RETURN_CODE_ERROR_INPUT) {
-				error("Read has been failed. Stop write into table: " + getTargetTableAsGiven(), null);
-			}
 		} finally {
 			try {
 				if (targetPreparedStatement != null) {
@@ -701,7 +714,8 @@ public class TableTransfer {
 			}
 		}
 		runningDb = false;
-		info("Write into table: " + getTargetTableAsGiven() + " finished.");
+		info("Write into table: " + getTargetTableAsGiven() + " ended.");
+		stop();
 	}
 	
 	protected final Object getRowValue(final String columnName, final Object[] row) throws Exception {
@@ -1628,7 +1642,7 @@ public class TableTransfer {
 				} catch (Exception e) {
 					error("write file failed in line number " + countFileRows + " message:" + e.getMessage(), e);
 					if (dieOnError) {
-						returnCode = RETURN_CODE_ERROR_OUPUT;
+						returnCode = RETURN_CODE_ERROR_OUTPUT;
 						break;
 					}
 				}
@@ -1649,7 +1663,7 @@ public class TableTransfer {
 				warn("Read has been failed. Rename file as error file.", null);
 				File errorFile = new File(backupFile.getAbsolutePath() + ".error");
 				backupFileTmp.renameTo(errorFile);
-			} else if (returnCode == RETURN_CODE_ERROR_OUPUT) {
+			} else if (returnCode == RETURN_CODE_ERROR_OUTPUT) {
 				debug("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
 				warn("Write to file has been failed. Rename file as error file.", null);
 				File errorFile = new File(backupFile.getAbsolutePath() + ".error");

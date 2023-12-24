@@ -105,9 +105,11 @@ public class MySQLExtension extends GenericDatabaseExtension {
 			sb.append(table.getName());
 			sb.append("'");
 			String source = null;
+			ResultSet rs = null;
+			Statement stat = null;
 			try {
-				Statement stat = conn.createStatement();
-				ResultSet rs = stat.executeQuery(sb.toString());
+				stat = conn.createStatement();
+				rs = stat.executeQuery(sb.toString());
 				if (rs.next()) {
 					source = rs.getString(1);
 					if (source != null && source.isEmpty() == false) {
@@ -119,6 +121,21 @@ public class MySQLExtension extends GenericDatabaseExtension {
 				stat.close();
 			} catch (SQLException sqle) {
 				logger.error("setupViewSQLCode for table " + table.getAbsoluteName() + " failed: " + sqle.getMessage(), sqle);
+			} finally {
+				if (rs != null) {
+					try {
+						rs.close();
+					} catch (Throwable t) {
+						// ignore
+					}
+				}
+				if (stat != null) {
+					try {
+						stat.close();
+					} catch (Throwable t) {
+						// ignore
+					}
+				}
 			}
 			return source;
 		}

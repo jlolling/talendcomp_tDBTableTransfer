@@ -135,7 +135,7 @@ public final class SQLDataModel extends SQLObject implements Comparable<SQLDataM
 				// ignore
 			}
 			errorMessage = "loadCatalogs failed: " + sqle.getMessage();
-			logger.error(errorMessage);
+			logger.error(errorMessage, sqle);
 		} finally {
 			loadingCatalogs = false;
 		}

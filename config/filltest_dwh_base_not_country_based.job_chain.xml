@@ -1,5 +1,0 @@
-<job_chain orders_recoverable="yes" visible="yes">
-<job_chain_node state="100" job="/deployed/filltest/filltest_dwh_base_not_country_based" next_state="done" error_state="err"/>
-<job_chain_node state="done"/>
-<job_chain_node state="err"/>
-</job_chain> 

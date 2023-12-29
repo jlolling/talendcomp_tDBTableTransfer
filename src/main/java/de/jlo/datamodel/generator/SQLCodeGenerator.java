@@ -119,22 +119,39 @@ public class SQLCodeGenerator {
 	private boolean needEncapsulation(String identifier) {
 		if (containsKeyword(identifier) 
 				|| identifier.indexOf('-') != -1 
+				|| identifier.indexOf('+') != -1 
+				|| identifier.indexOf(':') != -1
+				|| identifier.indexOf('*') != -1 
 				|| identifier.indexOf('/') != -1 
-				|| identifier.indexOf('\\') != -1 
+				|| identifier.indexOf('\\') != -1
 				|| identifier.indexOf('#') != -1 
 				|| identifier.indexOf(' ') != -1 
+				|| identifier.indexOf('´') != -1 
+				|| identifier.indexOf('\'') != -1 
 				|| identifier.indexOf("$") != -1
-				|| identifier.startsWith("0") 
+				|| identifier.indexOf("§") != -1
+				|| identifier.indexOf("&") != -1
+				|| identifier.indexOf("@") != -1 
+				|| identifier.indexOf("€") != -1 
+				|| identifier.indexOf("<") != -1
+				|| identifier.indexOf("=") != -1 
+				|| identifier.indexOf(">") != -1 
+				|| identifier.indexOf("%") != -1
+				|| identifier.indexOf("(") != -1 
+				|| identifier.indexOf(")") != -1 
+				|| identifier.indexOf("?") != -1
+				|| identifier.indexOf("ß") != -1 
+				|| identifier.indexOf("!") != -1 
+				|| identifier.startsWith("0")
 				|| identifier.startsWith("1") 
 				|| identifier.startsWith("2") 
-				|| identifier.startsWith("3") 
+				|| identifier.startsWith("3")
 				|| identifier.startsWith("4") 
 				|| identifier.startsWith("5") 
-				|| identifier.startsWith("6") 
+				|| identifier.startsWith("6")
 				|| identifier.startsWith("7") 
 				|| identifier.startsWith("8") 
-				|| identifier.startsWith("9") 
-				) {
+				|| identifier.startsWith("9")) {
 			return true;
 		}
 		return false;

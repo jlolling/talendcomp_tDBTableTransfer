@@ -1,11 +1,18 @@
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 public class PlayTableTransfer extends TalendTest {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws ParseException {
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date d = sdf.parse("0000-00-00 00:00:00");
+		System.out.println(sdf.format(d) + " = " + d.getTime());
 		PlayTableTransfer test = new PlayTableTransfer();
 		try {
-			test.setupConnection();
+			//test.setupConnection();
 			//test.testSimpleTalendInput();
-			test.testToFile();
+			//stest.testToFile();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

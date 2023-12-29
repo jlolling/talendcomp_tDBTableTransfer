@@ -148,6 +148,8 @@ public class TableTransfer {
 	private String application = null;
 	private String modelKeySource = null;
 	private String modelKeyTarget = null;
+	private static final long MIN_DATETIME = -62170160400000l;
+	private boolean setZeroDateToNull = false;
 	
 	public void addDbJavaTypeMapping(String dbType, String javaType) {
 		if (dbType != null && dbType.trim().isEmpty() == false) {
@@ -820,13 +822,24 @@ public class TableTransfer {
 				} else if ("String".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setString(p.getIndex(), (String) value);
 				} else if ("Date".equalsIgnoreCase(className)) {
+					long ms = MIN_DATETIME;
 					if (value instanceof java.util.Date) {
-						targetPreparedStatement.setTimestamp(p.getIndex(), new java.sql.Timestamp(((java.util.Date) value).getTime()));
+						ms = ((java.util.Date) value).getTime();
 					} else {
-						targetPreparedStatement.setTimestamp(p.getIndex(), new java.sql.Timestamp(((java.sql.Date) value).getTime()));
+						ms = ((java.sql.Date) value).getTime();
+					}
+					if (setZeroDateToNull && ms <= MIN_DATETIME) {
+						targetPreparedStatement.setNull(p.getIndex(), targetTable.getField(p.getName()).getType());
+					} else {
+						targetPreparedStatement.setTimestamp(p.getIndex(), new java.sql.Timestamp(ms));
 					}
 				} else if ("Timestamp".equalsIgnoreCase(className)) {
-					targetPreparedStatement.setTimestamp(p.getIndex(), (Timestamp) value);
+					long ms = ((Timestamp) value).getTime();
+					if (setZeroDateToNull && ms <= MIN_DATETIME) {
+						targetPreparedStatement.setNull(p.getIndex(), targetTable.getField(p.getName()).getType());
+					} else {
+						targetPreparedStatement.setTimestamp(p.getIndex(), (Timestamp) value);
+					}
 				} else if ("Time".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setTime(p.getIndex(), (Time) value);
 				} else if ("Boolean".equalsIgnoreCase(className)) {
@@ -2175,6 +2188,14 @@ public class TableTransfer {
 		if (application != null && application.trim().isEmpty() == false) {
 			this.application = application;
 		}
+	}
+
+	public boolean isSetZeroDateToNull() {
+		return setZeroDateToNull;
+	}
+
+	public void setZeroDateToNull(boolean setZeroDateToNull) {
+		this.setZeroDateToNull = setZeroDateToNull;
 	}
 
 }

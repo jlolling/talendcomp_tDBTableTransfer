@@ -80,7 +80,7 @@
 	    Thread.sleep(1000);
 <%  if (dieOnError) { %>
 	    if (<%=cid%>.getErrorException() != null) {
-			throw <%=cid%>.getErrorException();
+			throw new Exception("TableTransfer to table: " + <%=cid%>.getTargetTableAsGiven() + " failed.", <%=cid%>.getErrorException());
 	    } else {
 	    	throw new Exception(<%=cid%>.getErrorMessage());
 	    }

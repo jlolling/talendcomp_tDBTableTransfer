@@ -148,7 +148,7 @@ public class TableTransfer {
 	private String application = null;
 	private String modelKeySource = null;
 	private String modelKeyTarget = null;
-	private static final long MIN_DATETIME = -62170160400000l;
+	private static final long ZERO_DATETIME = -62170160400000l;
 	private boolean setZeroDateToNull = false;
 	
 	public void addDbJavaTypeMapping(String dbType, String javaType) {
@@ -822,20 +822,20 @@ public class TableTransfer {
 				} else if ("String".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setString(p.getIndex(), (String) value);
 				} else if ("Date".equalsIgnoreCase(className)) {
-					long ms = MIN_DATETIME;
+					long ms = ZERO_DATETIME;
 					if (value instanceof java.util.Date) {
 						ms = ((java.util.Date) value).getTime();
-					} else {
+					} else if (value instanceof java.sql.Date) {
 						ms = ((java.sql.Date) value).getTime();
 					}
-					if (setZeroDateToNull && ms <= MIN_DATETIME) {
+					if (setZeroDateToNull && ms <= ZERO_DATETIME) {
 						targetPreparedStatement.setNull(p.getIndex(), targetTable.getField(p.getName()).getType());
 					} else {
 						targetPreparedStatement.setTimestamp(p.getIndex(), new java.sql.Timestamp(ms));
 					}
 				} else if ("Timestamp".equalsIgnoreCase(className)) {
 					long ms = ((Timestamp) value).getTime();
-					if (setZeroDateToNull && ms <= MIN_DATETIME) {
+					if (setZeroDateToNull && ms <= ZERO_DATETIME) {
 						targetPreparedStatement.setNull(p.getIndex(), targetTable.getField(p.getName()).getType());
 					} else {
 						targetPreparedStatement.setTimestamp(p.getIndex(), (Timestamp) value);

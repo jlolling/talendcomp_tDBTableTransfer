@@ -85,7 +85,9 @@ public class SQLCodeGenerator {
 		keywordList.add("delete");
 		keywordList.add("having");
 		keywordList.add("group");
+		keywordList.add("by");
 		keywordList.add("with");
+		keywordList.add("as");
 		keywordList.add("column");
 	}
 

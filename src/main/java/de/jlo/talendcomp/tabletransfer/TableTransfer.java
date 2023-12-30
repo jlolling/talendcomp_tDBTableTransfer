@@ -117,7 +117,7 @@ public class TableTransfer {
 	private String nullReplacement = "\\N";
 	private BufferedWriter backupOutputWriter = null;
 	private SimpleDateFormat sdfOut = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-	private boolean ignoreReadFieldErrors = true;
+	private boolean ignoreReadFieldErrors = false;
 	private Pattern patternForBackslash = null;
 	private Pattern patternForQuota = null;
 	private String replacementForBackslash = null;
@@ -148,7 +148,7 @@ public class TableTransfer {
 	private String application = null;
 	private String modelKeySource = null;
 	private String modelKeyTarget = null;
-	private static final long ZERO_DATETIME = -62170160400000l;
+	private static final long ZERO_DATETIME = -61854541200000l;
 	private boolean setZeroDateToNull = false;
 	
 	public void addDbJavaTypeMapping(String dbType, String javaType) {
@@ -516,11 +516,15 @@ public class TableTransfer {
 					row[columnIndex] = rs.getObject(columnIndex + 1);
 				}
 			} catch (SQLException e) {
-				if (ignoreReadFieldErrors == false) {
-					throw e;
-				} else {
-					warn("Ignore database error while reading field with index: " + columnIndex + " in row: " + countRead + " message: " + e.getMessage(), e);
+				if (setZeroDateToNull && e.getMessage().toLowerCase().contains("zero")) {
 					row[columnIndex] = null;
+				} else {
+					if (ignoreReadFieldErrors == false) {
+						throw e;
+					} else {
+						warn("Ignore database error while reading field with index: " + columnIndex + " in row: " + countRead + " message: " + e.getMessage(), null);
+						row[columnIndex] = null;
+					}
 				}
 			}
 			columnIndex++;
@@ -2196,6 +2200,14 @@ public class TableTransfer {
 
 	public void setZeroDateToNull(boolean setZeroDateToNull) {
 		this.setZeroDateToNull = setZeroDateToNull;
+	}
+
+	public boolean isIgnoreReadFieldErrors() {
+		return ignoreReadFieldErrors;
+	}
+
+	public void setIgnoreReadFieldErrors(boolean ignoreReadFieldErrors) {
+		this.ignoreReadFieldErrors = ignoreReadFieldErrors;
 	}
 
 }

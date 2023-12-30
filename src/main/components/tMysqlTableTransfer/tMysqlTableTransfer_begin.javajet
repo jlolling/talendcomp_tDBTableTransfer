@@ -75,6 +75,7 @@
     	applicationName = "null";
     }
     boolean setZeroToNull = "true".equals(ElementParameterParser.getValue(node, "__SET_ZERO_DATE_TO_NULL__"));
+    boolean ignoreReadFieldError = "true".equals(ElementParameterParser.getValue(node, "__IGNORE_READ_FIELD_ERRORS__"));
 %>
 
 	de.jlo.talendcomp.tabletransfer.MysqlTableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.MysqlTableTransfer();
@@ -82,6 +83,7 @@
 	<%=cid%>.setApplicationName(<%=applicationName%>);
 	<%=cid%>.setRunOnlyUpdates(<%=onlyUpdate%>);
 	<%=cid%>.setZeroDateToNull(<%=setZeroToNull%>);
+	<%=cid%>.setIgnoreReadFieldErrors(<%=ignoreReadFieldError%>);
 <%	if (onlyUpdate == false) {
 		if ("IGNORE".equals(onConflict)) { %>
 	<%=cid%>.setOnConflictIgnore(true);

@@ -83,12 +83,16 @@
     if (addApplicationNameAsComment == false || applicationName == null || applicationName.trim().isEmpty()) {
     	applicationName = "null";
     }
+    boolean setZeroToNull = "true".equals(ElementParameterParser.getValue(node, "__SET_ZERO_DATE_TO_NULL__"));
+    boolean ignoreReadFieldError = "true".equals(ElementParameterParser.getValue(node, "__IGNORE_READ_FIELD_ERRORS__"));
 %>
 
 	de.jlo.talendcomp.tabletransfer.TableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
 	<%=cid%>.setDoCommit(<%=doCommit%>);
 	<%=cid%>.setApplicationName(<%=applicationName%>);
 	<%=cid%>.setRunOnlyUpdates(<%=onlyUpdate%>);
+	<%=cid%>.setZeroDateToNull(<%=setZeroToNull%>);
+	<%=cid%>.setIgnoreReadFieldErrors(<%=ignoreReadFieldError%>);
 <%  if (typeMap != null) {
 		for (Map<String, String> map : typeMap) {
 			String dbType = map.get("DB_TYPE");

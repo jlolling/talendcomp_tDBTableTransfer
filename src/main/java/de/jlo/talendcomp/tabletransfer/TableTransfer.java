@@ -412,7 +412,6 @@ public class TableTransfer {
 			error("Read failed in line number " + countRead + " message:" + message, e);
 			returnCode = RETURN_CODE_ERROR_INPUT;
 		} catch (InterruptedException ie) {
-			error("Read interrupted (send data sets)", ie);
 			if (returnCode == RETURN_CODE_OK) {
 				returnCode = RETURN_CODE_ERROR_INPUT; // it is most likely the interruption comes from the write part
 			}
@@ -619,7 +618,6 @@ public class TableTransfer {
 						}
 					}
 				} catch (InterruptedException e) {
-					error("Write interrupted in line " + countInsertsAdded, e);
 					returnCode = RETURN_CODE_ERROR_OUTPUT;
 					break;
 				} catch (SQLException sqle) {

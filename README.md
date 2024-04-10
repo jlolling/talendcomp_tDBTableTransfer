@@ -6,3 +6,5 @@ Here the [Documentations for the MySQL edition](https://github.com/jlolling/tale
 Here the [Documentations for the PostgreSQL edition](https://github.com/jlolling/talendcomp_tDBTableTransfer/blob/master/doc/tPostgresqlTableTransfer.pdf)
 
 All other database types have less options and you can refer to the tPostgresql edition documentation. The option what should happens if keys are doubled does not exist here.
+
+[Help page to download and install custom components](https://jan-lolling.de/) 

@@ -150,6 +150,18 @@ public class TableTransfer {
 	private String modelKeyTarget = null;
 	private static final long ZERO_DATETIME = -61854541200000l;
 	private boolean setZeroDateToNull = false;
+	private boolean allowMatchTolerant = false;
+	
+	private String cleanupColumnNameForMatching(String columnName) {
+		if (columnName == null || columnName.trim().isEmpty()) {
+			throw new IllegalArgumentException("columnName cannot be null or empty");
+		}
+		columnName = columnName.toLowerCase().trim();
+		if (allowMatchTolerant) {
+			columnName = columnName.replace("/", "_").replace(" ", "_").replace(".", "_");
+		}
+		return columnName;
+	}
 	
 	public void addDbJavaTypeMapping(String dbType, String javaType) {
 		if (dbType != null && dbType.trim().isEmpty() == false) {
@@ -722,6 +734,20 @@ public class TableTransfer {
 		stop();
 	}
 	
+	private int getIndexInSourceFieldList(String columnName) {
+		if (allowMatchTolerant) {
+			for (int i = 0; i < listSourceFieldNames.size(); i++) {
+				String sc = listSourceFieldNames.get(i);
+				if (cleanupColumnNameForMatching(sc).equals(cleanupColumnNameForMatching(columnName))) {
+					return i;
+				}
+			}
+			return -1;
+		} else {
+			return listSourceFieldNames.indexOf(columnName.trim().toLowerCase());
+		}
+	}
+	
 	protected final Object getRowValue(final String columnName, final Object[] row) throws Exception {
 		if (listSourceFieldNames == null) {
 			throw new Exception("List of source fields is not initialized");
@@ -729,7 +755,7 @@ public class TableTransfer {
 		if (listSourceFieldNames.isEmpty()) {
 			throw new Exception("List of source fields is empty");
 		}
-		final int index = listSourceFieldNames.indexOf(columnName.toLowerCase());
+		final int index = getIndexInSourceFieldList(columnName);
 		if (index != -1) {
 			return row[index];
 		} else {
@@ -740,7 +766,7 @@ public class TableTransfer {
 				boolean firstLoop = true;
 				for (SQLPSParam p : targetSQLStatement.getParams()) {
 					String targetColumnName = p.getName().toLowerCase();
-					if (listSourceFieldNames.contains(targetColumnName) == false) {
+					if (getIndexInSourceFieldList(targetColumnName) == -1) {
 						if (firstLoop) {
 							firstLoop = false;
 						} else {
@@ -770,7 +796,7 @@ public class TableTransfer {
 						boolean found = false;
 						for (SQLPSParam p : targetSQLStatement.getParams()) {
 							String targetColumnName = p.getName().toLowerCase();
-							if (sourceColumn.equalsIgnoreCase(targetColumnName)) {
+							if (cleanupColumnNameForMatching(sourceColumn).equals(cleanupColumnNameForMatching(targetColumnName))) {
 								found = true;
 								break;
 							}
@@ -1025,7 +1051,7 @@ public class TableTransfer {
 				// if not strict mode remove all target fields not exists in the source
 				for (String p : targetTable.getFieldNames()) {
 					String targetColumnName = p.toLowerCase();
-					if (listSourceFieldNames.contains(targetColumnName) == false) {
+					if (getIndexInSourceFieldList(targetColumnName) == -1) {
 						// found target column without source
 						// remove target column
 						SQLField field = targetTable.getField(targetColumnName);
@@ -1046,6 +1072,9 @@ public class TableTransfer {
 					for (String sourceField : listSourceFieldNames) {
 						SQLField targetField = targetTable.getField(sourceField);
 						if (targetField == null) {
+							targetField = targetTable.getField(cleanupColumnNameForMatching(sourceField));
+						}
+						if (targetField == null) {
 							if (sb.length() == 0) {
 								sb.append("In strict-source-field-mapping mode: Following source fields does not have a matching target table field: ");
 							} else {
@@ -1063,7 +1092,7 @@ public class TableTransfer {
 				StringBuilder sb1 = new StringBuilder();
 				for (String p : targetTable.getFieldNames()) {
 					String targetColumnName = p.toLowerCase();
-					if (listSourceFieldNames.contains(targetColumnName) == false) {
+					if (getIndexInSourceFieldList(targetColumnName) == -1) {
 						// found target column without source
 						if (sb1.length() == 0) {
 							sb1.append("Following target fields does not have a matching source field: ");
@@ -1076,6 +1105,9 @@ public class TableTransfer {
 				StringBuilder sb2 = new StringBuilder();
 				for (String sourceField : listSourceFieldNames) {
 					SQLField targetField = targetTable.getField(sourceField);
+					if (targetField == null) {
+						targetField = targetTable.getField(cleanupColumnNameForMatching(sourceField));
+					}
 					if (targetField == null) {
 						if (sb2.length() == 0) {
 							sb2.append("Following source fields does not have a matching target table field: ");
@@ -2206,6 +2238,14 @@ public class TableTransfer {
 
 	public void setIgnoreReadFieldErrors(boolean ignoreReadFieldErrors) {
 		this.ignoreReadFieldErrors = ignoreReadFieldErrors;
+	}
+
+	public boolean isAllowMatchTolerant() {
+		return allowMatchTolerant;
+	}
+
+	public void setAllowMatchTolerant(boolean allowMatchTolerant) {
+		this.allowMatchTolerant = allowMatchTolerant;
 	}
 
 }

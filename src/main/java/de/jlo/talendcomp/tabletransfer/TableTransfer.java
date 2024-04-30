@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Jan Lolling jan.lolling@gmail.com
+ * Copyright 2024 Jan Lolling jan.lolling@gmail.com
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -158,7 +158,7 @@ public class TableTransfer {
 		}
 		columnName = columnName.toLowerCase().trim();
 		if (allowMatchTolerant) {
-			columnName = columnName.replace("/", "_").replace(" ", "_").replace(".", "_");
+			columnName = columnName.replace("/", "_").replace(" ", "_");
 		}
 		return columnName;
 	}

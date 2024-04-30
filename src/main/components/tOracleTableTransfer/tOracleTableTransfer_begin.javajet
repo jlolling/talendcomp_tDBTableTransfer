@@ -76,6 +76,7 @@
     }
     boolean setZeroToNull = "true".equals(ElementParameterParser.getValue(node, "__SET_ZERO_DATE_TO_NULL__"));
     boolean ignoreReadFieldError = "true".equals(ElementParameterParser.getValue(node, "__IGNORE_READ_FIELD_ERRORS__"));
+    boolean allowTolerantFieldMapping = "true".equals(ElementParameterParser.getValue(node, "__ALLOW_TOLERANT_FIELD_MAPPING__"));
 %>
 
 	de.jlo.talendcomp.tabletransfer.TableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
@@ -84,6 +85,7 @@
 	<%=cid%>.setRunOnlyUpdates(<%=onlyUpdate%>);
 	<%=cid%>.setZeroDateToNull(<%=setZeroToNull%>);
 	<%=cid%>.setIgnoreReadFieldErrors(<%=ignoreReadFieldError%>);
+	<%=cid%>.setAllowMatchTolerant(<%=allowTolerantFieldMapping%>);
 <%  if (typeMap != null) {
 		for (Map<String, String> map : typeMap) {
 			String dbType = map.get("DB_TYPE");

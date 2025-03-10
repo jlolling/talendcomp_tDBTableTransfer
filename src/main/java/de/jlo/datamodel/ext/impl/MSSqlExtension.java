@@ -62,4 +62,14 @@ public class MSSqlExtension extends GenericDatabaseExtension {
 		return list;
 	}
 
+	@Override
+	public String getIdentifierQuoteString() {
+		return "[";
+	}
+
+	@Override
+	public String getIdentifierQuoteStringClose() {
+		return "]";
+	}
+
 }

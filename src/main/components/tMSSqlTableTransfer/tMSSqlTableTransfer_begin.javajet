@@ -1,0 +1,204 @@
+<%@ jet 
+	imports="
+		org.talend.core.model.process.INode  
+		org.talend.core.model.process.ElementParameterParser
+		org.talend.designer.codegen.config.CodeGeneratorArgument
+		java.util.Map
+		java.util.List
+	"
+%>
+
+<%
+	CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+	INode node = (INode)codeGenArgument.getArgument();
+	String cid = node.getUniqueName();
+	String sourceFetchSize = ElementParameterParser.getValue(node, "__SOURCE_FETCHSIZE__");
+	String targetBatchSize = ElementParameterParser.getValue(node, "__TARGET_BATCHSIZE__");
+	String sourceUseQuery = ElementParameterParser.getValue(node, "__USE_QUERY__");
+	boolean useQuery = Boolean.parseBoolean(sourceUseQuery);
+	String targetTable = ElementParameterParser.getValue(node, "__TARGET_TABLE__");
+	boolean strictMode = "true".equals(ElementParameterParser.getValue(node, "__STRICT_FIELD_MAPPING__"));
+	boolean strictModeForInput = "true".equals(ElementParameterParser.getValue(node, "__STRICT_SOURCE_FIELD_MAPPING__"));
+	boolean trim = "true".equals(ElementParameterParser.getValue(node, "__TRIM_TEXT_VALUES__"));
+	boolean removeNoneUTF8 = "true".equals(ElementParameterParser.getValue(node, "__REMOVE_NONE_UTF8_CHARACTERS__"));
+	String sourceQuery = ElementParameterParser.getValue(node, "__SOURCE_QUERY__");
+	if (sourceQuery != null) {
+		sourceQuery = sourceQuery.trim().replaceAll("\r\n","\\\\n").replaceAll("\n","\\\\n");
+	}
+	String sourceTable = ElementParameterParser.getValue(node, "__SOURCE_TABLE__");
+	String sourceTableWhere = ElementParameterParser.getValue(node, "__SOURCE_WHERE__");
+	String logoutQuery = ElementParameterParser.getValue(node, "__LOG_QUERY_SQL__");
+	String logoutInsert = ElementParameterParser.getValue(node, "__LOG_INSERT_SQL__");
+ 	String sourceConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_SOURCE__");
+    String targetConnCompName = ElementParameterParser.getValue(node, "__CONNECTION_TARGET__");
+    boolean truncateTarget = "true".equals(ElementParameterParser.getValue(node, "__TARGET_TRUNCATE__"));
+    boolean allowExcludeColumns = "true".equals(ElementParameterParser.getValue(node, "__ALLOW_EXCLUDE_COLUMNS__"));
+    List<Map<String, String>> excludeFieldList = null;
+    if (allowExcludeColumns) {
+    	excludeFieldList = (List<Map<String, String>>) ElementParameterParser.getObjectValue(node, "__EXCLUDE_COLUMNS__");
+    }
+    boolean allowFixedColumnValues = "true".equals(ElementParameterParser.getValue(node, "__ALLOW_FIXED_COLUMN_VALUES__"));
+    List<Map<String, String>> fixedColumnValueList = null;
+    if (allowFixedColumnValues) {
+    	fixedColumnValueList = (List<Map<String, String>>) ElementParameterParser.getObjectValue(node, "__FIXED_COLUMN_VALUES__");
+    }
+    @SuppressWarnings("unchecked")
+    List<Map<String, String>> typeMap = (List<Map<String, String>>) ElementParameterParser.getObjectValue(node, "__DB_JAVA_TYPE_MAP__");
+    boolean backupData = "true".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA__"));
+    String backupFile = ElementParameterParser.getValue(node, "__BACKUP_FILE__");
+    String backupFileCharSet = ElementParameterParser.getValue(node, "__BACKUP_FILE_CHARSET__");
+    if (backupFileCharSet == null || backupFileCharSet.trim().isEmpty()) {
+    	backupFileCharSet = "null";
+    }
+    boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
+    String exportBooleanAsNumber = ElementParameterParser.getValue(node, "__EXPORT_BOOL_AS_NUMBER__");
+    boolean reuseModel = "true".equals(ElementParameterParser.getValue(node, "__REUSE_DATA_MODEL__"));
+    boolean doCommit = "false".equals(ElementParameterParser.getValue(node, "__USE_EXTERNAL_COMMIT_COMPONENT__"));
+    boolean measureTimeRange = "true".equals(ElementParameterParser.getValue(node, "__MEASURE_TIME_RANGE__"));
+    String timeRangeColumn = ElementParameterParser.getValue(node, "__TIME_RANGE_COLUMN__");
+	if (timeRangeColumn == null || timeRangeColumn.trim().isEmpty()) {
+		timeRangeColumn = "null";
+	}
+    boolean measureValueRange = "true".equals(ElementParameterParser.getValue(node, "__MEASURE_VALUE_RANGE__"));
+    String valueRangeColumn = ElementParameterParser.getValue(node, "__VALUE_RANGE_COLUMN__");
+	if (valueRangeColumn == null || valueRangeColumn.trim().isEmpty()) {
+		valueRangeColumn = "null";
+	}
+    boolean onlyUpdate = "true".equals(ElementParameterParser.getValue(node, "__ONLY_UPDATE_NO_INSERT__"));
+    String keywordList = ElementParameterParser.getValue(node, "__ADDITIONAL_KEYWORDS__");
+    if (keywordList == null || keywordList.trim().isEmpty()) {
+    	keywordList = "null";
+    }
+    boolean addApplicationNameAsComment = "true".equals(ElementParameterParser.getValue(node, "__ADD_APPLICATION_NAME_AS_COMMENT__"));
+    String applicationName = ElementParameterParser.getValue(node, "__APPLICATION_NAME__");
+    if (addApplicationNameAsComment == false || applicationName == null || applicationName.trim().isEmpty()) {
+    	applicationName = "null";
+    }
+    boolean setZeroToNull = "true".equals(ElementParameterParser.getValue(node, "__SET_ZERO_DATE_TO_NULL__"));
+    boolean ignoreReadFieldError = "true".equals(ElementParameterParser.getValue(node, "__IGNORE_READ_FIELD_ERRORS__"));
+    boolean allowTolerantFieldMapping = "true".equals(ElementParameterParser.getValue(node, "__ALLOW_TOLERANT_FIELD_MAPPING__"));
+%>
+
+	de.jlo.talendcomp.tabletransfer.TableTransfer <%=cid%> = new de.jlo.talendcomp.tabletransfer.TableTransfer();
+	<%=cid%>.setDoCommit(<%=doCommit%>);
+	<%=cid%>.setApplicationName(<%=applicationName%>);
+	<%=cid%>.setRunOnlyUpdates(<%=onlyUpdate%>);
+	<%=cid%>.setZeroDateToNull(<%=setZeroToNull%>);
+	<%=cid%>.setIgnoreReadFieldErrors(<%=ignoreReadFieldError%>);
+	<%=cid%>.setAllowMatchTolerant(<%=allowTolerantFieldMapping%>);
+<%  if (typeMap != null) {
+		for (Map<String, String> map : typeMap) {
+			String dbType = map.get("DB_TYPE");
+			String javaType = map.get("JAVA_TYPE");
+			if (dbType != null && javaType != null) { %>
+	<%=cid%>.addDbJavaTypeMapping(<%=dbType%>, "<%=javaType%>");
+<%       }					
+		}
+  } %>
+	<%=cid%>.setExportBooleanAsNumber(<%=exportBooleanAsNumber%>);
+	<%=cid%>.setOutputToTable(<%=outputToTable%>);
+	<%=cid%>.setStrictFieldMatching(<%=strictMode%>);
+	<%=cid%>.setStrictSourceFieldMatching(<%=strictModeForInput%>);
+	<%=cid%>.setTrimFields(<%=trim%>);
+	<%=cid%>.setStripNoneUTF8Characters(<%=removeNoneUTF8%>);
+<%  if (measureTimeRange) { %>
+	<%=cid%>.setTimeRangeColumn(<%=timeRangeColumn%>);
+<%  } %>
+<%  if (measureValueRange) { %>
+	<%=cid%>.setValueRangeColumn(<%=valueRangeColumn%>);
+<%  } %>
+	// configure connections
+	<%=cid%>.setSourceConnection((java.sql.Connection) globalMap.get("conn_" + "<%=sourceConnCompName%>"));
+	<%=cid%>.setSourceFetchSize(<%=sourceFetchSize%>);
+<% if (outputToTable) { %>
+	<%=cid%>.setTargetConnection((java.sql.Connection) globalMap.get("conn_" + "<%=targetConnCompName%>"));
+	<%=cid%>.setTargetBatchSize(<%=targetBatchSize%>);
+<% } %>
+<% if (useQuery) { %>
+   // use our own query as source
+   String <%=cid%>_query = <%=sourceQuery%>;
+	<%=cid%>.setSourceQuery(<%=cid%>_query);
+<% } else { %>
+	// use this table as source (query will be generated)
+	{
+		String sourceTableName = <%=sourceTable%>;
+		if (sourceTableName.contains(".") == false) {
+			String schemaName = (String) globalMap.get("dbschema_<%=sourceConnCompName%>");
+			if (schemaName == null) {
+				schemaName = (String) globalMap.get("db_<%=sourceConnCompName%>");
+			}
+			if (schemaName == null) {
+				schemaName = (String) globalMap.get("tableschema_<%=sourceConnCompName%>");
+			}
+			if (schemaName == null) {
+				schemaName = (String) globalMap.get("schema_<%=sourceConnCompName%>");
+			}
+			if (schemaName == null) {
+				schemaName = (String) globalMap.get("dbname_<%=sourceConnCompName%>");
+			}
+			if (schemaName != null && schemaName.trim().isEmpty() == false) {
+		    	<%=cid%>.setSourceTable(schemaName + "." + sourceTableName);
+			} else {
+		    	<%=cid%>.setSourceTable(sourceTableName);
+			}
+		} else {
+	    	<%=cid%>.setSourceTable(sourceTableName);
+		}
+	}
+<%	} %>
+<%	if (sourceTableWhere != null && sourceTableWhere.isEmpty() == false) {%>
+	<%=cid%>.setSourceWhereClause(<%=sourceTableWhere%>);
+<%	} %>
+<%  if (outputToTable) { %>
+	// configure target table
+	{
+    	String targetTableName = <%=targetTable%>;
+    	String schemaName = (String) globalMap.get("dbschema_" + "<%=targetConnCompName%>");
+    	if (targetTableName.contains(".") == false && schemaName != null && schemaName.trim().isEmpty() == false) {
+			<%=cid%>.setTargetTable(schemaName + "." + targetTableName);
+    	} else {
+    		<%=cid%>.setTargetTable(targetTableName);	
+    	}
+	}
+<%  } %>
+	<%=cid%>.setKeepDataModels(<%=reuseModel%>);
+	<%=cid%>.setupDataModels();
+	<%=cid%>.setKeywords(<%=keywordList%>);
+<%  if (excludeFieldList != null) {
+      for (Map<String, String> entry : excludeFieldList) { %>
+	<%=cid%>.addExcludeField(<%=entry.get("COLUMN")%>);
+<%    } %>
+<%  } %>
+<%  if (fixedColumnValueList != null) {
+		for (Map<String, String> entry : fixedColumnValueList) {
+			String columnName = entry.get("COLUMN_NAME");
+			String columnValue = entry.get("COLUMN_VALUE");
+			if (columnValue == null || columnValue.trim().isEmpty()) {
+				columnValue = "null";
+			}
+			if (columnName != null && columnName.trim().isEmpty() == false) { %>
+	<%=cid%>.setFixedColumnValue(<%=columnName.trim()%>, <%=columnValue.trim()%>);
+<%          } %>	      
+<%      } %>
+<%  } %>		
+<%	if (backupData && backupFile.trim().isEmpty() == false) { %>
+	// setup backup
+	{
+		String backupFilePath = <%=backupFile%>;
+		globalMap.put("<%=cid%>_BACKUP_FILE", <%=cid%>.setBackupFilePath(backupFilePath));
+		<%=cid%>.setBackupFileCharSet(<%=backupFileCharSet%>);
+	}
+<%  } %>
+	// initialize statements
+	<%=cid%>.setup();
+	// memorize query
+  	globalMap.put("<%=cid%>_SOURCE_QUERY", <%=cid%>.getSourceQuery());
+<%  if (sourceTable != null && sourceTable.isEmpty() == false) { %>
+    globalMap.put("<%=cid%>_SOURCE_TABLE", <%=sourceTable%>);
+<%  } %>
+<%  if (outputToTable) { %>
+    globalMap.put("<%=cid%>_TARGET_TABLE", <%=targetTable%>);
+<%  } %>
+<%  if (outputToTable && truncateTarget && onlyUpdate == false) { %>
+	<%=cid%>.executeSQLOnTarget("truncate table " + <%=cid%>.getTargetTable());
+<%	} %>

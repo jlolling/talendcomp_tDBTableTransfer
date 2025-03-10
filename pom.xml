@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.jlo.talendcomp</groupId>
 	<artifactId>jlo-talendcomp-tabletransfer</artifactId>
-	<version>15.0</version>
+	<version>16.0</version>
 	<name>Table Transfer Components</name>
 	<organization>
 		<name>Jan Lolling</name>
@@ -101,6 +101,15 @@
 						</goals>
 						<configuration>
 							<componentName>tOracleTableTransfer</componentName>
+						</configuration>
+					</execution>
+					<execution>
+						<id>tMSSqlTableTransfer</id>
+						<goals>
+							<goal>component</goal>
+						</goals>
+						<configuration>
+							<componentName>tMSSqlTableTransfer</componentName>
 						</configuration>
 					</execution>
 				</executions>

@@ -46,11 +46,18 @@ public class SQLCodeGenerator {
 	
 	private final List<String> keywordList = new ArrayList<String>();
 	private String ec = "\"";
+	private String ecClose = "\"";
 	private static SQLCodeGenerator instance;
 	private Object lock = new Object();
 	
-	public void setEnclosureChar(String c) {
-		ec = c;
+	public void setEnclosureChar(String s) {
+		ec = s;
+		ecClose = s;
+	}
+
+	public void setEnclosureChar(String start, String end) {
+		ec = start;
+		ecClose = end;
 	}
 	
 	public synchronized static SQLCodeGenerator getInstance() {
@@ -162,7 +169,7 @@ public class SQLCodeGenerator {
 	public String getEncapsulatedName(String name, boolean containsAbsolutName) {
 		if (needEncapsulation(name)) {
 			if (containsAbsolutName == false) {
-				return ec + name + ec;
+				return ec + name + ecClose;
 			} else {
 				// we need encapsulation
 				StringBuilder sb = new StringBuilder();
@@ -178,7 +185,10 @@ public class SQLCodeGenerator {
 					s = st.nextToken();
 					if (needEncapsulation(s)) {
 						if (s.contains(ec) == false) {
-							s = ec + s + ec;
+							s = ec + s;
+						}
+						if (s.contains(ecClose) == false) {
+							s = s + ecClose;
 						}
 					}
 					sb.append(s);
@@ -337,25 +347,25 @@ public class SQLCodeGenerator {
 				sb.append("unique ");
 			}
 			sb.append("index ");
-			sb.append(index.getName());
+			sb.append(getEncapsulatedName(index.getName(), false));
 			sb.append(" on ");
 			if (fullName) {
 				if (alternativeSchemaName != null) {
-					sb.append(alternativeSchemaName);
+					sb.append(getEncapsulatedName(alternativeSchemaName, false));
 					sb.append('.');
-					sb.append(index.getTable().getName());					
+					sb.append(getEncapsulatedName(index.getTable().getName(), false));					
 				} else {
-					sb.append(index.getTable().getAbsoluteName());
+					sb.append(getEncapsulatedName(index.getTable().getAbsoluteName(), true));
 				}
 			} else {
-				sb.append(index.getTable().getName());
+				sb.append(getEncapsulatedName(index.getTable().getName(), false));
 			}
 			sb.append("(");
 			for (int i = 0, n = index.getCountFields(); i < n; i++) {
 				if (i > 0) {
 					sb.append(",");
 				}
-				sb.append(index.getFieldByOrdinalPosition(i + 1).getName());
+				sb.append(getEncapsulatedName(index.getFieldByOrdinalPosition(i + 1).getName(), false));
 			}
 			sb.append(")");
 			return sb.toString();
@@ -371,16 +381,16 @@ public class SQLCodeGenerator {
 			sb.append("drop index ");
 			if (fullName) {
 				if (alternativeSchemaName != null) {
-					sb.append(alternativeSchemaName);
+					sb.append(getEncapsulatedName(alternativeSchemaName, false));
 					sb.append(".");
-					sb.append(index.getName());
+					sb.append(getEncapsulatedName(index.getName(), false));
 				} else {
-					sb.append(index.getTable().getSchema().getName());
+					sb.append(getEncapsulatedName(index.getTable().getSchema().getName(), false));
 					sb.append(".");
-					sb.append(index.getName());
+					sb.append(getEncapsulatedName(index.getName(), false));
 				}
 			} else {
-				sb.append(index.getName());
+				sb.append(getEncapsulatedName(index.getName(), false));
 			}
 			return sb.toString();
 		} else {
@@ -401,9 +411,11 @@ public class SQLCodeGenerator {
 			DatabaseExtension ext = getDatabaseExtension(so);
 			if (ext != null) {
 				ec = ext.getIdentifierQuoteString();
+				ecClose = ext.getIdentifierQuoteStringClose();
 			}
 		} else {
 			ec = "\"";
+			ecClose = ec;
 		}
 	}
 	

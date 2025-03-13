@@ -151,6 +151,7 @@ public class TableTransfer {
 	private static final long ZERO_DATETIME = -61854541200000l;
 	private boolean setZeroDateToNull = false;
 	private boolean allowMatchTolerant = false;
+	private boolean writeHeaderInFile = false;
 	
 	private String cleanupColumnNameForMatching(String columnName) {
 		if (columnName == null || columnName.trim().isEmpty()) {
@@ -1662,6 +1663,14 @@ public class TableTransfer {
 			debug("Start writing data in file: " + backupFile.getAbsolutePath());
 			final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
 			boolean endFlagReceived = false;
+			if (writeHeaderInFile) {
+				debug("Write header into file (" + listSourceFieldNames.size() + " columns)");
+				// get header
+				Object[] headerRow = listSourceFieldNames.toArray();
+				// write into file
+				countFileRows = -1; // prevent count header as data row
+				writeRowInFile(headerRow);
+			}
 			while (endFlagReceived == false) {
 				try {
 					final List<Object> queueObjects = new ArrayList<Object>(batchSize);
@@ -2246,6 +2255,14 @@ public class TableTransfer {
 
 	public void setAllowMatchTolerant(boolean allowMatchTolerant) {
 		this.allowMatchTolerant = allowMatchTolerant;
+	}
+
+	public boolean isWriteHeaderInFile() {
+		return writeHeaderInFile;
+	}
+
+	public void setWriteHeaderInFile(boolean writeHeaderInFile) {
+		this.writeHeaderInFile = writeHeaderInFile;
 	}
 
 }

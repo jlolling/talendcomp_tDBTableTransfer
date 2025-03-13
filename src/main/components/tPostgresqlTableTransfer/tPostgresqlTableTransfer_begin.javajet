@@ -49,6 +49,10 @@
     	backupFileCharSet = "null";
     }
     boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
+    if (backupData == false) {
+    	outputToTable = true;
+    }
+    boolean backupWriteHeader = "true".equals(ElementParameterParser.getValue(node, "__BACKUP_FILE_WRITE_HEADER__"));
     String exportBooleanAsNumber = ElementParameterParser.getValue(node, "__EXPORT_BOOL_AS_NUMBER__");
     boolean reuseModel = "true".equals(ElementParameterParser.getValue(node, "__REUSE_DATA_MODEL__"));
     boolean doCommit = "false".equals(ElementParameterParser.getValue(node, "__USE_EXTERNAL_COMMIT_COMPONENT__"));
@@ -198,6 +202,7 @@
 		String backupFilePath = <%=backupFile%>;
 		globalMap.put("<%=cid%>_BACKUP_FILE", <%=cid%>.setBackupFilePath(backupFilePath));
 		<%=cid%>.setBackupFileCharSet(<%=backupFileCharSet%>);
+		<%=cid%>.setWriteHeaderInFile(<%=backupWriteHeader%>);
 	}
 <%  } %>
 	// initialize statements

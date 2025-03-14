@@ -1645,9 +1645,13 @@ public class TableTransfer {
 					backupOutputWriter.write(fieldSeparator);
 				}
 				if (value != null) {
-					backupOutputWriter.write(fieldEclosure);
+					if ((value instanceof Number || value instanceof Boolean) == false) {
+						backupOutputWriter.write(fieldEclosure);
+					}
 					backupOutputWriter.write(convertToString(value));
-					backupOutputWriter.write(fieldEclosure);
+					if ((value instanceof Number || value instanceof Boolean) == false) {
+						backupOutputWriter.write(fieldEclosure);
+					}
 				} else {
 					backupOutputWriter.write(nullReplacement);
 				}
@@ -1663,14 +1667,7 @@ public class TableTransfer {
 			debug("Start writing data in file: " + backupFile.getAbsolutePath());
 			final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
 			boolean endFlagReceived = false;
-			if (writeHeaderInFile) {
-				debug("Write header into file (" + listSourceFieldNames.size() + " columns)");
-				// get header
-				Object[] headerRow = listSourceFieldNames.toArray();
-				// write into file
-				countFileRows = -1; // prevent count header as data row
-				writeRowInFile(headerRow);
-			}
+			boolean headerWritten = false;
 			while (endFlagReceived == false) {
 				try {
 					final List<Object> queueObjects = new ArrayList<Object>(batchSize);
@@ -1689,6 +1686,15 @@ public class TableTransfer {
 							endFlagReceived = true;
 							break;
 						} else {
+							if (writeHeaderInFile && headerWritten == false) {
+								debug("Write header into file (" + listSourceFieldNames.size() + " columns)");
+								// get header
+								Object[] headerRow = listSourceFieldNames.toArray();
+								// write into file
+								countFileRows = -1; // prevent count header as data row
+								writeRowInFile(headerRow);
+								headerWritten = true;
+							}
 							writeRowInFile((Object[]) item);
 						}
 						if (Thread.currentThread().isInterrupted()) {
@@ -1713,6 +1719,9 @@ public class TableTransfer {
 			if (returnCode == RETURN_CODE_OK) {
 				debug("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
 				debug("Rename tmp file: " + backupFileTmp.getAbsolutePath() + " to target file: " + backupFile.getAbsolutePath());
+				if (backupFile.exists()) {
+					backupFile.delete();
+				}
 				backupFileTmp.renameTo(backupFile);
 			} else if (returnCode == RETURN_CODE_ERROR_INPUT) {
 				debug("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:" + countFileRows);
@@ -2263,6 +2272,16 @@ public class TableTransfer {
 
 	public void setWriteHeaderInFile(boolean writeHeaderInFile) {
 		this.writeHeaderInFile = writeHeaderInFile;
+	}
+
+	public String getFieldSeparator() {
+		return fieldSeparator;
+	}
+
+	public void setFieldSeparator(String fieldSeparator) {
+		if (fieldSeparator != null) {
+			this.fieldSeparator = fieldSeparator;
+		}
 	}
 
 }

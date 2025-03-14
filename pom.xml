@@ -59,21 +59,12 @@
 				</configuration>
 				<executions>
 					<execution>
-						<id>tDB2TableTransfer</id>
+						<id>tDBTableTransfer</id>
 						<goals>
 							<goal>component</goal>
 						</goals>
 						<configuration>
-							<componentName>tDB2TableTransfer</componentName>
-						</configuration>
-					</execution>
-					<execution>
-						<id>tEXATableTransfer</id>
-						<goals>
-							<goal>component</goal>
-						</goals>
-						<configuration>
-							<componentName>tEXATableTransfer</componentName>
+							<componentName>tDBTableTransfer</componentName>
 						</configuration>
 					</execution>
 					<execution>
@@ -92,24 +83,6 @@
 						</goals>
 						<configuration>
 							<componentName>tPostgresqlTableTransfer</componentName>
-						</configuration>
-					</execution>
-					<execution>
-						<id>tOracleTableTransfer</id>
-						<goals>
-							<goal>component</goal>
-						</goals>
-						<configuration>
-							<componentName>tOracleTableTransfer</componentName>
-						</configuration>
-					</execution>
-					<execution>
-						<id>tMSSqlTableTransfer</id>
-						<goals>
-							<goal>component</goal>
-						</goals>
-						<configuration>
-							<componentName>tMSSqlTableTransfer</componentName>
 						</configuration>
 					</execution>
 				</executions>

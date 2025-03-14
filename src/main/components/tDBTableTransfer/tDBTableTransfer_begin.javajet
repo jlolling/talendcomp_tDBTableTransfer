@@ -55,10 +55,17 @@
     	fieldEclosure = "null";
     }
     String lineEnd = ElementParameterParser.getValue(node, "__LINE_END__");
-    if (lineEnd == null || lineEnd.trim().length()==0) {
+    if (lineEnd == null || lineEnd.trim().length() == 0) {
     	lineEnd = "null";
     }  
-    
+    String nullReplacement = ElementParameterParser.getValue(node, "__NULL_REPLACEMENT__");
+    if (nullReplacement == null || nullReplacement.trim().length() == 0) {
+    	nullReplacement = "null";
+    }  
+    String fieldSeparator = ElementParameterParser.getValue(node, "__FIELD_SEPARATOR__");
+    if (fieldSeparator == null || fieldSeparator.trim().length() == 0) {
+    	fieldSeparator = "null";
+    }  
     boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
     boolean backupWriteHeader = "true".equals(ElementParameterParser.getValue(node, "__BACKUP_FILE_WRITE_HEADER__"));
     String exportBooleanAsNumber = ElementParameterParser.getValue(node, "__EXPORT_BOOL_AS_NUMBER__");
@@ -200,6 +207,8 @@
 		<%=cid%>.setWriteHeaderInFile(<%=backupWriteHeader%>);
 		<%=cid%>.setFieldEclosure(<%=fieldEclosure%>);
 		<%=cid%>.setLineEnd(<%=lineEnd%>);
+		<%=cid%>.setNullReplacement(<%=nullReplacement%>);
+		<%=cid%>.setFieldSeparator(<%=fieldSeparator%>);
 	}
 <%  } %>
 	// initialize statements

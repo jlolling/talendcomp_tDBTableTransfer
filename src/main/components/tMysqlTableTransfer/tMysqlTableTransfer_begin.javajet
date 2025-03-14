@@ -44,13 +44,32 @@
     @SuppressWarnings("unchecked")
     List<Map<String, String>> typeMap = (List<Map<String, String>>) ElementParameterParser.getObjectValue(node, "__DB_JAVA_TYPE_MAP__");
     boolean backupData = "true".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA__"));
+    boolean backupWriteHeader = "true".equals(ElementParameterParser.getValue(node, "__BACKUP_FILE_WRITE_HEADER__"));
     String backupFile = ElementParameterParser.getValue(node, "__BACKUP_FILE__");
     String backupFileCharSet = ElementParameterParser.getValue(node, "__BACKUP_FILE_CHARSET__");
     if (backupFileCharSet == null || backupFileCharSet.trim().isEmpty()) {
     	backupFileCharSet = "null";
     }
+    String fieldEclosure = ElementParameterParser.getValue(node, "__FIELD_ENCLOSURE__");
+    if (fieldEclosure == null) {
+    	fieldEclosure = "null";
+    }
+    String lineEnd = ElementParameterParser.getValue(node, "__LINE_END__");
+    if (lineEnd == null || lineEnd.trim().length() == 0) {
+    	lineEnd = "null";
+    }  
+    String nullReplacement = ElementParameterParser.getValue(node, "__NULL_REPLACEMENT__");
+    if (nullReplacement == null || nullReplacement.trim().length() == 0) {
+    	nullReplacement = "null";
+    }  
+    String fieldSeparator = ElementParameterParser.getValue(node, "__FIELD_SEPARATOR__");
+    if (fieldSeparator == null || fieldSeparator.trim().length() == 0) {
+    	fieldSeparator = "null";
+    }  
     boolean outputToTable = "false".equals(ElementParameterParser.getValue(node, "__BACKUP_DATA_ONLY__"));
-    boolean backupWriteHeader = "true".equals(ElementParameterParser.getValue(node, "__BACKUP_FILE_WRITE_HEADER__"));
+    if (backupData == false) {
+    	outputToTable = true;
+    }
     String exportBooleanAsNumber = ElementParameterParser.getValue(node, "__EXPORT_BOOL_AS_NUMBER__");
     boolean reuseModel = "true".equals(ElementParameterParser.getValue(node, "__REUSE_DATA_MODEL__"));
     boolean doCommit = "false".equals(ElementParameterParser.getValue(node, "__USE_EXTERNAL_COMMIT_COMPONENT__"));
@@ -204,6 +223,10 @@
 		globalMap.put("<%=cid%>_BACKUP_FILE", <%=cid%>.setBackupFilePath(backupFilePath));
 		<%=cid%>.setBackupFileCharSet(<%=backupFileCharSet%>);
 		<%=cid%>.setWriteHeaderInFile(<%=backupWriteHeader%>);
+		<%=cid%>.setFieldEclosure(<%=fieldEclosure%>);
+		<%=cid%>.setLineEnd(<%=lineEnd%>);
+		<%=cid%>.setNullReplacement(<%=nullReplacement%>);
+		<%=cid%>.setFieldSeparator(<%=fieldSeparator%>);
 	}
 <%  } %>
 	// initialize statements

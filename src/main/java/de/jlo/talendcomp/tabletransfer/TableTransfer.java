@@ -1654,13 +1654,7 @@ public class TableTransfer {
 						backupOutputWriter.write(fieldQuoteChar);
 					}
 				} else {
-					if (useQuotingForAllTypes) {
-						backupOutputWriter.write(fieldQuoteChar);
-					}
 					backupOutputWriter.write(nullReplacement);
-					if (useQuotingForAllTypes) {
-						backupOutputWriter.write(fieldQuoteChar);
-					}
 				}
 			}
 			backupOutputWriter.write(lineEnd);

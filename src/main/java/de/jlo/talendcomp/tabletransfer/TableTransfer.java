@@ -112,7 +112,8 @@ public class TableTransfer {
 	private File backupFileTmp = null;
 	private String backupFileCharSet = "UTF-8";
 	private String fieldSeparator = ";";
-	private String fieldEclosure = "\"";
+	private String fieldQuoteChar = "\"";
+	private boolean useQuotingForAllTypes = false;
 	private String lineEnd = "\n";
 	private String nullReplacement = "\\N";
 	private BufferedWriter backupOutputWriter = null;
@@ -1645,15 +1646,21 @@ public class TableTransfer {
 					backupOutputWriter.write(fieldSeparator);
 				}
 				if (value != null) {
-					if ((value instanceof Number || value instanceof Boolean) == false) {
-						backupOutputWriter.write(fieldEclosure);
+					if (useQuotingForAllTypes || (value instanceof Number || value instanceof Boolean) == false) {
+						backupOutputWriter.write(fieldQuoteChar);
 					}
 					backupOutputWriter.write(convertToString(value));
-					if ((value instanceof Number || value instanceof Boolean) == false) {
-						backupOutputWriter.write(fieldEclosure);
+					if (useQuotingForAllTypes || (value instanceof Number || value instanceof Boolean) == false) {
+						backupOutputWriter.write(fieldQuoteChar);
 					}
 				} else {
+					if (useQuotingForAllTypes) {
+						backupOutputWriter.write(fieldQuoteChar);
+					}
 					backupOutputWriter.write(nullReplacement);
+					if (useQuotingForAllTypes) {
+						backupOutputWriter.write(fieldQuoteChar);
+					}
 				}
 			}
 			backupOutputWriter.write(lineEnd);
@@ -2172,10 +2179,10 @@ public class TableTransfer {
 		}
 	}
 	
-	public void setFieldEclosure(String fieldEclosure) {
-		if (fieldEclosure != null) {
-			debug("Set fieldEnclosure to " + fieldEclosure + "");
-			this.fieldEclosure = fieldEclosure;
+	public void setQuoteChar(String fieldQuoteChar) {
+		if (fieldQuoteChar != null) {
+			debug("Set quote char to " + fieldQuoteChar + "");
+			this.fieldQuoteChar = fieldQuoteChar;
 		}
 	}
 	
@@ -2282,6 +2289,14 @@ public class TableTransfer {
 		if (fieldSeparator != null) {
 			this.fieldSeparator = fieldSeparator;
 		}
+	}
+
+	public boolean isUseQuotingForAllTypes() {
+		return useQuotingForAllTypes;
+	}
+
+	public void setUseQuotingForAllTypes(boolean useQuotingForAllTypes) {
+		this.useQuotingForAllTypes = useQuotingForAllTypes;
 	}
 
 }

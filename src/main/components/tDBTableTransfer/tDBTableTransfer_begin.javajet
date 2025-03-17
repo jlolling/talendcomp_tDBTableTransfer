@@ -51,10 +51,11 @@
     if (backupFileCharSet == null || backupFileCharSet.trim().isEmpty()) {
     	backupFileCharSet = "null";
     }
-    String fieldEclosure = ElementParameterParser.getValue(node, "__FIELD_ENCLOSURE__");
-    if (fieldEclosure == null) {
-    	fieldEclosure = "null";
+    String quoteChar = ElementParameterParser.getValue(node, "__FIELD_ENCLOSURE__");
+    if (quoteChar == null) {
+    	quoteChar = "null";
     }
+	boolean useQuotingForAllTypes = "true".equals(ElementParameterParser.getValue(node, "__USE_QUOTING_FOR_ALL__"));
     String lineEnd = ElementParameterParser.getValue(node, "__LINE_END__");
     if (lineEnd == null || lineEnd.trim().length() == 0) {
     	lineEnd = "null";
@@ -208,7 +209,8 @@
 		globalMap.put("<%=cid%>_BACKUP_FILE", <%=cid%>.setBackupFilePath(backupFilePath));
 		<%=cid%>.setBackupFileCharSet(<%=backupFileCharSet%>);
 		<%=cid%>.setWriteHeaderInFile(<%=backupWriteHeader%>);
-		<%=cid%>.setFieldEclosure(<%=fieldEclosure%>);
+		<%=cid%>.setQuoteChar(<%=quoteChar%>);
+		<%=cid%>.setUseQuotingForAllTypes(<%=useQuotingForAllTypes%>);
 		<%=cid%>.setLineEnd(<%=lineEnd%>);
 		<%=cid%>.setNullReplacement(<%=nullReplacement%>);
 		<%=cid%>.setFieldSeparator(<%=fieldSeparator%>);

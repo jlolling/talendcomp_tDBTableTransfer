@@ -117,7 +117,8 @@ public class TableTransfer {
 	private String lineEnd = "\n";
 	private String nullReplacement = "\\N";
 	private BufferedWriter backupOutputWriter = null;
-	private SimpleDateFormat sdfOut = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	private SimpleDateFormat sdfFileOutDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+	private SimpleDateFormat sdfFileOutTime = new SimpleDateFormat("HH:mm:ss");
 	private boolean ignoreReadFieldErrors = false;
 	private Pattern patternForBackslash = null;
 	private Pattern patternForQuota = null;
@@ -359,8 +360,8 @@ public class TableTransfer {
 						debug("Collect min/max for time-range from column: " + name + " at index: " + timeRangeColumnIndex);
 					}
 				}
-				String type = rsMeta.getColumnTypeName(i).toUpperCase();
 				listSourceFieldNames.add(name);
+				String type = rsMeta.getColumnTypeName(i).toUpperCase();
 				listSourceFieldTypeNames.add(type);
 				if (isDebugEnabled()) {
 					debug("Name: " + name + ",  Type: " + type);
@@ -496,6 +497,8 @@ public class TableTransfer {
 					row[columnIndex] = rs.getDate(columnIndex + 1);
 				} else if ("timestamp".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getTimestamp(columnIndex + 1);
+				} else if ("time".equalsIgnoreCase(javaType)) {
+					row[columnIndex] = rs.getTime(columnIndex + 1);
 				} else if ("string".equalsIgnoreCase(javaType)) {
 					String s = rs.getString(columnIndex + 1);
 					if (trimFields && s != null) {
@@ -521,8 +524,6 @@ public class TableTransfer {
 					row[columnIndex] = new BigInteger(rs.getString(columnIndex + 1));
 				} else if ("float".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getFloat(columnIndex + 1);
-				} else if ("time".equalsIgnoreCase(javaType)) {
-					row[columnIndex] = rs.getTime(columnIndex + 1);
 				} else if ("byte".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getByte(columnIndex + 1);
 				} else {
@@ -851,6 +852,16 @@ public class TableTransfer {
 					targetPreparedStatement.setShort(p.getIndex(), (Short) value);
 				} else if ("String".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setString(p.getIndex(), (String) value);
+				} else if ("Time".equalsIgnoreCase(className)) {
+					// we need to check Time before Date because Time extends Date!
+					targetPreparedStatement.setTime(p.getIndex(), (Time) value);
+				} else if ("Timestamp".equalsIgnoreCase(className)) {
+					long ms = ((Timestamp) value).getTime();
+					if (setZeroDateToNull && ms <= ZERO_DATETIME) {
+						targetPreparedStatement.setNull(p.getIndex(), targetTable.getField(p.getName()).getType());
+					} else {
+						targetPreparedStatement.setTimestamp(p.getIndex(), (Timestamp) value);
+					}
 				} else if ("Date".equalsIgnoreCase(className)) {
 					long ms = ZERO_DATETIME;
 					if (value instanceof java.util.Date) {
@@ -863,15 +874,6 @@ public class TableTransfer {
 					} else {
 						targetPreparedStatement.setTimestamp(p.getIndex(), new java.sql.Timestamp(ms));
 					}
-				} else if ("Timestamp".equalsIgnoreCase(className)) {
-					long ms = ((Timestamp) value).getTime();
-					if (setZeroDateToNull && ms <= ZERO_DATETIME) {
-						targetPreparedStatement.setNull(p.getIndex(), targetTable.getField(p.getName()).getType());
-					} else {
-						targetPreparedStatement.setTimestamp(p.getIndex(), (Timestamp) value);
-					}
-				} else if ("Time".equalsIgnoreCase(className)) {
-					targetPreparedStatement.setTime(p.getIndex(), (Time) value);
 				} else if ("Boolean".equalsIgnoreCase(className)) {
 					targetPreparedStatement.setBoolean(p.getIndex(), (Boolean) value);
 				} else {
@@ -1610,7 +1612,9 @@ public class TableTransfer {
 				return sValue;
 			}
 		} else if (value instanceof Date) {
-			return sdfOut.format((Date) value);
+			return sdfFileOutDate.format((Date) value);
+		} else if (value instanceof Time) {
+			return sdfFileOutTime.format((Date) value);
 		} else if (value instanceof Boolean) {
 			if (exportBooleanAsNumber) {
 				return ((Boolean) value) ? "1" : "0";

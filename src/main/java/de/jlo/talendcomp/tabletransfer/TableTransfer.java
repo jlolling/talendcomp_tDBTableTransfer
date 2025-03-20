@@ -493,12 +493,12 @@ public class TableTransfer {
 					} else {
 						row[columnIndex] = rs.getObject(columnIndex + 1);
 					}
-				} else if ("date".equalsIgnoreCase(javaType)) {
-					row[columnIndex] = rs.getDate(columnIndex + 1);
-				} else if ("timestamp".equalsIgnoreCase(javaType)) {
-					row[columnIndex] = rs.getTimestamp(columnIndex + 1);
 				} else if ("time".equalsIgnoreCase(javaType)) {
 					row[columnIndex] = rs.getTime(columnIndex + 1);
+				} else if ("timestamp".equalsIgnoreCase(javaType)) {
+					row[columnIndex] = rs.getTimestamp(columnIndex + 1);
+				} else if ("date".equalsIgnoreCase(javaType)) {
+					row[columnIndex] = rs.getDate(columnIndex + 1);
 				} else if ("string".equalsIgnoreCase(javaType)) {
 					String s = rs.getString(columnIndex + 1);
 					if (trimFields && s != null) {
@@ -1611,10 +1611,10 @@ public class TableTransfer {
 				sValue = m2.replaceAll(replacementForQuota);
 				return sValue;
 			}
+		} else if (value instanceof Time) {
+			return sdfFileOutTime.format((Time) value);
 		} else if (value instanceof Date) {
 			return sdfFileOutDate.format((Date) value);
-		} else if (value instanceof Time) {
-			return sdfFileOutTime.format((Date) value);
 		} else if (value instanceof Boolean) {
 			if (exportBooleanAsNumber) {
 				return ((Boolean) value) ? "1" : "0";

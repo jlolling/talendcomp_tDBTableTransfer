@@ -106,6 +106,8 @@
 	<%=cid%>.setRunOnlyUpdates(<%=onlyUpdate%>);
 	<%=cid%>.setZeroDateToNull(<%=setZeroToNull%>);
 	<%=cid%>.setIgnoreReadFieldErrors(<%=ignoreReadFieldError%>);
+	<%=cid%>.setAllowMatchTolerant(<%=allowTolerantFieldMapping%>);
+	<%=cid%>.setKeepDataModels(<%=reuseModel%>);
 <%  if (typeMap != null) {
 		for (Map<String, String> map : typeMap) {
 			String dbType = map.get("DB_TYPE");
@@ -121,7 +123,6 @@
 	<%=cid%>.setStrictSourceFieldMatching(<%=strictModeForInput%>);
 	<%=cid%>.setTrimFields(<%=trim%>);
 	<%=cid%>.setStripNoneUTF8Characters(<%=removeNoneUTF8%>);
-	<%=cid%>.setAllowMatchTolerant(<%=allowTolerantFieldMapping%>);
 <%  if (measureTimeRange) { %>
 	<%=cid%>.setTimeRangeColumn(<%=timeRangeColumn%>);
 <%  } %>
@@ -182,8 +183,6 @@
     	}
 	}
 <%  } %>
-	<%=cid%>.setKeepDataModels(<%=reuseModel%>);
-	<%=cid%>.setupDataModels();
 	<%=cid%>.setKeywords(<%=keywordList%>);
 <%  if (excludeFieldList != null) {
       for (Map<String, String> entry : excludeFieldList) { %>

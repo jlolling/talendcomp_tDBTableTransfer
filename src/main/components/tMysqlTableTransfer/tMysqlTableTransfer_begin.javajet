@@ -107,6 +107,7 @@
 	<%=cid%>.setZeroDateToNull(<%=setZeroToNull%>);
 	<%=cid%>.setIgnoreReadFieldErrors(<%=ignoreReadFieldError%>);
 	<%=cid%>.setAllowMatchTolerant(<%=allowTolerantFieldMapping%>);
+	<%=cid%>.setKeepDataModels(<%=reuseModel%>);
 <%	if (onlyUpdate == false) {
 		if ("IGNORE".equals(onConflict)) { %>
 	<%=cid%>.setOnConflictIgnore(true);
@@ -192,8 +193,6 @@
     	}
 	}
 <%  } %>
-	<%=cid%>.setKeepDataModels(<%=reuseModel%>);
-	<%=cid%>.setupDataModels();
 	<%=cid%>.setKeywords(<%=keywordList%>);
 <%  if (excludeFieldList != null) {
       for (Map<String, String> entry : excludeFieldList) { %>

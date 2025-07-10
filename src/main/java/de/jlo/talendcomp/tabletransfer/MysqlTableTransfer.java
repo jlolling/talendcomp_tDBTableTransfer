@@ -37,6 +37,7 @@ public class MysqlTableTransfer extends TableTransfer {
 
 	@Override
 	protected PreparedStatement createTargetStatement() throws Exception {
+		setupTargetDataModel();
 		if (isRunOnlyUpdates()) {
 			targetSQLStatement = getTargetCodeGenerator().buildUpdateSQLStatement(getTargetSQLTable(), true);
 		} else {

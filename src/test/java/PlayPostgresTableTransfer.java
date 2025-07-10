@@ -112,7 +112,6 @@ public class PlayPostgresTableTransfer extends TalendTest {
 						.get("conn_" + "tPostgresqlConnection_3"));
 		tPostgresqlTableTransfer_1.setTargetBatchSize("100");
 		tPostgresqlTableTransfer_1.setKeepDataModels(false);
-		tPostgresqlTableTransfer_1.setupDataModels();
 		// use this table as source (query will be generated)
 		{
 			String schemaName = (String) globalMap

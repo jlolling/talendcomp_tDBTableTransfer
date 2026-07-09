@@ -175,6 +175,17 @@ public class TableTransfer {
 			excludeFieldList.add(name.trim().toLowerCase());
 		}
 	}
+	
+	public boolean isFieldExcluded(String name) {
+		if (name != null && name.trim().isEmpty() == false) {
+			for (String ex : excludeFieldList) {
+				if (cleanupColumnNameForMatching(ex).equals(cleanupColumnNameForMatching(name))) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
 
 	public void setFixedColumnValue(String name, Object value) {
 		setFixedColumnValue(name, value, 0);
@@ -1046,6 +1057,9 @@ public class TableTransfer {
 					// now check if we have source fields which does not have target fields
 					final StringBuilder sb = new StringBuilder();
 					for (String sourceField : listSourceFieldNames) {
+						if (isFieldExcluded(sourceField)) {
+							continue;
+						}
 						SQLField targetField = targetTable.getField(sourceField);
 						if (targetField == null) {
 							targetField = targetTable.getField(cleanupColumnNameForMatching(sourceField));
@@ -1081,6 +1095,9 @@ public class TableTransfer {
 				}
 				final StringBuilder sb2 = new StringBuilder();
 				for (String sourceField : listSourceFieldNames) {
+					if (isFieldExcluded(sourceField)) {
+						continue; // we have to skip excluded fields because they are already removed from the target table
+					}
 					SQLField targetField = targetTable.getField(sourceField);
 					if (targetField == null) {
 						targetField = targetTable.getField(cleanupColumnNameForMatching(sourceField));

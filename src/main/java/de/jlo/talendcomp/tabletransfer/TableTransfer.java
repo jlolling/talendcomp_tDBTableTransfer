@@ -338,8 +338,8 @@ public class TableTransfer {
 			}
 			final ResultSetMetaData rsMeta = rs.getMetaData();
 			final int countColumns = rsMeta.getColumnCount();
-			listSourceFieldNames = new ArrayList<String>(countColumns);
-			listSourceFieldTypeNames = new ArrayList<String>(countColumns);
+			listSourceFieldNames = new ArrayList<>(countColumns);
+			listSourceFieldTypeNames = new ArrayList<>(countColumns);
 			// register field names from query
 			for (int i = 1; i <= countColumns; i++) {
 				String name = rsMeta.getColumnLabel(i);
@@ -372,12 +372,12 @@ public class TableTransfer {
 				}
 			}
 			// register fixed column value names
-			for (ColumnValue cv : fixedColumnValueList) {
+			fixedColumnValueList.forEach(cv -> {
 				listSourceFieldNames.add(cv.getColumnName().toLowerCase());
 				if (isDebugEnabled()) {
 					debug("Name: " + cv.getColumnName());
 				}
-			}
+			});
 			if (isDebugEnabled()) {
 				debug("Start fetching data...");
 			}
@@ -1023,13 +1023,13 @@ public class TableTransfer {
 				}
 			}
 			// configure usage type of SQLField according to fixed column value definition
-			for (ColumnValue cv : fixedColumnValueList) {
+			fixedColumnValueList.forEach(cv -> {
 				final SQLField field = targetTable.getField(cv.getColumnName());
 				if (field != null) {
 					field.setUsageType(cv.getUsageType());
 					field.setIsFixedValue(true);
 				}
-			}
+			});
 			// check the list of source fields
 			if (strictFieldMatching == false) {
 				// if not strict mode remove all target fields not exists in the source
@@ -1081,7 +1081,7 @@ public class TableTransfer {
 			} else {
 				// check if the matching is complete for target to source
 				final StringBuilder sb1 = new StringBuilder();
-				for (String p : targetTable.getFieldNames()) {
+				targetTable.getFieldNames().forEach(p -> {
 					final String targetColumnName = p.toLowerCase();
 					if (getIndexInSourceFieldList(targetColumnName) == -1) {
 						// found target column without source
@@ -1092,7 +1092,7 @@ public class TableTransfer {
 						}
 						sb1.append(targetColumnName);
 					}
-				}
+				});
 				final StringBuilder sb2 = new StringBuilder();
 				for (String sourceField : listSourceFieldNames) {
 					if (isFieldExcluded(sourceField)) {
@@ -1142,7 +1142,7 @@ public class TableTransfer {
 		}
 		info("Source select:\n" + sourceQuery);
 		sourceSelectStatement = sourceConnection.createStatement();
-		int fetchSize = getFetchSize();
+		final int fetchSize = getFetchSize();
 		if (fetchSize > 0) {
 			debug("set source fetch size: " + fetchSize);
 			sourceSelectStatement.setFetchSize(fetchSize);
@@ -1150,7 +1150,7 @@ public class TableTransfer {
 		// we have to check that here because we do not know which source database type
 		// we use.
 		if (DBHelper.isMySQLConnection(sourceConnection)) {
-			DBHelper util = (DBHelper) Class.forName("de.jlo.talendcomp.tabletransfer.MySQLHelper")
+			final DBHelper util = (DBHelper) Class.forName("de.jlo.talendcomp.tabletransfer.MySQLHelper")
 					.getDeclaredConstructor().newInstance();
 			util.setupSelectStatement(sourceSelectStatement);
 		}
@@ -1217,7 +1217,7 @@ public class TableTransfer {
 			}
 		}
 		final StringReplacer sr = new StringReplacer(stringWithPlaceholders);
-		for (String key : listPlaceHolders) {
+		listPlaceHolders.forEach(key -> {
 			String value = properties.getProperty(key);
 			if (value == null) {
 				warn("replacePlaceholders for string " + stringWithPlaceholders + " failed in key:" + key
@@ -1226,7 +1226,7 @@ public class TableTransfer {
 				value = "";
 			}
 			sr.replace("{" + key + "}", value.trim());
-		}
+		});
 		return sr.getResultText();
 	}
 
@@ -1240,7 +1240,7 @@ public class TableTransfer {
 	}
 
 	protected final String getTableName(String schemaAndTable) {
-		int pos = schemaAndTable.indexOf('.');
+		final int pos = schemaAndTable.indexOf('.');
 		if (pos > 0) {
 			return schemaAndTable.substring(pos + 1, schemaAndTable.length());
 		} else {
@@ -1407,11 +1407,7 @@ public class TableTransfer {
 	}
 
 	public final boolean isDebugEnabled() {
-		if (logger != null) {
-			return logger.isDebugEnabled();
-		} else {
-			return false;
-		}
+		return logger != null ? logger.isDebugEnabled() : false;
 	}
 
 	public final void debug(String message) {
@@ -1597,29 +1593,30 @@ public class TableTransfer {
 	}
 
 	private void writeRowInFile(Object[] row) throws Exception {
-		if (row != null) {
-			boolean firstLoop = true;
-			for (Object value : row) {
-				if (firstLoop) {
-					firstLoop = false;
-				} else {
-					backupOutputWriter.write(fieldSeparator);
-				}
-				if (value != null) {
-					if (useQuotingForAllTypes || (value instanceof Number || value instanceof Boolean) == false) {
-						backupOutputWriter.write(fieldQuoteChar);
-					}
-					backupOutputWriter.write(convertToString(value));
-					if (useQuotingForAllTypes || (value instanceof Number || value instanceof Boolean) == false) {
-						backupOutputWriter.write(fieldQuoteChar);
-					}
-				} else {
-					backupOutputWriter.write(nullReplacement);
-				}
-			}
-			backupOutputWriter.write(lineEnd);
-			countFileRows++;
+		if (row == null) {
+			return;
 		}
+		boolean firstLoop = true;
+		for (Object value : row) {
+			if (firstLoop) {
+				firstLoop = false;
+			} else {
+				backupOutputWriter.write(fieldSeparator);
+			}
+			if (value != null) {
+				if (useQuotingForAllTypes || (value instanceof Number || value instanceof Boolean) == false) {
+					backupOutputWriter.write(fieldQuoteChar);
+				}
+				backupOutputWriter.write(convertToString(value));
+				if (useQuotingForAllTypes || (value instanceof Number || value instanceof Boolean) == false) {
+					backupOutputWriter.write(fieldQuoteChar);
+				}
+			} else {
+				backupOutputWriter.write(nullReplacement);
+			}
+		}
+		backupOutputWriter.write(lineEnd);
+		countFileRows++;
 	}
 
 	private void writeFile() {
@@ -1631,9 +1628,9 @@ public class TableTransfer {
 			boolean headerWritten = false;
 			while (endFlagReceived == false) {
 				try {
-					final List<Object> queueObjects = new ArrayList<Object>(batchSize);
+					final List<Object> queueObjects = new ArrayList<>(batchSize);
 					// poll waits for a time until new records arrives
-					Object one = fileQueue.poll(10000, TimeUnit.MILLISECONDS);
+					final Object one = fileQueue.poll(10000, TimeUnit.MILLISECONDS);
 					if (one == null) {
 						continue;
 					} else {
@@ -1650,7 +1647,7 @@ public class TableTransfer {
 							if (writeHeaderInFile && headerWritten == false) {
 								debug("Write header into file (" + listSourceFieldNames.size() + " columns)");
 								// get header
-								Object[] headerRow = listSourceFieldNames.toArray();
+								final Object[] headerRow = listSourceFieldNames.toArray();
 								// write into file
 								countFileRows = -1; // prevent count header as data row
 								writeRowInFile(headerRow);
@@ -1919,85 +1916,89 @@ public class TableTransfer {
 	}
 
 	private void checkValueRange(Float newValue) {
-		if (newValue != null) {
-			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+		if (newValue == null) {
+			return;
+		}
+		if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+			valueRangeStart = String.valueOf(newValue);
+		} else {
+			final float cv = Float.valueOf(valueRangeStart);
+			if (cv > newValue) {
 				valueRangeStart = String.valueOf(newValue);
-			} else {
-				float cv = Float.valueOf(valueRangeStart);
-				if (cv > newValue) {
-					valueRangeStart = String.valueOf(newValue);
-				}
 			}
-			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+		}
+		if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+			valueRangeEnd = String.valueOf(newValue);
+		} else {
+			final float cv = Float.valueOf(valueRangeEnd);
+			if (cv < newValue) {
 				valueRangeEnd = String.valueOf(newValue);
-			} else {
-				float cv = Float.valueOf(valueRangeEnd);
-				if (cv < newValue) {
-					valueRangeEnd = String.valueOf(newValue);
-				}
 			}
 		}
 	}
 
 	private void checkValueRange(Integer newValue) {
-		if (newValue != null) {
-			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+		if (newValue == null) {
+			return;
+		}
+		if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+			valueRangeStart = String.valueOf(newValue);
+		} else {
+			final int cv = Integer.valueOf(valueRangeStart);
+			if (cv > newValue) {
 				valueRangeStart = String.valueOf(newValue);
-			} else {
-				final int cv = Integer.valueOf(valueRangeStart);
-				if (cv > newValue) {
-					valueRangeStart = String.valueOf(newValue);
-				}
 			}
-			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+		}
+		if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+			valueRangeEnd = String.valueOf(newValue);
+		} else {
+			final int cv = Integer.valueOf(valueRangeEnd);
+			if (cv < newValue) {
 				valueRangeEnd = String.valueOf(newValue);
-			} else {
-				final int cv = Integer.valueOf(valueRangeEnd);
-				if (cv < newValue) {
-					valueRangeEnd = String.valueOf(newValue);
-				}
 			}
 		}
 	}
 
 	private void checkValueRange(Short newValue) {
-		if (newValue != null) {
-			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+		if (newValue == null) {
+			return;
+		}
+		if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+			valueRangeStart = String.valueOf(newValue);
+		} else {
+			final short cv = Short.valueOf(valueRangeStart);
+			if (cv > newValue) {
 				valueRangeStart = String.valueOf(newValue);
-			} else {
-				final short cv = Short.valueOf(valueRangeStart);
-				if (cv > newValue) {
-					valueRangeStart = String.valueOf(newValue);
-				}
 			}
-			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+		}
+		if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+			valueRangeEnd = String.valueOf(newValue);
+		} else {
+			final short cv = Short.valueOf(valueRangeEnd);
+			if (cv < newValue) {
 				valueRangeEnd = String.valueOf(newValue);
-			} else {
-				final short cv = Short.valueOf(valueRangeEnd);
-				if (cv < newValue) {
-					valueRangeEnd = String.valueOf(newValue);
-				}
 			}
 		}
 	}
 
 	private void checkValueRange(Byte newValue) {
-		if (newValue != null) {
-			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+		if (newValue == null) {
+			return;
+		}
+		if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+			valueRangeStart = String.valueOf(newValue);
+		} else {
+			final byte cv = Byte.valueOf(valueRangeStart);
+			if (cv > newValue) {
 				valueRangeStart = String.valueOf(newValue);
-			} else {
-				final byte cv = Byte.valueOf(valueRangeStart);
-				if (cv > newValue) {
-					valueRangeStart = String.valueOf(newValue);
-				}
 			}
-			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+		}
+		if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+			valueRangeEnd = String.valueOf(newValue);
+		} else {
+			final byte cv = Byte.valueOf(valueRangeEnd);
+			if (cv < newValue) {
 				valueRangeEnd = String.valueOf(newValue);
-			} else {
-				final byte cv = Byte.valueOf(valueRangeEnd);
-				if (cv < newValue) {
-					valueRangeEnd = String.valueOf(newValue);
-				}
 			}
 		}
 	}
@@ -2025,22 +2026,23 @@ public class TableTransfer {
 	}
 
 	public void checkValueRange(BigInteger newValue) {
-		if (newValue != null) {
-			if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+		if (newValue == null) {
+			return;
+		}
+		if (valueRangeStart == null || valueRangeStart.isEmpty()) {
+			valueRangeStart = String.valueOf(newValue);
+		} else {
+			final BigInteger cv = new BigInteger(valueRangeStart);
+			if (cv.compareTo(newValue) > 0) {
 				valueRangeStart = String.valueOf(newValue);
-			} else {
-				final BigInteger cv = new BigInteger(valueRangeStart);
-				if (cv.compareTo(newValue) > 0) {
-					valueRangeStart = String.valueOf(newValue);
-				}
 			}
-			if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+		}
+		if (valueRangeEnd == null || valueRangeEnd.isEmpty()) {
+			valueRangeEnd = String.valueOf(newValue);
+		} else {
+			final BigInteger cv = new BigInteger(valueRangeEnd);
+			if (cv.compareTo(newValue) < 0) {
 				valueRangeEnd = String.valueOf(newValue);
-			} else {
-				final BigInteger cv = new BigInteger(valueRangeEnd);
-				if (cv.compareTo(newValue) < 0) {
-					valueRangeEnd = String.valueOf(newValue);
-				}
 			}
 		}
 	}

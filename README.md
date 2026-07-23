@@ -12,7 +12,8 @@ All other database types have less options and you can refer to the tPostgresql 
 ## Important note:
 
 If you use SAP HANA as source you will probably experience the strange error message:
-SAP DBTech JDBC: SQL statement would generate a row count
+
+```SAP DBTech JDBC: SQL statement would generate a row count```
 
 This is because a misinterpretation of block comments in the recent HANA versions.
 To prevent this: Switch off the option "Add application name as comment to the statements" in the Advanced Settings of the component.

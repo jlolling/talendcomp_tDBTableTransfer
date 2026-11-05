@@ -417,7 +417,7 @@ public class TableTransfer {
 			error("Read failed in line number " + countRead + " message:" + message, e);
 			returnCode = RETURN_CODE_ERROR_INPUT;
 		} catch (InterruptedException ie) {
-			if (returnCode == RETURN_CODE_OK) {
+			if (returnCode == RETURN_CODE_OK || returnCode == RETURN_CODE_WARN) {
 				returnCode = RETURN_CODE_ERROR_INPUT; // it is most likely the interruption comes from the write part
 			}
 		} catch (Exception ie) {
@@ -593,6 +593,7 @@ public class TableTransfer {
 					// drain never waits! Thats why we have to use poll before!
 					// here we get the rest of all objects from the queue
 					tableQueue.drainTo(queueObjects, batchSize); // pull elements from queue to this given list
+					boolean writeAborted = false;
 					for (Object item : queueObjects) {
 						if (item == closeFlag) {
 							info("Write table thread: Stop flag received.");
@@ -603,75 +604,71 @@ public class TableTransfer {
 							if (targetSQLStatement == null) {
 								targetPreparedStatement = createTargetStatement();
 							}
-							prepareInsertStatement((Object[]) item);
-							targetPreparedStatement.addBatch();
-							countInsertsAdded++;
-							currentBatchCount++;
-							if (currentBatchCount == batchSize) {
-								if (isDebugEnabled()) {
-									debug("Write execute insert batch ends with recno: " + countInsertsAdded);
+							// the error handling must take place within this loop
+							// otherwise the remaining drained records (and the stop flag) would be lost
+							try {
+								prepareInsertStatement((Object[]) item);
+								targetPreparedStatement.addBatch();
+								countInsertsAdded++;
+								currentBatchCount++;
+								if (currentBatchCount == batchSize) {
+									if (isDebugEnabled()) {
+										debug("Write execute insert batch ends with recno: " + countInsertsAdded);
+									}
+									targetPreparedStatement.executeBatch();
+									countInsertsInDB = countInsertsAdded;
+									if (doCommit && autocommit == false) {
+										targetConnection.commit();
+									}
+									currentBatchCount = 0;
 								}
-								targetPreparedStatement.executeBatch();
-								countInsertsInDB = countInsertsAdded;
-								if (doCommit && autocommit == false) {
-									targetConnection.commit();
+							} catch (SQLException sqle) {
+								logWriteError(sqle, currentBatchCount);
+								if (dieOnError) {
+									returnCode = RETURN_CODE_ERROR_OUTPUT;
+									try {
+										if (autocommit == false) {
+											targetConnection.rollback();
+										}
+									} catch (SQLException e) {
+										error("Write rollback failed: " + e.getMessage(), e);
+									}
+									writeAborted = true;
+									break;
+								} else {
+									// tolerate the error: keep the writer and reader running and only mark the transfer as not successful
+									setReturnCodeWarn();
+									// the failed batch is gone, start counting the next batch from scratch
+									currentBatchCount = 0;
+									try {
+										targetPreparedStatement.clearBatch();
+									} catch (SQLException e) {
+										error("Write into table: " + getTargetTableAsGiven() + " clear batch failed: "
+												+ e.getMessage(), e);
+									}
+									if (doCommit) {
+										try {
+											if (autocommit == false) {
+												targetConnection.commit();
+											}
+										} catch (SQLException e) {
+											error("Write into table: " + getTargetTableAsGiven() + " commit failed: "
+													+ e.getMessage(), e);
+										}
+									}
 								}
-								currentBatchCount = 0;
 							}
 						}
 						if (Thread.currentThread().isInterrupted()) {
 							break;
 						}
 					}
+					if (writeAborted) {
+						break;
+					}
 				} catch (InterruptedException e) {
 					returnCode = RETURN_CODE_ERROR_OUTPUT;
 					break;
-				} catch (SQLException sqle) {
-					runningDb = false;
-					if (sqle instanceof BatchUpdateException) {
-						final BatchUpdateException be = (BatchUpdateException) sqle;
-						// set the batchIndex as the absolute over all index
-						final int overallIndex = getFailedLineNumber(be, countInsertsAdded - currentBatchCount);
-						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + overallIndex
-								+ " message:" + sqle.getMessage(), sqle);
-					} else {
-						error("Write into table: " + getTargetTableAsGiven() + " failed in line number "
-								+ countInsertsAdded + " message:" + sqle.getMessage(), sqle);
-					}
-					final SQLException ne = sqle.getNextException();
-					if (ne != null) {
-						error("Next exception:" + ne.getMessage(), ne);
-					}
-					returnCode = RETURN_CODE_ERROR_OUTPUT;
-					if (dieOnError) {
-						try {
-							if (autocommit == false) {
-								targetConnection.rollback();
-							}
-						} catch (SQLException e) {
-							error("Write rollback failed: " + e.getMessage(), e);
-						}
-						break;
-					} else {
-						// the failed batch is gone, start counting the next batch from scratch
-						currentBatchCount = 0;
-						try {
-							targetPreparedStatement.clearBatch();
-						} catch (SQLException e) {
-							error("Write into table: " + getTargetTableAsGiven() + " clear batch failed: "
-									+ e.getMessage(), e);
-						}
-						if (doCommit) {
-							try {
-								if (autocommit == false) {
-									targetConnection.commit();
-								}
-							} catch (SQLException e) {
-								error("Write into table: " + getTargetTableAsGiven() + " commit failed: "
-										+ e.getMessage(), e);
-							}
-						}
-					}
 				} catch (Exception e1) {
 					runningDb = false;
 					returnCode = RETURN_CODE_ERROR_OUTPUT;
@@ -682,7 +679,7 @@ public class TableTransfer {
 			}
 			if (currentBatchCount > 0 && returnCode != RETURN_CODE_ERROR_OUTPUT) {
 				// the batch has still some cached records and must send to the database
-				// and we do not have problems with the target database yet
+				// and the write has not been stopped by an error
 				try {
 					if (isDebugEnabled()) {
 						debug("write execute final insert batch");
@@ -694,26 +691,29 @@ public class TableTransfer {
 					}
 					currentBatchCount = 0;
 				} catch (SQLException sqle) {
-					returnCode = RETURN_CODE_ERROR_OUTPUT;
-					if (sqle instanceof BatchUpdateException) {
-						final BatchUpdateException be = (BatchUpdateException) sqle;
-						final int overallIndex = getFailedLineNumber(be, countInsertsAdded - currentBatchCount);
-						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + overallIndex
-								+ " message: " + sqle.getMessage(), sqle);
-					} else {
-						error("Write into table: " + getTargetTableAsGiven() + " failed in line number "
-								+ countInsertsAdded + " message: " + sqle.getMessage(), sqle);
-					}
-					final SQLException ne = sqle.getNextException();
-					if (ne != null) {
-						error("Next exception:" + ne.getMessage(), ne);
-					}
-					try {
-						if (autocommit == false) {
-							targetConnection.rollback();
+					logWriteError(sqle, currentBatchCount);
+					if (dieOnError) {
+						returnCode = RETURN_CODE_ERROR_OUTPUT;
+						try {
+							if (autocommit == false) {
+								targetConnection.rollback();
+							}
+						} catch (SQLException e) {
+							error("Write into table: " + getTargetTableAsGiven() + " rollback failed:" + e.getMessage(), e);
 						}
-					} catch (SQLException e) {
-						error("Write into table: " + getTargetTableAsGiven() + " rollback failed:" + e.getMessage(), e);
+					} else {
+						// same as for the batches before: skip the failed batch and keep the successful ones
+						setReturnCodeWarn();
+						if (doCommit) {
+							try {
+								if (autocommit == false) {
+									targetConnection.commit();
+								}
+							} catch (SQLException e) {
+								error("Write into table: " + getTargetTableAsGiven() + " commit failed: "
+										+ e.getMessage(), e);
+							}
+						}
 					}
 				}
 			}
@@ -736,27 +736,75 @@ public class TableTransfer {
 	}
 
 	/**
-	 * calculates the absolute line number of the record which caused the batch to fail
+	 * logs a failed write including the line number and the next exception
+	 *
+	 * @param sqle the exception thrown while writing
+	 * @param batchCount count of records in the failed batch
+	 */
+	private void logWriteError(SQLException sqle, int batchCount) {
+		if (sqle instanceof BatchUpdateException) {
+			final String failedLines = getFailedLines((BatchUpdateException) sqle, countInsertsAdded - batchCount, batchCount);
+			error("Write into table: " + getTargetTableAsGiven() + " failed in " + failedLines
+					+ " message: " + sqle.getMessage(), sqle);
+		} else {
+			error("Write into table: " + getTargetTableAsGiven() + " failed in line number "
+					+ countInsertsAdded + " message: " + sqle.getMessage(), sqle);
+		}
+		final SQLException ne = sqle.getNextException();
+		if (ne != null) {
+			error("Next exception:" + ne.getMessage(), ne);
+		}
+	}
+
+	/**
+	 * marks the transfer as not successful without stopping it, an error code is never downgraded
+	 */
+	private void setReturnCodeWarn() {
+		if (returnCode == RETURN_CODE_OK) {
+			returnCode = RETURN_CODE_WARN;
+		}
+	}
+
+	/**
+	 * describes the absolute line number(s) of the record which caused the batch to fail.
+	 * If the driver does not tell which record has failed, the line range of the whole batch is returned.
 	 *
 	 * @param be the exception thrown by executeBatch
 	 * @param countBeforeBatch count of records added before the failed batch has been started
-	 * @return line number (1-based)
+	 * @param batchCount count of records in the failed batch
+	 * @return e.g. "line number 6" or "batch with line numbers 1 - 100" (1-based)
 	 */
-	private static int getFailedLineNumber(BatchUpdateException be, int countBeforeBatch) {
+	static String getFailedLines(BatchUpdateException be, int countBeforeBatch, int batchCount) {
 		final int[] counts = be.getUpdateCounts();
-		int failedIndex = 0;
+		int failedIndex = -1;
 		if (counts != null) {
-			// drivers which continue after a failure mark the failed statements,
-			// drivers which stop return only the counts of the successful statements
-			failedIndex = counts.length;
+			int firstFailed = -1;
+			boolean allFailed = counts.length > 0;
 			for (int i = 0; i < counts.length; i++) {
 				if (counts[i] == Statement.EXECUTE_FAILED) {
-					failedIndex = i;
-					break;
+					if (firstFailed == -1) {
+						firstFailed = i;
+					}
+				} else {
+					allFailed = false;
 				}
 			}
+			if (firstFailed == -1) {
+				// drivers which stop return only the counts of the successful statements
+				if (counts.length < batchCount) {
+					failedIndex = counts.length;
+				}
+			} else if (allFailed == false || counts.length == 1) {
+				// drivers which continue after a failure mark the failed statements
+				failedIndex = firstFailed;
+			}
+			// all statements marked as failed: the driver (e.g. PostgreSQL) has rejected the whole batch
 		}
-		return countBeforeBatch + failedIndex + 1;
+		if (failedIndex == -1 && batchCount > 1) {
+			return "batch with line numbers " + (countBeforeBatch + 1) + " - " + (countBeforeBatch + batchCount);
+		} else {
+			return "line number " + (countBeforeBatch + Math.max(failedIndex, 0) + 1);
+		}
 	}
 
 	private int getIndexInSourceFieldList(String columnName) {
@@ -1686,7 +1734,8 @@ public class TableTransfer {
 				error("Close file failed: " + e.getMessage(), e);
 			}
 			runningFile = false;
-			if (returnCode == RETURN_CODE_OK) {
+			// a warning (e.g. a tolerated table write error) does not affect the completeness of the file
+			if (returnCode == RETURN_CODE_OK || returnCode == RETURN_CODE_WARN) {
 				debug("Finished write data into file " + backupFile.getAbsolutePath() + ", count rows:"
 						+ countFileRows);
 				debug("Rename tmp file: " + backupFileTmp.getAbsolutePath() + " to target file: "
@@ -2061,6 +2110,16 @@ public class TableTransfer {
 	public void setDoCommit(Boolean doCommit) {
 		if (doCommit != null) {
 			this.doCommit = doCommit;
+		}
+	}
+
+	/**
+	 * if false, failed batches will be skipped and the transfer continues (has to be set before setup)
+	 * @param dieOnError
+	 */
+	public void setDieOnError(Boolean dieOnError) {
+		if (dieOnError != null) {
+			properties.setProperty(DIE_ON_ERROR, dieOnError.toString());
 		}
 	}
 

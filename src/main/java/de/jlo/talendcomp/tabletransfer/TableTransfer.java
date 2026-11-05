@@ -75,7 +75,7 @@ public class TableTransfer {
 	private static final int RETURN_CODE_ERROR_INPUT = 1;
 	private static final int RETURN_CODE_ERROR_OUTPUT = 2;
 	private static final int RETURN_CODE_WARN = 5;
-	private int returnCode = RETURN_CODE_OK;
+	private volatile int returnCode = RETURN_CODE_OK;
 	private String errorMessage;
 	private Exception errorException;
 	private BlockingQueue<Object> tableQueue;
@@ -412,7 +412,7 @@ public class TableTransfer {
 			String message = e.getMessage();
 			final SQLException en = e.getNextException();
 			if (en != null) {
-				message = "\nNext Exception:" + en.getMessage();
+				message = message + "\nNext Exception:" + en.getMessage();
 			}
 			error("Read failed in line number " + countRead + " message:" + message, e);
 			returnCode = RETURN_CODE_ERROR_INPUT;
@@ -558,7 +558,7 @@ public class TableTransfer {
 		if (isDebugEnabled()) {
 			debug("Start writing data into target table " + getTargetTableAsGiven());
 		}
-		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
+		final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1000"));
 		int currentBatchCount = 0;
 		try {
 			boolean autocommitTemp = false;
@@ -630,13 +630,8 @@ public class TableTransfer {
 					runningDb = false;
 					if (sqle instanceof BatchUpdateException) {
 						final BatchUpdateException be = (BatchUpdateException) sqle;
-						final int[] counts = be.getUpdateCounts();
-						int overallIndex = 0;
-						for (int c : counts) {
-							overallIndex += c;
-						}
-						overallIndex += (countInsertsAdded - batchSize); // set the batchIndex as the
-																						// absolute over all index
+						// set the batchIndex as the absolute over all index
+						final int overallIndex = getFailedLineNumber(be, countInsertsAdded - currentBatchCount);
 						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + overallIndex
 								+ " message:" + sqle.getMessage(), sqle);
 					} else {
@@ -658,6 +653,14 @@ public class TableTransfer {
 						}
 						break;
 					} else {
+						// the failed batch is gone, start counting the next batch from scratch
+						currentBatchCount = 0;
+						try {
+							targetPreparedStatement.clearBatch();
+						} catch (SQLException e) {
+							error("Write into table: " + getTargetTableAsGiven() + " clear batch failed: "
+									+ e.getMessage(), e);
+						}
 						if (doCommit) {
 							try {
 								if (autocommit == false) {
@@ -694,12 +697,7 @@ public class TableTransfer {
 					returnCode = RETURN_CODE_ERROR_OUTPUT;
 					if (sqle instanceof BatchUpdateException) {
 						final BatchUpdateException be = (BatchUpdateException) sqle;
-						final int[] counts = be.getUpdateCounts();
-						int overallIndex = 0;
-						for (int c : counts) {
-							overallIndex += c;
-						}
-						overallIndex += (countInsertsAdded - batchSize);
+						final int overallIndex = getFailedLineNumber(be, countInsertsAdded - currentBatchCount);
 						error("Write into table: " + getTargetTableAsGiven() + " failed in line number " + overallIndex
 								+ " message: " + sqle.getMessage(), sqle);
 					} else {
@@ -711,7 +709,9 @@ public class TableTransfer {
 						error("Next exception:" + ne.getMessage(), ne);
 					}
 					try {
-						targetConnection.rollback();
+						if (autocommit == false) {
+							targetConnection.rollback();
+						}
 					} catch (SQLException e) {
 						error("Write into table: " + getTargetTableAsGiven() + " rollback failed:" + e.getMessage(), e);
 					}
@@ -733,6 +733,30 @@ public class TableTransfer {
 		runningDb = false;
 		info("Write into table: " + getTargetTableAsGiven() + " ended.");
 		stop();
+	}
+
+	/**
+	 * calculates the absolute line number of the record which caused the batch to fail
+	 *
+	 * @param be the exception thrown by executeBatch
+	 * @param countBeforeBatch count of records added before the failed batch has been started
+	 * @return line number (1-based)
+	 */
+	private static int getFailedLineNumber(BatchUpdateException be, int countBeforeBatch) {
+		final int[] counts = be.getUpdateCounts();
+		int failedIndex = 0;
+		if (counts != null) {
+			// drivers which continue after a failure mark the failed statements,
+			// drivers which stop return only the counts of the successful statements
+			failedIndex = counts.length;
+			for (int i = 0; i < counts.length; i++) {
+				if (counts[i] == Statement.EXECUTE_FAILED) {
+					failedIndex = i;
+					break;
+				}
+			}
+		}
+		return countBeforeBatch + failedIndex + 1;
 	}
 
 	private int getIndexInSourceFieldList(String columnName) {
@@ -1289,9 +1313,10 @@ public class TableTransfer {
 	}
 
 	public void setSourceQuery(String sourceQuery) {
-		if (sourceQuery != null) {
-			sourceQuery = sourceQuery.trim();
+		if (sourceQuery == null || sourceQuery.trim().isEmpty()) {
+			throw new IllegalArgumentException("Source query cannot be null or empty!");
 		}
+		sourceQuery = sourceQuery.trim();
 		if (sourceQuery.endsWith(";")) {
 			sourceQuery = sourceQuery.substring(0, sourceQuery.length() - 1);
 		}
@@ -1508,7 +1533,8 @@ public class TableTransfer {
 	public String setBackupFilePath(String backupFilePath) throws Exception {
 		if (backupFilePath != null && backupFilePath.trim().isEmpty() == false) {
 			File test = new File(backupFilePath);
-			if (test.isDirectory()) {
+			// a path ending with a separator is meant as directory even if it does not exist yet
+			if (test.isDirectory() || backupFilePath.endsWith("/") || backupFilePath.endsWith(File.separator)) {
 				if (test.exists() == false) {
 					test.mkdirs();
 					if (test.exists() == false) {
@@ -1609,7 +1635,7 @@ public class TableTransfer {
 		try {
 			countFileRows = 0;
 			debug("Start writing data in file: " + backupFile.getAbsolutePath());
-			final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1"));
+			final int batchSize = Integer.parseInt(properties.getProperty(TARGET_BATCHSIZE, "1000"));
 			boolean endFlagReceived = false;
 			boolean headerWritten = false;
 			while (endFlagReceived == false) {
@@ -2060,7 +2086,7 @@ public class TableTransfer {
 		}
 		final String stringKeyWords = dbmd.getStringFunctions();
 		if (stringKeyWords != null && stringKeyWords.trim().isEmpty() == false) {
-			final String[] words = sqlKeyWords.split(",");
+			final String[] words = stringKeyWords.split(",");
 			for (String w : words) {
 				codeGen.addKeyword(w);
 			}
@@ -2069,7 +2095,7 @@ public class TableTransfer {
 
 	public void setKeywords(String keywords) throws SQLException {
 		if (keywords != null && keywords.trim().isEmpty() == false) {
-			final String[] array = keywords.split(",;|");
+			final String[] array = keywords.split("[,;|]");
 			for (String keyword : array) {
 				getTargetCodeGenerator().addKeyword(keyword);
 				getSourceCodeGenerator().addKeyword(keyword);

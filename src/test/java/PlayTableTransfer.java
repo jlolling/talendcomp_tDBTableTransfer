@@ -104,7 +104,6 @@ public class PlayTableTransfer extends TalendTest {
 				.setSourceConnection((java.sql.Connection) globalMap
 						.get("conn_" + "tMysqlConnection_3"));
 		tMysqlTableTransfer_1.setSourceFetchSize("10000");
-		tMysqlTableTransfer_1.setupDataModels();
 		// use our own query as source
 		String tMysqlTableTransfer_1_query = "\nselect\nDATE_AS_INT,\nDATE_AS_DATE,\nDAY_OF_YEAR_AS_INT,\nDAY_OF_WEEK_AS_INT,\nWEEK_DAY_NAME,\nWEEK_DAY_SHORT_NAME,\nWEEK_AS_INT,\nWEEK_START_DATE,\nWEEK_END_DATE,\nYEAR_OF_WEEK_AS_INT,\nDAY_OF_MONTH_AS_INT,\nMONTH_AS_INT,\nMONTH_NAME,\nMONTH_SHORT_NAME,\nMONTH_START_DATE,\nMONTH_END_DATE,\nQUARTER_AS_INT,\nCAL_YEAR_AS_INT,\nFIN_YEAR_AS_INT,\nFIN_MONTH_AS_INT,\nFIN_QUARTER_AS_INT,\nUTC_MILLISECONDS,\nIS_LAST_DAY_OF_MONTH\nfrom JOB_CALENDAR\n";
 		tMysqlTableTransfer_1

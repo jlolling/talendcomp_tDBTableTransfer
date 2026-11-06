@@ -465,6 +465,11 @@ public class GenericDatabaseExtension implements DatabaseExtension {
 		} else {
 			return false;
 		}
+	}
+
+	@Override
+	public String getIdentifierQuoteStringClose() {
+		return getIdentifierQuoteString();
 	}	
 	
 }

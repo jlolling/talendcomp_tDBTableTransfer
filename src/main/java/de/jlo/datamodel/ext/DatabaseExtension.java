@@ -206,6 +206,13 @@ public interface DatabaseExtension {
 	 */
 	public String getIdentifierQuoteString();
 	
+	/**
+	 * returns the char which should be used to enclosure identifiers
+	 * for closing the enclosure.
+	 * @return
+	 */
+	public String getIdentifierQuoteStringClose();
+
 	public void setIdentifierQuoteString(String quote);
 	
 	public boolean hasSequenceFeature();
